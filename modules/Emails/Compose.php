@@ -45,7 +45,7 @@ if (!defined('sugarEntry') || !sugarEntry) {
 $data = $_REQUEST;
 
 if (!empty($data['listViewExternalClient'])) {
-    $email = new Email();
+    $email = BeanFactory::newBean('Emails');
     echo $email->getNamePlusEmailAddressesForCompose($_REQUEST['action_module'], (explode(",", $_REQUEST['uid'])));
 }
 //For the full compose/email screen, the compose package is generated and script execution
@@ -111,7 +111,7 @@ function generateComposeDataPackage($data, $forFullCompose = true)
         $namePlusEmail = '';
         if (isset($data['to_email_addrs'])) {
             $namePlusEmail = $data['to_email_addrs'];
-            $namePlusEmail = from_html(str_replace("&nbsp;", " ", $namePlusEmail));
+            $namePlusEmail = from_html(str_replace("&nbsp;", " ", (string) $namePlusEmail));
         } else {
             if (isset($bean->full_name)) {
                 $namePlusEmail = from_html($bean->full_name) . " <" . from_html($bean->emailAddress->getPrimaryAddress($bean)) . ">";
@@ -128,7 +128,7 @@ function generateComposeDataPackage($data, $forFullCompose = true)
             $subject = str_replace('%1', $bean->case_number, $bean->getEmailSubjectMacro() . " " . from_html($bean->name));//bug 41928
             $bean->load_relationship("contacts");
             $contact_ids = $bean->contacts->get();
-            $contact = new Contact();
+            $contact = BeanFactory::newBean('Contacts');
             foreach ($contact_ids as $cid) {
                 $contact->retrieve($cid);
                 $namePlusEmail .= empty($namePlusEmail) ? "" : ", ";
@@ -138,7 +138,7 @@ function generateComposeDataPackage($data, $forFullCompose = true)
         if ($bean->module_dir == 'KBDocuments') {
             require_once("modules/Emails/EmailUI.php");
             $subject = $bean->kbdocument_name;
-            $article_body = str_replace('/' . $GLOBALS['sugar_config']['cache_dir'] . 'images/', $GLOBALS['sugar_config']['site_url'] . '/' . $GLOBALS['sugar_config']['cache_dir'] . 'images/', KBDocument::get_kbdoc_body_without_incrementing_count($bean->id));
+            $article_body = str_replace('/' . $GLOBALS['sugar_config']['cache_dir'] . 'images/', $GLOBALS['sugar_config']['site_url'] . '/' . $GLOBALS['sugar_config']['cache_dir'] . 'images/', (string) KBDocument::get_kbdoc_body_without_incrementing_count($bean->id));
             $body = from_html($article_body);
             $attachments = KBDocument::get_kbdoc_attachments_for_newemail($bean->id);
             $attachments = $attachments['attachments'];
@@ -182,7 +182,7 @@ function generateComposeDataPackage($data, $forFullCompose = true)
             'email_id' => $email_id,
         );
     } elseif (isset($_REQUEST['ListView'])) {
-        $email = new Email();
+        $email = BeanFactory::newBean('Emails');
         $namePlusEmail = $email->getNamePlusEmailAddressesForCompose($_REQUEST['action_module'], (explode(",", $_REQUEST['uid'])));
         $ret = array(
             'to_email_addrs' => $namePlusEmail,
@@ -191,8 +191,8 @@ function generateComposeDataPackage($data, $forFullCompose = true)
         require_once("modules/Emails/EmailUI.php");
 
         $ret = array();
-        $ie = new InboundEmail();
-        $ie->email = new Email();
+        $ie = BeanFactory::newBean('InboundEmail');
+        $ie->email = BeanFactory::newBean('Emails');
         $ie->email->email2init();
         $replyType = $data['reply'];
         $email_id = $data['record'];
@@ -239,7 +239,7 @@ function generateComposeDataPackage($data, $forFullCompose = true)
             'parent_type' => $return['parent_type'],
             'parent_id' => $return['parent_id'],
             'parent_name' => $return['parent_name'],
-            'subject' => $return['name'],
+            'subject' => html_entity_decode_utf8($return['name']),
             'body' => $preBodyHTML . $return['description'],
             'attachments' => (isset($return['attachments']) ? $return['attachments'] : array()),
             'email_id' => $email_id,
@@ -299,14 +299,14 @@ function getQuotesRelatedData($data)
     $emailId = $data['recordId'];
 
     require_once("modules/Emails/EmailUI.php");
-    $email = new Email();
+    $email = BeanFactory::newBean('Emails');
     $email->retrieve($emailId);
     $return['subject'] = $email->name;
     $return['body'] = from_html($email->description_html);
     $return['toAddress'] = $email->to_addrs;
     $ret = array();
     $ret['uid'] = $emailId;
-    $ret = EmailUI::getDraftAttachments($ret);
+    $ret = (new EmailUI())->getDraftAttachments($ret);
     $return['attachments'] = $ret['attachments'];
     $return['email_id'] = $emailId;
     $return['parent_type'] = $email->parent_type;

@@ -57,6 +57,10 @@ require_once('modules/UpgradeWizard/SugarMerge/ListViewMerge.php');
 
 class SubpanelMerge extends ListViewMerge
 {
+    /**
+     * @var mixed[]|array<string, mixed[]>
+     */
+    public $mergeData;
     protected $varName = 'subpanel_layout';
     protected $viewDefs = 'SubPanel';
     /**
@@ -93,6 +97,6 @@ class SubpanelMerge extends ListViewMerge
      */
     public function save($to)
     {
-        return write_array_to_file("$this->varName", $this->newData, $to);
+        return write_array_to_file((string)$this->varName, $this->newData, $to);
     }
 }

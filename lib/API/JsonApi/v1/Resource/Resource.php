@@ -39,16 +39,10 @@
  */
 namespace SuiteCRM\API\JsonApi\v1\Resource;
 
-use Interop\Container\ContainerInterface;
-use Psr\Http\Message\ServerRequestInterface;
 use SuiteCRM\API\JsonApi\v1\Links;
-use Psr\Log\LoggerAwareInterface;
-use Psr\Log\LoggerInterface;
 use SuiteCRM\API\JsonApi\v1\Enumerator\ResourceEnum;
 use SuiteCRM\API\v8\Exception\BadRequestException;
 use SuiteCRM\API\v8\Exception\ConflictException;
-use SuiteCRM\API\v8\Exception\NotImplementedException;
-use SuiteCRM\Utility\SuiteLogger as Logger;
 
 /**
  * Class Resource
@@ -82,11 +76,11 @@ class Resource extends ResourceIdentifier
         'related',
         'errors',
     );
-    const DATA_RELATIONSHIPS = '/data/relationships/';
-    const RELATIONSHIPS = 'relationships';
-    const LINKS = 'links';
-    const META = 'meta';
-    const ATTRIBUTES = 'attributes';
+    public const DATA_RELATIONSHIPS = '/data/relationships/';
+    public const RELATIONSHIPS = 'relationships';
+    public const LINKS = 'links';
+    public const META = 'meta';
+    public const ATTRIBUTES = 'attributes';
 
     /**
      * @var array $attributes

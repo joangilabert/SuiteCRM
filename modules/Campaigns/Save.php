@@ -41,16 +41,10 @@ if (!defined('sugarEntry') || !sugarEntry) {
  * display the words "Powered by SugarCRM" and "Supercharged by SuiteCRM".
  */
 
-/*********************************************************************************
-
- * Description:  TODO: To be written.
- * Portions created by SugarCRM are Copyright (C) SugarCRM, Inc.
- * All Rights Reserved.
- * Contributor(s): ______________________________________..
- ********************************************************************************/
 
 
-$focus = new Campaign();
+
+$focus = BeanFactory::newBean('Campaigns');
 
 $focus->retrieve($_POST['record']);
 if (!$focus->ACLAccess('Save')) {
@@ -69,23 +63,21 @@ $focus = populateFromPost('', $focus);
 //store preformatted dates for 2nd save
 $preformat_start_date = $focus->start_date;
 $preformat_end_date = $focus->end_date;
-//_ppd($preformat_end_date);
 
 $focus->save($check_notify);
 $return_id = $focus->id;
 
 $GLOBALS['log']->debug("Saved record with id of ".$return_id);
 
-
 //copy compaign targets on duplicate
 if (!empty($_REQUEST['duplicateSave']) &&  !empty($_REQUEST['duplicateId'])) {
-    $copyFromCompaign = new Campaign();
+    $copyFromCompaign = BeanFactory::newBean('Campaigns');
     $copyFromCompaign->retrieve($_REQUEST['duplicateId']);
     $copyFromCompaign->load_relationship('prospectlists');
 
     $focus->load_relationship('prospectlists');
     $target_lists = $copyFromCompaign->prospectlists->get();
-    if (count($target_lists)>0) {
+    if ((is_countable($target_lists) ? count($target_lists) : 0)>0) {
         foreach ($target_lists as $prospect_list_id) {
             $focus->prospectlists->add($prospect_list_id);
         }
@@ -112,14 +104,14 @@ if ($focus->campaign_type =='NewsLetter') {
 
     $focus->load_relationship('prospectlists');
     $target_lists = $focus->prospectlists->get();
-    if (count($target_lists)<1) {
+    if ((is_countable($target_lists) ? count($target_lists) : 0)<1) {
         global $current_user;
         global $mod_strings;
         //if no prospect lists are attached, then lets create a subscription and unsubscription
         //default prospect lists as these are required for newsletters.
 
         //create subscription list
-        $subs = new ProspectList();
+        $subs = BeanFactory::newBean('ProspectLists');
         $subs->name = $focus->name.' '.$mod_strings['LBL_SUBSCRIPTION_LIST'];
         $subs->assigned_user_id= $current_user->id;
         $subs->list_type = "default";
@@ -127,7 +119,7 @@ if ($focus->campaign_type =='NewsLetter') {
         $focus->prospectlists->add($subs->id);
 
         //create unsubscription list
-        $unsubs = new ProspectList();
+        $unsubs = BeanFactory::newBean('ProspectLists');
         $unsubs->name = $focus->name.' '.$mod_strings['LBL_UNSUBSCRIPTION_LIST'];
         $unsubs->assigned_user_id= $current_user->id;
         $unsubs->list_type = "exempt";
@@ -135,7 +127,7 @@ if ($focus->campaign_type =='NewsLetter') {
         $focus->prospectlists->add($unsubs->id);
 
         //create unsubscription list
-        $test_subs = new ProspectList();
+        $test_subs = BeanFactory::newBean('ProspectLists');
         $test_subs->name = $focus->name.' '.$mod_strings['LBL_TEST_LIST'];
         $test_subs->assigned_user_id= $current_user->id;
         $test_subs->list_type = "test";

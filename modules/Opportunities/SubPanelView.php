@@ -41,13 +41,7 @@ if (!defined('sugarEntry') || !sugarEntry) {
  * display the words "Powered by SugarCRM" and "Supercharged by SuiteCRM".
  */
 
-/*********************************************************************************
 
- * Description:  TODO: To be written.
- * Portions created by SugarCRM are Copyright (C) SugarCRM, Inc.
- * All Rights Reserved.
- * Contributor(s): ______________________________________..
- ********************************************************************************/
 
 
 
@@ -89,7 +83,7 @@ if ($currentModule == 'Accounts') {
     ///////////////////////////////////////
     ///
     /// SETUP PARENT POPUP
-    
+
     $popup_request_data = array(
         'call_back_function' => 'set_return_and_save',
         'form_name' => 'DetailView',
@@ -97,13 +91,13 @@ if ($currentModule == 'Accounts') {
             'id' => 'opportunity_id',
             ),
         );
-    
+
     $json = getJSONobj();
     $encoded_popup_request_data = $json->encode($popup_request_data);
-    
+
     //
     ///////////////////////////////////////
-                
+
     $button .= "<input title='".$app_strings['LBL_SELECT_BUTTON_TITLE']
         ."' accessyKey='".$app_strings['LBL_SELECT_BUTTON_KEY']
         ."' type='button' class='button' value='  ".$app_strings['LBL_SELECT_BUTTON_LABEL']
@@ -113,7 +107,7 @@ if ($currentModule == 'Accounts') {
     ///////////////////////////////////////
     ///
     /// SETUP PARENT POPUP
-    
+
     $popup_request_data = array(
         'call_back_function' => 'set_return_and_save',
         'form_name' => 'DetailView',
@@ -121,13 +115,13 @@ if ($currentModule == 'Accounts') {
             'id' => 'opportunity_id',
             ),
         );
-    
+
     $json = getJSONobj();
     $encoded_popup_request_data = $json->encode($popup_request_data);
-    
+
     //
     ///////////////////////////////////////
-                
+
     $button .= "<input title='".$app_strings['LBL_SELECT_BUTTON_TITLE']
         ."' accessyKey='".$app_strings['LBL_SELECT_BUTTON_KEY']
         ."' type='button' class='button' value='  ".$app_strings['LBL_SELECT_BUTTON_LABEL']

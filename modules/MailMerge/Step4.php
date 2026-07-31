@@ -69,9 +69,9 @@ if (!empty($_POST['document_id'])) {
     $_SESSION['MAILMERGE_DOCUMENT_ID'] = $_POST['document_id'];
 }
 $document_id = $_SESSION['MAILMERGE_DOCUMENT_ID'];
-$revision = new DocumentRevision();
+$revision = BeanFactory::newBean('DocumentRevisions');
 $revision->retrieve($document_id);
-//$document = new Document();
+//$document = BeanFactory::newBean('Documents');
 //$document->retrieve($document_id);
 
 if (!empty($_POST['selected_objects'])) {
@@ -81,7 +81,7 @@ if (!empty($_POST['selected_objects'])) {
 $selObjs = $_SESSION['SELECTED_OBJECTS_DEF'];
 $sel_obj = array();
 
-parse_str(stripslashes(html_entity_decode($selObjs, ENT_QUOTES)), $sel_obj);
+parse_str(stripslashes(html_entity_decode((string) $selObjs, ENT_QUOTES)), $sel_obj);
 foreach ($sel_obj as $key=>$value) {
     $sel_obj[$key] = stripslashes($value);
 }

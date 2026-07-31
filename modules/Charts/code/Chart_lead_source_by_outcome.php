@@ -44,6 +44,7 @@ if (!defined('sugarEntry') || !sugarEntry) {
 
 require_once('include/charts/Charts.php');
 
+#[\AllowDynamicProperties]
 class Chart_lead_source_by_outcome
 {
     public $modules = array('Opportunities');
@@ -52,19 +53,7 @@ class Chart_lead_source_by_outcome
     {
     }
 
-    /**
-     * @deprecated deprecated since version 7.6, PHP4 Style Constructors are deprecated and will be remove in 7.8, please update your code, use __construct instead
-     */
-    public function Chart_lead_source_by_outcome()
-    {
-        $deprecatedMessage = 'PHP4 Style Constructors are deprecated and will be remove in 7.8, please update your code';
-        if (isset($GLOBALS['log'])) {
-            $GLOBALS['log']->deprecated($deprecatedMessage);
-        } else {
-            trigger_error($deprecatedMessage, E_USER_DEPRECATED);
-        }
-        self::__construct();
-    }
+
 
 
     public function draw($extra_tools)
@@ -86,10 +75,10 @@ class Chart_lead_source_by_outcome
 
         global $current_user;
         $tempx = $current_user->getPreference('lsbo_lead_sources');
-        if (!empty($lsbo_lead_sources) && count($lsbo_lead_sources) > 0 && !isset($_REQUEST['lsbo_lead_sources'])) {
+        if (!empty($lsbo_lead_sources) && (is_countable($lsbo_lead_sources) ? count($lsbo_lead_sources) : 0) > 0 && !isset($_REQUEST['lsbo_lead_sources'])) {
             $GLOBALS['log']->fatal("user->getPreference('lsbo_lead_sources') is:");
             $GLOBALS['log']->fatal($tempx);
-        } elseif (isset($_REQUEST['lsbo_lead_sources']) && count($_REQUEST['lsbo_lead_sources']) > 0) {
+        } elseif (isset($_REQUEST['lsbo_lead_sources']) && (is_countable($_REQUEST['lsbo_lead_sources']) ? count($_REQUEST['lsbo_lead_sources']) : 0) > 0) {
             $tempx = $_REQUEST['lsbo_lead_sources'];
             $current_user->setPreference('lsbo_lead_sources', $_REQUEST['lsbo_lead_sources']);
             $GLOBALS['log']->fatal("_REQUEST['lsbo_lead_sources'] is:");
@@ -98,7 +87,7 @@ class Chart_lead_source_by_outcome
             $GLOBALS['log']->fatal($current_user->getPreference('lsbo_lead_sources'));
         }
         //set $datax using selected sales stage keys
-        if (!empty($tempx) && sizeof($tempx) > 0) {
+        if (!empty($tempx) && (is_countable($tempx) ? count($tempx) : 0) > 0) {
             foreach ($tempx as $key) {
                 $datax[$key] = $app_list_strings['lead_source_dom'][$key];
                 array_push($selected_datax, $key);
@@ -110,10 +99,10 @@ class Chart_lead_source_by_outcome
 
         $ids =$current_user->getPreference('lsbo_ids');
         //get list of user ids for which to display data
-        if (!empty($ids) && count($ids) != 0 && !isset($_REQUEST['lsbo_ids'])) {
+        if (!empty($ids) && (is_countable($ids) ? count($ids) : 0) != 0 && !isset($_REQUEST['lsbo_ids'])) {
             $GLOBALS['log']->debug("_SESSION['lsbo_ids'] is:");
             $GLOBALS['log']->debug($ids);
-        } elseif (isset($_REQUEST['lsbo_ids']) && count($_REQUEST['lsbo_ids']) > 0) {
+        } elseif (isset($_REQUEST['lsbo_ids']) && (is_countable($_REQUEST['lsbo_ids']) ? count($_REQUEST['lsbo_ids']) : 0) > 0) {
             $ids = $_REQUEST['lsbo_ids'];
             $current_user->setPreference('lsbo_ids', $_REQUEST['lsbo_ids']);
             $GLOBALS['log']->debug("_REQUEST['lsbo_ids'] is:");
@@ -234,27 +223,27 @@ echo "<p align='center'>".$this->gen_xml($datax, $ids, $cache_file_name, $refres
             $GLOBALS['log']->debug("user_id is: ");
             $GLOBALS['log']->debug($user_id);
             $GLOBALS['log']->debug("cache_file_name is: $cache_file_name");
-            $opp = new Opportunity();
+            $opp = BeanFactory::newBean('Opportunities');
             $where="";
             //build the where clause for the query that matches $user
-            $count = count($user_id);
+            $count = is_countable($user_id) ? count($user_id) : 0;
             $id = array();
             if ($count>0) {
                 foreach ($user_id as $the_id) {
                     $id[] = "'".$the_id."'";
                 }
-                $ids = join(",", $id);
+                $ids = implode(",", $id);
                 $where .= "opportunities.assigned_user_id IN ($ids) ";
             }
 
             //build the where clause for the query that matches $datay
-            $count = count($datay);
+            $count = is_countable($datay) ? count($datay) : 0;
             $datayArr = array();
             if ($count>0) {
                 foreach ($datay as $key=>$value) {
                     $datayArr[] = "'".$key."'";
                 }
-                $datayArr = join(",", $datayArr);
+                $datayArr = implode(",", $datayArr);
                 $where .= "AND opportunities.lead_source IN	($datayArr) ";
             }
             $query = "SELECT lead_source,sales_stage,sum(amount_usdollar/1000) as total,count(*) as opp_count FROM opportunities ";
@@ -275,7 +264,7 @@ echo "<p align='center'>".$this->gen_xml($datax, $ids, $cache_file_name, $refres
             global $current_user;
             $salesStages = array("Closed Lost"=>$app_list_strings['sales_stage_dom']["Closed Lost"],"Closed Won"=>$app_list_strings['sales_stage_dom']["Closed Won"],"Other"=>$other);
             if ($current_user->getPreference('currency')) {
-                $currency = new Currency();
+                $currency = BeanFactory::newBean('Currencies');
                 $currency->retrieve($current_user->getPreference('currency'));
                 $div = $currency->conversion_rate;
                 $symbol = $currency->symbol;
@@ -373,10 +362,10 @@ echo "<p align='center'>".$this->gen_xml($datax, $ids, $cache_file_name, $refres
         //get list of sales stage keys to display
 
         $tempx = $current_user->getPreference('lsbo_lead_sources');
-        if (!empty($lsbo_lead_sources) && count($lsbo_lead_sources) > 0 && !isset($_REQUEST['lsbo_lead_sources'])) {
+        if (!empty($lsbo_lead_sources) && (is_countable($lsbo_lead_sources) ? count($lsbo_lead_sources) : 0) > 0 && !isset($_REQUEST['lsbo_lead_sources'])) {
             $GLOBALS['log']->fatal("user->getPreference('lsbo_lead_sources') is:");
             $GLOBALS['log']->fatal($tempx);
-        } elseif (isset($_REQUEST['lsbo_lead_sources']) && count($_REQUEST['lsbo_lead_sources']) > 0) {
+        } elseif (isset($_REQUEST['lsbo_lead_sources']) && (is_countable($_REQUEST['lsbo_lead_sources']) ? count($_REQUEST['lsbo_lead_sources']) : 0) > 0) {
             $tempx = $_REQUEST['lsbo_lead_sources'];
             $current_user->setPreference('lsbo_lead_sources', $_REQUEST['lsbo_lead_sources']);
             $GLOBALS['log']->fatal("_REQUEST['lsbo_lead_sources'] is:");
@@ -385,7 +374,7 @@ echo "<p align='center'>".$this->gen_xml($datax, $ids, $cache_file_name, $refres
             $GLOBALS['log']->fatal($current_user->getPreference('lsbo_lead_sources'));
         }
         //set $datax using selected sales stage keys
-        if (!empty($tempx) && sizeof($tempx) > 0) {
+        if (!empty($tempx) && (is_countable($tempx) ? count($tempx) : 0) > 0) {
             foreach ($tempx as $key) {
                 $datax[$key] = $app_list_strings['lead_source_dom'][$key];
                 array_push($selected_datax, $key);
@@ -399,10 +388,10 @@ echo "<p align='center'>".$this->gen_xml($datax, $ids, $cache_file_name, $refres
 
         $ids =$current_user->getPreference('lsbo_ids');
         //get list of user ids for which to display data
-        if (!empty($ids) && count($ids) != 0 && !isset($_REQUEST['lsbo_ids'])) {
+        if (!empty($ids) && (is_countable($ids) ? count($ids) : 0) != 0 && !isset($_REQUEST['lsbo_ids'])) {
             $GLOBALS['log']->debug("_SESSION['lsbo_ids'] is:");
             $GLOBALS['log']->debug($ids);
-        } elseif (isset($_REQUEST['lsbo_ids']) && count($_REQUEST['lsbo_ids']) > 0) {
+        } elseif (isset($_REQUEST['lsbo_ids']) && (is_countable($_REQUEST['lsbo_ids']) ? count($_REQUEST['lsbo_ids']) : 0) > 0) {
             $ids = $_REQUEST['lsbo_ids'];
             $current_user->setPreference('lsbo_ids', $_REQUEST['lsbo_ids']);
             $GLOBALS['log']->debug("_REQUEST['lsbo_ids'] is:");
@@ -416,27 +405,27 @@ echo "<p align='center'>".$this->gen_xml($datax, $ids, $cache_file_name, $refres
 
         $user_id = $ids;
 
-        $opp = new Opportunity();
+        $opp = BeanFactory::newBean('Opportunities');
         $where="";
         //build the where clause for the query that matches $user
-        $count = count($user_id);
+        $count = is_countable($user_id) ? count($user_id) : 0;
         $id = array();
         if ($count>0) {
             foreach ($user_id as $the_id) {
                 $id[] = "'".$the_id."'";
             }
-            $ids = join(",", $id);
+            $ids = implode(",", $id);
             $where .= "opportunities.assigned_user_id IN ($ids) ";
         }
 
         //build the where clause for the query that matches $datay
-        $count = count($datay);
+        $count = is_countable($datay) ? count($datay) : 0;
         $datayArr = array();
         if ($count>0) {
             foreach ($datay as $key=>$value) {
                 $datayArr[] = "'".$key."'";
             }
-            $datayArr = join(",", $datayArr);
+            $datayArr = implode(",", $datayArr);
             $where .= "AND opportunities.lead_source IN	($datayArr) ";
         }
         $query = "SELECT lead_source,sales_stage,sum(amount_usdollar/1000) as total,count(*) as opp_count FROM opportunities ";

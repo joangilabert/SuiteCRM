@@ -168,7 +168,7 @@ class MssqlManager extends DBManager
     /**
      * @see DBManager::connect()
      */
-    public function connect(array $configOptions = null, $dieOnError = false)
+    public function connect(?array $configOptions = null, $dieOnError = false)
     {
         global $sugar_config;
 
@@ -297,7 +297,7 @@ class MssqlManager extends DBManager
 
         $sql = $this->_appendN($sql);
 
-        LoggerManager::getLogger()->info('Query:' . $this->removeLineBreaks($sql));
+        $GLOBALS['log']->info('Query:' . $sql);
         $this->checkConnection();
         $this->countQuery($sql);
         $this->query_time = microtime(true);
@@ -309,9 +309,9 @@ class MssqlManager extends DBManager
 
         if (!$result) {
             $sqlmsg = mssql_get_last_message();
-            $sqlpos = strpos($sqlmsg, 'Changed database context to');
-            $sqlpos2 = strpos($sqlmsg, 'Warning:');
-            $sqlpos3 = strpos($sqlmsg, 'Checking identity information:');
+            $sqlpos = strpos((string) $sqlmsg, 'Changed database context to');
+            $sqlpos2 = strpos((string) $sqlmsg, 'Warning:');
+            $sqlpos3 = strpos((string) $sqlmsg, 'Checking identity information:');
 
             // if sqlmsg has 'Changed database context to', just log it
             if ($sqlpos !== false || $sqlpos2 !== false || $sqlpos3 !== false) {
@@ -432,8 +432,9 @@ class MssqlManager extends DBManager
      */
     public function limitQuery($sql, $start, $count, $dieOnError = false, $msg = '', $execute = true)
     {
-        $start = (int)$start;
-        $count = (int)$count;
+        $dist_str = 'distinct';
+        $start = $start;
+        $count = $count;
         $countVar = '(@topCount)';
         $newSQL = $sql;
         $distinctSQLARRAY = array();
@@ -499,7 +500,7 @@ class MssqlManager extends DBManager
 
                     //if there is a distinct clause, parse sql string as we will have to insert the rownumber
                     //for paging, AFTER the distinct clause
-                    $grpByStr = '';
+                    $grpByStr = [];
                     $hasDistinct = strpos(strtolower($matches[0]), 'distinct');
                     $hasGroupBy = strpos(strtolower($matches[0]), 'group by');
 
@@ -560,7 +561,7 @@ class MssqlManager extends DBManager
                                                 OVER (ORDER BY " . preg_replace(
                                 '/^' . $dist_str . '\s+/',
                                 '',
-                                    $this->returnOrderBy($sql, $orderByMatch[3])
+                                $this->returnOrderBy($sql, $orderByMatch[3])
                             ) . ') AS row_number,
                                                 count(*) counter, ' . $distinctSQLARRAY[0] . '
                                                 ' . $distinctSQLARRAY[1] . '
@@ -667,7 +668,7 @@ class MssqlManager extends DBManager
                     );
                     $p_sql = substr($p_sql, 0, $nested_pos + $beg_sin) . ' ##' . $patt . $i . '## ' . substr(
                         $p_sql,
-                            $sec_sin + 1
+                        $sec_sin + 1
                     );
                     ++$i;
                     continue;
@@ -855,46 +856,47 @@ class MssqlManager extends DBManager
             $GLOBALS['log']->debug("No match was found for order by, pass string back untouched as: $orig_order_match");
 
             return $orig_order_match;
+        } else {
+            //if found, then parse and return
+            //grab string up to the aliased column
+            $GLOBALS['log']->debug('order by found, process sql string');
+
+            $psql = trim($this->getAliasFromSQL($sql, $orderMatch));
+            if (empty($psql)) {
+                $psql = trim(substr($sql, 0, $found_in_sql));
+            }
+
+            //grab the last comma before the alias
+            preg_match('/\s+' . trim($orderMatch) . '/', $psql, $match, PREG_OFFSET_CAPTURE);
+            $comma_pos = $match[0][1];
+            //substring between the comma and the alias to find the joined_table alias and column name
+            $col_name = substr($psql, 0, $comma_pos);
+
+            //make sure the string does not have an end parenthesis
+            //and is not part of a function (i.e. "ISNULL(leads.last_name,'') as name"  )
+            //this is especially true for unified search from home screen
+
+            $alias_beg_pos = 0;
+            if (strpos($psql, ' as ')) {
+                $alias_beg_pos = strpos($psql, ' as ');
+            }
+
+            // Bug # 44923 - This breaks the query and does not properly filter isnull
+            // as there are other functions such as ltrim and rtrim.
+            /* elseif (strncasecmp($psql, 'isnull', 6) != 0)
+                $alias_beg_pos = strpos($psql, " "); */
+
+            if ($alias_beg_pos > 0) {
+                $col_name = substr($psql, 0, $alias_beg_pos);
+            }
+            //add the "asc/desc" order back
+            $col_name = $col_name . ' ' . $asc_desc;
+
+            //pass in new order by
+            $GLOBALS['log']->debug('order by being returned is ' . $col_name);
+
+            return $col_name;
         }
-        //if found, then parse and return
-        //grab string up to the aliased column
-        $GLOBALS['log']->debug('order by found, process sql string');
-
-        $psql = trim($this->getAliasFromSQL($sql, $orderMatch));
-        if (empty($psql)) {
-            $psql = trim(substr($sql, 0, $found_in_sql));
-        }
-
-        //grab the last comma before the alias
-        preg_match('/\s+' . trim($orderMatch) . '/', $psql, $match, PREG_OFFSET_CAPTURE);
-        $comma_pos = $match[0][1];
-        //substring between the comma and the alias to find the joined_table alias and column name
-        $col_name = substr($psql, 0, $comma_pos);
-
-        //make sure the string does not have an end parenthesis
-        //and is not part of a function (i.e. "ISNULL(leads.last_name,'') as name"  )
-        //this is especially true for unified search from home screen
-
-        $alias_beg_pos = 0;
-        if (strpos($psql, ' as ')) {
-            $alias_beg_pos = strpos($psql, ' as ');
-        }
-
-        // Bug # 44923 - This breaks the query and does not properly filter isnull
-        // as there are other functions such as ltrim and rtrim.
-        /* elseif (strncasecmp($psql, 'isnull', 6) != 0)
-            $alias_beg_pos = strpos($psql, " "); */
-
-        if ($alias_beg_pos > 0) {
-            $col_name = substr($psql, 0, $alias_beg_pos);
-        }
-        //add the "asc/desc" order back
-        $col_name = $col_name . ' ' . $asc_desc;
-
-        //pass in new order by
-        $GLOBALS['log']->debug('order by being returned is ' . $col_name);
-
-        return $col_name;
     }
 
     /**
@@ -996,7 +998,7 @@ class MssqlManager extends DBManager
 
     /**
      * Get tables like expression
-     * @param $like string
+     * @param string $like
      * @return array
      */
     public function tablesLike($like)
@@ -1047,6 +1049,7 @@ class MssqlManager extends DBManager
      */
     public function full_text_indexing_setup()
     {
+        $FTSqry = [];
         $GLOBALS['log']->debug('MSSQL about to wakeup FTS');
 
         if ($this->getDatabase()) {
@@ -1136,10 +1139,10 @@ class MssqlManager extends DBManager
                     $len = $this->date_formats[$additional_parameters[0]];
 
                     return "LEFT(CONVERT(varchar($len)," . $string . ",120),$len)";
+                } else {
+                    return 'LEFT(CONVERT(varchar(10),' . $string . ',120),10)';
                 }
-
-                return 'LEFT(CONVERT(varchar(10),' . $string . ',120),10)';
-
+                // no break
             case 'ifnull':
                 if (empty($additional_parameters_string)) {
                     $additional_parameters_string = ",''";
@@ -1171,7 +1174,7 @@ class MssqlManager extends DBManager
                 return 'getutcdate()';
         }
 
-        return "$string";
+        return (string)$string;
     }
 
     /**
@@ -1438,14 +1441,14 @@ EOSQL;
             } elseif (!in_array($row['TYPE_NAME'], array('datetime', 'text'))) {
                 $columns[$column_name]['len'] = strtolower($row['LENGTH']);
             }
-            if (stristr($row['TYPE_NAME'], 'identity')) {
+            if (stristr((string) $row['TYPE_NAME'], 'identity')) {
                 $columns[$column_name]['auto_increment'] = '1';
                 $columns[$column_name]['type'] = str_replace(' identity', '', strtolower($row['TYPE_NAME']));
             }
 
             if (
                 !empty($row['IS_NULLABLE']) && $row['IS_NULLABLE'] == 'NO'
-                && (empty($row['KEY']) || !stristr($row['KEY'], 'PRI'))
+                && (empty($row['KEY']) || !stristr((string) $row['KEY'], 'PRI'))
             ) {
                 $columns[strtolower($row['COLUMN_NAME'])]['required'] = 'true';
             }
@@ -1457,7 +1460,7 @@ EOSQL;
             // NOTE Not using !empty as an empty string may be a viable default value.
             if ($column_def != 0 && ($row['COLUMN_DEF'] != null)) {
                 $matches = array();
-                $row['COLUMN_DEF'] = html_entity_decode($row['COLUMN_DEF'], ENT_QUOTES);
+                $row['COLUMN_DEF'] = html_entity_decode((string) $row['COLUMN_DEF'], ENT_QUOTES);
                 if (preg_match('/\([\(|\'](.*)[\)|\']\)/i', $row['COLUMN_DEF'], $matches)) {
                     $columns[$column_name]['default'] = $matches[1];
                 } elseif (preg_match('/\(N\'(.*)\'\)/i', $row['COLUMN_DEF'], $matches)) {
@@ -1491,6 +1494,9 @@ EOSQL;
     {
         $type = $definition['type'];
         $fields = is_array($definition['fields']) ? implode(',', $definition['fields']) : $definition['fields'];
+
+        $fields = $this->removeIndexLimit($fields);
+
         $name = $definition['name'];
         $sql = '';
 
@@ -1711,7 +1717,7 @@ EOQ;
         }
         if ($fieldDef['type'] == 'decimal'
             && empty($fieldDef['precision'])
-            && !strpos($fieldDef['len'], ',')
+            && !strpos((string) $fieldDef['len'], ',')
         ) {
             $fieldDef['len'] .= ',0'; // Adding 0 precision if it is not specified
         }
@@ -1750,14 +1756,15 @@ EOQ;
         $ref['name'] = $this->quoteIdentifier($ref['name']);
 
         // Bug 24307 - Don't add precision for float fields.
-        if (stristr($ref['colType'], 'float')) {
-            $ref['colType'] = preg_replace('/(,\d+)/', '', $ref['colType']);
+        if (stristr((string) $ref['colType'], 'float')) {
+            $ref['colType'] = preg_replace('/(,\d+)/', '', (string) $ref['colType']);
         }
 
         if ($return_as_array) {
             return $ref;
+        } else {
+            return "{$ref['name']} {$ref['colType']} {$ref['default']} {$ref['required']} {$ref['auto_increment']}";
         }
-        return "{$ref['name']} {$ref['colType']} {$ref['default']} {$ref['required']} {$ref['auto_increment']}";
     }
 
     /**
@@ -1771,7 +1778,7 @@ EOQ;
     {
         //Bug 25078 fixed by Martin Hu: sqlserver haven't 'date' type, trim extra "00:00:00"
         if ($changes['data_type'] == 'date') {
-            $changes['before'] = str_replace(' 00:00:00', '', $changes['before']);
+            $changes['before'] = str_replace(' 00:00:00', '', (string) $changes['before']);
         }
 
         return parent::save_audit_records($bean, $changes);
@@ -1822,29 +1829,29 @@ EOQ;
             return false;
         }
 
-        $sqlpos = strpos($sqlmsg, 'Changed database context to');
-        $sqlpos2 = strpos($sqlmsg, 'Warning:');
-        $sqlpos3 = strpos($sqlmsg, 'Checking identity information:');
+        $sqlpos = strpos((string) $sqlmsg, 'Changed database context to');
+        $sqlpos2 = strpos((string) $sqlmsg, 'Warning:');
+        $sqlpos3 = strpos((string) $sqlmsg, 'Checking identity information:');
         if ($sqlpos !== false || $sqlpos2 !== false || $sqlpos3 !== false) {
             return false;
+        } else {
+            global $app_strings;
+            //ERR_MSSQL_DB_CONTEXT: localized version of 'Changed database context to' message
+            if (empty($app_strings) || !isset($app_strings['ERR_MSSQL_DB_CONTEXT'])) {
+                //ignore the message from sql-server if $app_strings array is empty. This will happen
+                //only if connection if made before languge is set.
+                $GLOBALS['log']->debug('Ignoring this database message: ' . $sqlmsg);
+
+                return false;
+            } else {
+                $sqlpos = strpos((string) $sqlmsg, (string) $app_strings['ERR_MSSQL_DB_CONTEXT']);
+                if ($sqlpos !== false) {
+                    return false;
+                }
+            }
         }
-        global $app_strings;
-        //ERR_MSSQL_DB_CONTEXT: localized version of 'Changed database context to' message
-        if (empty($app_strings) || !isset($app_strings['ERR_MSSQL_DB_CONTEXT'])) {
-            //ignore the message from sql-server if $app_strings array is empty. This will happen
-            //only if connection if made before languge is set.
-            $GLOBALS['log']->debug('Ignoring this database message: ' . $sqlmsg);
 
-            return false;
-        }
-        $sqlpos = strpos($sqlmsg, $app_strings['ERR_MSSQL_DB_CONTEXT']);
-        if ($sqlpos !== false) {
-            return false;
-        }
-
-
-
-        if (strlen($sqlmsg) > 2) {
+        if (strlen((string) $sqlmsg) > 2) {
             return 'SQL Server error: ' . $sqlmsg;
         }
 
@@ -1886,19 +1893,19 @@ EOQ;
     protected function _appendN($sql)
     {
         // If there are no single quotes, don't bother, will just assume there is no character data
-        if (strpos($sql, "'") === false) {
+        if (strpos((string) $sql, "'") === false) {
             return $sql;
         }
 
         // Flag if there are odd number of single quotes, just continue without trying to append N
-        if (substr_count($sql, "'") & 1) {
+        if (substr_count((string) $sql, "'") & 1) {
             $GLOBALS['log']->error('SQL statement[' . $sql . '] has odd number of single quotes.');
 
             return $sql;
         }
 
         //The only location of three subsequent ' will be at the beginning or end of a value.
-        $sql = preg_replace('/(?<!\')(\'{3})(?!\')/', "'<@#@#@PAIR@#@#@>", $sql);
+        $sql = preg_replace('/(?<!\')(\'{3})(?!\')/', "'<@#@#@PAIR@#@#@>", (string) $sql);
 
         // Remove any remaining '' and do not parse... replace later (hopefully we don't even have any)
         $pairs = array();
@@ -1924,8 +1931,8 @@ EOQ;
                 // One problem we face is the image column type in reports which cannot accept nvarchar data
                 if (
                     !empty($value)
-                    && !is_numeric(trim(str_replace(array("'", ','), '', $value)))
-                    && !preg_match('/^\'[\,]\'$/', $value)
+                    && !is_numeric(trim(str_replace(array("'", ','), '', (string) $value)))
+                    && !preg_match('/^\'[\,]\'$/', (string) $value)
                 ) {
                     $replace[$value] = 'N' . trim($value, 'N');
                 }
@@ -2126,5 +2133,15 @@ EOQ;
     public function getGuidSQL()
     {
         return 'NEWID()';
+    }
+
+    /**
+     * Remove unsupported index limit
+     * @param $fields
+     * @return string|string[]|null
+     */
+    protected function removeIndexLimit($fields)
+    {
+        return preg_replace('/(\s?\(\d+\))/', '', (string) $fields);
     }
 }

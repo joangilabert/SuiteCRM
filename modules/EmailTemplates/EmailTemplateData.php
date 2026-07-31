@@ -23,7 +23,7 @@ if (isset($_REQUEST['campaignId'])) {
     $_SESSION['campaignWizard'][$_REQUEST['campaignId']]['defaultSelectedTemplateId'] = $emailTemplateId;
 }
 
-if (preg_match('/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/', $emailTemplateId) || !$emailTemplateId) {
+if (preg_match('/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/', (string) $emailTemplateId) || !$emailTemplateId) {
     $func = isset($_REQUEST['func']) ? $_REQUEST['func'] : null;
 
     $fields = array('body_html', 'subject', 'name');
@@ -73,15 +73,18 @@ if (preg_match('/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/
 
         case 'createCopy':
             $bean = BeanFactory::getBean('EmailTemplates', $emailTemplateId);
-            $newBean = new EmailTemplate();
+            $newBean = BeanFactory::newBean('EmailTemplates');
             $fieldsForCopy = array('type', 'description');
             foreach ($bean as $key => $value) {
                 if (in_array($key, $fields)) {
                     $newBean->$key = $_POST[$key];
-                } elseif (in_array($key, $fieldsForCopy)) {
-                    $newBean->$key = $bean->$key;
+                } else {
+                    if (in_array($key, $fieldsForCopy)) {
+                        $newBean->$key = $bean->$key;
+                    }
                 }
             }
+            $newBean->assigned_user_id = $GLOBALS['current_user']->id;
             if ($newBean->save()) {
                 $msgs[] = 'LBL_TEMPLATE_SAVED';
             }

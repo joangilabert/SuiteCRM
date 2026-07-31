@@ -1,91 +1,94 @@
 <?php
+/**
+ * SugarCRM Community Edition is a customer relationship management program developed by
+ * SugarCRM, Inc. Copyright (C) 2004-2013 SugarCRM Inc.
+ *
+ * SuiteCRM is an extension to SugarCRM Community Edition developed by SalesAgility Ltd.
+ * Copyright (C) 2011 - 2021 SalesAgility Ltd.
+ *
+ * This program is free software; you can redistribute it and/or modify it under
+ * the terms of the GNU Affero General Public License version 3 as published by the
+ * Free Software Foundation with the addition of the following permission added
+ * to Section 15 as permitted in Section 7(a): FOR ANY PART OF THE COVERED WORK
+ * IN WHICH THE COPYRIGHT IS OWNED BY SUGARCRM, SUGARCRM DISCLAIMS THE WARRANTY
+ * OF NON INFRINGEMENT OF THIRD PARTY RIGHTS.
+ *
+ * This program is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+ * FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License for more
+ * details.
+ *
+ * You should have received a copy of the GNU Affero General Public License along with
+ * this program; if not, see http://www.gnu.org/licenses or write to the Free
+ * Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
+ * 02110-1301 USA.
+ *
+ * You can contact SugarCRM, Inc. headquarters at 10050 North Wolfe Road,
+ * SW2-130, Cupertino, CA 95014, USA. or at email address contact@sugarcrm.com.
+ *
+ * The interactive user interfaces in modified source and object code versions
+ * of this program must display Appropriate Legal Notices, as required under
+ * Section 5 of the GNU Affero General Public License version 3.
+ *
+ * In accordance with Section 7(b) of the GNU Affero General Public License version 3,
+ * these Appropriate Legal Notices must retain the display of the "Powered by
+ * SugarCRM" logo and "Supercharged by SuiteCRM" logo. If the display of the logos is not
+ * reasonably feasible for technical reasons, the Appropriate Legal Notices must
+ * display the words "Powered by SugarCRM" and "Supercharged by SuiteCRM".
+ */
 
 namespace SuiteCRM\Test\Driver;
 
-use Helper\WebDriverHelper;
-use SuiteCRM\Test\BrowserStack\Local;
+use Exception;
 
+/**
+ * Class WebDriver
+ * @package SuiteCRM\Test\Driver
+ */
+#[\AllowDynamicProperties]
 class WebDriver extends \Codeception\Module\WebDriver
 {
-    private $browserStackLocal;
-
-    public function _initialize()
+    protected function initialWindowSize(): void
     {
         $config = $this->_getConfig();
-        $this->config['host'] = $config['host'];
-        $this->config['port'] = $config['port'];
-
-        if ($this->isBrowserStackEnabled()) {
-            $this->configureBrowserStack();
-        }
-
-        parent::_initialize();
-    }
-
-    /**
-     * @return bool
-     */
-    protected function isBrowserStackEnabled()
-    {
-        $webDriverHelper = new WebDriverHelper($this->moduleContainer, $this->_getConfig());
-
-        return (!empty($webDriverHelper->getBrowserStackUsername()) || !empty($webDriverHelper->getBrowserStackAccessKey()));
-    }
-
-    /**
-     * @return bool
-     */
-    protected function isBrowserStackLocalEnabled()
-    {
-        return
-            array_key_exists('browserstack.local', $this->config['capabilities']) &&
-            $this->config['capabilities']['browserstack.local'];
-    }
-
-    protected function configureBrowserStack()
-    {
-        $webDriverHelper = new WebDriverHelper($this->moduleContainer, $this->_getConfig());
-        $this->config['capabilities']['browserstack.user'] = $webDriverHelper->getBrowserStackUsername();
-        $this->config['capabilities']['browserstack.key'] = $webDriverHelper->getBrowserStackAccessKey();
-
-        if ($this->isBrowserStackLocalEnabled()) {
-            $bs_local_args = array(
-                "key" => $this->config["capabilities"]["browserstack.key"],
-                "v" => true,
-                "force" => true,
-                "forcelocal" => true,
-            );
-
-            $this->browserStackLocal = new Local();
-            try {
-                $this->browserStackLocal->start($bs_local_args);
-            } catch (\BrowserStack\LocalException $exception) {
-                echo $exception->getMessage();
-            }
-            if ($this->browserStackLocal->isRunning()) {
-                echo "Browser stack binary is running";
-            }
-        }
-    }
-
-    protected function initialWindowSize()
-    {
-        $config = $this->_getConfig();
-        // Don't resize window for browser stack instead maximize
-        if ($this->isBrowserStackEnabled()) {
-            $this->maximizeWindow();
-        } else {
-            $width =  isset($config['width']) ? $config['width'] : 1920;
-            $height = isset($config['height']) ? $config['height'] : 1080;
-            $this->resizeWindow($width, $height);
-        }
+        $width = $config['width'] ?? 1920;
+        $height = $config['height'] ?? 1080;
+        $this->resizeWindow($width, $height);
     }
 
     public function _afterSuite()
     {
         parent::_afterSuite();
-        if ($this->isBrowserStackLocalEnabled()) {
-            $this->browserStackLocal->stop();
-        }
+    }
+
+    /**
+     * @param $element
+     * @param int $timeout
+     * @throws Exception
+     */
+    public function waitForElementVisible($element, $timeout = 5): void
+    {
+        parent::waitForElementVisible($element, $timeout);
+    }
+
+    /**
+     * @param $element
+     * @param int $timeout
+     * @throws Exception
+     */
+    public function waitForElementNotVisible($element, $timeout = 5): void
+    {
+        parent::waitForElementNotVisible($element, $timeout);
+    }
+
+    /**
+     * @param string $text
+     * @param int $timeout
+     * @param null $selector
+     * @throws Exception
+     */
+    public function waitForText($text, $timeout = 5, $selector = null): void
+    {
+        parent::waitForText($text, $timeout, $selector);
     }
 }

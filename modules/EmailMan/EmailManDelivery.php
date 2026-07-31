@@ -64,7 +64,7 @@ if (!isset($GLOBALS['log'])) {
 }
 
 $mail = new SugarPHPMailer();
-$admin = new Administration();
+$admin = BeanFactory::newBean('Administration');
 $admin->retrieveSettings();
 if (isset($admin->settings['massemailer_campaign_emails_per_run'])) {
     $max_emails_per_run = $admin->settings['massemailer_campaign_emails_per_run'];
@@ -81,8 +81,7 @@ if (isset($admin->settings['massemailer_email_copy'])) {
 $emailsPerSecond = 10;
 
 $mail->setMailerForSystem();
-$mail->From = "no-reply@example.com";
-$mail->FromName = "no-reply";
+$mail->setSystemFromAddress();
 $mail->ContentType = "text/html";
 
 $campaign_id = null;
@@ -92,7 +91,7 @@ if (isset($_REQUEST['campaign_id']) && !empty($_REQUEST['campaign_id'])) {
 
 $db = DBManagerFactory::getInstance();
 $timedate = TimeDate::getInstance();
-$emailman = new EmailMan();
+$emailman = BeanFactory::newBean('EmailMan');
 
 if ($test) {
     //if this is in test mode, then
@@ -105,6 +104,7 @@ if ($test) {
     $select_query .= " join prospect_list_campaigns plc on em.campaign_id = plc.campaign_id";
     $select_query .= " join prospect_lists pl on pl.id = plc.prospect_list_id ";
     $select_query .= " WHERE em.list_id = pl.id and pl.list_type = 'test'";
+    $select_query .= " AND pl.deleted = 0 AND plc.deleted = 0 AND em.deleted = 0";
     $select_query .= " AND em.send_date_time <= " . $db->now();
     $select_query .= " AND (em.in_queue ='0' OR em.in_queue IS NULL OR (em.in_queue ='1' AND em.in_queue_date <= " . $db->convert($db->quoted($timedate->fromString("-1 day")->asDb()), "datetime") . "))";
     $select_query .= " AND em.campaign_id='{$campaign_id}'";
@@ -117,6 +117,7 @@ if ($test) {
     $select_query = " SELECT *";
     $select_query .= " FROM $emailman->table_name";
     $select_query .= " WHERE send_date_time <= " . $db->now();
+    $select_query .= " AND deleted = 0";
     $select_query .= " AND (in_queue ='0' OR in_queue IS NULL OR ( in_queue ='1' AND in_queue_date <= " . $db->convert($db->quoted($timedate->fromString("-1 day")->asDb()), "datetime") . ")) " . ($confirmOptInEnabled ? ' OR related_confirm_opt_in = 1 ' : ' AND related_confirm_opt_in = 0');
 
     if (!empty($campaign_id)) {
@@ -137,7 +138,7 @@ do {
     if (isset($current_user)) {
         $temp_user = $current_user;
     }
-    $current_user = new User();
+    $current_user = BeanFactory::newBean('Users');
     $startTime = microtime(true);
 
 
@@ -169,10 +170,10 @@ do {
         //find the template associated with marketing message. make sure that template has a subject and
         //a non-empty body
         if (!isset($template_status[$row['marketing_id']])) {
-            $current_emailmarketing = new EmailMarketing();
+            $current_emailmarketing = BeanFactory::newBean('EmailMarketing');
             $current_emailmarketing->retrieve($row['marketing_id']);
 
-            $current_emailtemplate = new EmailTemplate();
+            $current_emailtemplate = BeanFactory::newBean('EmailTemplates');
             $current_emailtemplate->retrieve($current_emailmarketing->template_id);
         }
 
@@ -219,37 +220,38 @@ do {
         // if user want to use an other outbound email account to sending...
         if ($current_emailmarketing->outbound_email_id) {
             $outboundEmailAccount = BeanFactory::getBean('OutboundEmailAccounts', $current_emailmarketing->outbound_email_id);
+            if ($outboundEmailAccount) {
+                if (strtolower($outboundEmailAccount->mail_sendtype) === 'smtp') {
+                    $mail->Mailer = 'smtp';
+                    $mail->Host = $outboundEmailAccount->mail_smtpserver;
+                    $mail->Port = $outboundEmailAccount->mail_smtpport;
 
-            if (strtolower($outboundEmailAccount->mail_sendtype) === 'smtp') {
-                $mail->Mailer = 'smtp';
-                $mail->Host = $outboundEmailAccount->mail_smtpserver;
-                $mail->Port = $outboundEmailAccount->mail_smtpport;
-                if ($outboundEmailAccount->mail_smtpssl == 1) {
-                    $mail->SMTPSecure = 'ssl';
-                } elseif ($outboundEmailAccount->mail_smtpssl == 2) {
-                    $mail->SMTPSecure = 'tls';
+                    $mail->setSecureProtocol($outboundEmailAccount->mail_smtpssl ?? false);
+                    $mail->initSMTPAuth(
+                        $outboundEmailAccount->auth_type ?? '',
+                        $outboundEmailAccount->external_oauth_connection_id ?? '',
+                        $outboundEmailAccount->mail_smtpuser ?? '',
+                        $outboundEmailAccount->mail_smtppass ?? '',
+                    );
                 } else {
-                    $mail->SMTPSecure = '';
-                }
-                if ($outboundEmailAccount->mail_smtpauth_req) {
-                    $mail->SMTPAuth = true;
-                    $mail->Username = $outboundEmailAccount->mail_smtpuser;
-                    $mail->Password = $outboundEmailAccount->mail_smtppass;
-                } else {
-                    $mail->SMTPAuth = false;
-                    $mail->Username = '';
-                    $mail->Password = '';
+                    $mail->Mailer = 'sendmail';
                 }
             } else {
-                $mail->Mailer = 'sendmail';
+                $GLOBALS['log']->fatal("Email delivery failed because the outbound email with id does not exist:" . $current_emailmarketing->outbound_email_id);
+                continue;
             }
 
-            $mail->oe->mail_smtpauth_req = $outboundEmailAccount->mail_smtpauth_req;
-            $mail->oe->mail_smtpuser = $outboundEmailAccount->mail_smtpuser;
-            $mail->oe->mail_smtppass = $outboundEmailAccount->mail_smtppass;
-            $mail->oe->mail_smtpserver = $outboundEmailAccount->mail_smtpserver;
-            $mail->oe->mail_smtpport = $outboundEmailAccount->mail_smtpport;
-            $mail->oe->mail_smtpssl = $outboundEmailAccount->mail_smtpssl;
+            $mail->oe->auth_type = $outboundEmailAccount->auth_type ?? '';
+            $mail->oe->external_oauth_connection_id = $outboundEmailAccount->external_oauth_connection_id ?? '';
+            $mail->oe->mail_smtpauth_req = $outboundEmailAccount->mail_smtpauth_req ?? '';
+            $mail->oe->mail_smtpuser = $outboundEmailAccount->mail_smtpuser ?? '';
+            $mail->oe->mail_smtppass = $outboundEmailAccount->mail_smtppass ?? '';
+            $mail->oe->mail_smtpserver = $outboundEmailAccount->mail_smtpserver ?? '';
+            $mail->oe->mail_smtpport = $outboundEmailAccount->mail_smtpport ?? '';
+            $mail->oe->mail_smtpssl = $outboundEmailAccount->mail_smtpssl ?? '';
+
+            $mail->FromName = $outboundEmailAccount->smtp_from_name ?? $outboundEmailAccount->mail_smtpuser;
+            $mail->From = $outboundEmailAccount->smtp_from_address ?? $outboundEmailAccount->mail_smtpuser;
         }
 
         if ((empty($row['related_confirm_opt_in']) || $row['related_confirm_opt_in'] == '0')) {
@@ -260,12 +262,11 @@ do {
             }
         } else {
             if ($confirmOptInEnabled) {
-                $emailAddress = new EmailAddress();
+                $emailAddress = BeanFactory::newBean('EmailAddresses');
                 $emailAddress->email_address = $emailAddress->getAddressesByGUID($row['related_id'], $row['related_type']);
-                
-                $date = new DateTime();
-                $now = $date->format($timedate::DB_DATETIME_FORMAT);
-                    
+
+                $now = TimeDate::getInstance()->nowDb();
+
                 if (!$emailman->sendOptInEmail($emailAddress, $row['related_type'], $row['related_id'])) {
                     $GLOBALS['log']->fatal("Confirm Opt In Email delivery FAILURE:" . print_r($row, true));
                     $emailAddress->confirm_opt_in_fail_date = $now;
@@ -280,7 +281,7 @@ do {
                         $log->fatal('Incorrect Email Address');
                         return false;
                     }
-                    
+
                     $emailAddress->retrieve($emailAddressString);
                     $emailAddress->confirm_opt_in_sent_date = $now;
                     $emailAddress->save();
@@ -304,7 +305,7 @@ do {
     $send_all = $send_all ? !$no_items_in_queue : $send_all;
 } while ($send_all);
 
-if ($admin->settings['mail_sendtype'] == "SMTP") {
+if (isSmtp($admin->settings['mail_sendtype'] ?? '')) {
     $mail->SMTPClose();
 }
 if (isset($temp_user)) {

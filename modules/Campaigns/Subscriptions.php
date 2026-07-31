@@ -1,4 +1,4 @@
- <?php
+<?php
  /**
   *
   * SugarCRM Community Edition is a customer relationship management program developed by
@@ -50,13 +50,13 @@ global $import_file_name, $theme;
 $focus = 0;
 if (isset($_REQUEST['return_module'])) {
     if ($_REQUEST['return_module'] == 'Contacts') {
-        $focus = new Contact();
+        $focus = BeanFactory::newBean('Contacts');
     }
     if ($_REQUEST['return_module'] == 'Leads') {
-        $focus = new Lead();
+        $focus = BeanFactory::newBean('Leads');
     }
     if ($_REQUEST['return_module'] == 'Prospects') {
-        $focus = new Prospect();
+        $focus = BeanFactory::newBean('Prospects');
     }
 }
 
@@ -96,6 +96,7 @@ if (isset($_REQUEST['record'])) {
 //if subsaction has been set, then process subscriptions
 if (isset($_REQUEST['subs_action'])) {
     manageSubscriptions($focus);
+    SugarApplication::redirect("index.php?module=" . $_REQUEST['return_module'] . "&action=" . $_REQUEST['return_action'] . "&record=" . $_REQUEST['record']);
 }
 
 //$title = $GLOBALS['app_strings']['LBL_MANAGE_SUBSCRIPTIONS_FOR'].$focus->name;
@@ -212,7 +213,7 @@ function manageSubscriptions($focus)
 
     //compare both arrays and find differences
     $i=0;
-    while ($i<(count($curr_subscription_arr)/2)) {
+    while ($i<((is_countable($curr_subscription_arr) ? count($curr_subscription_arr) : 0)/2)) {
         //if current subscription existed in original subscription list, do nothing
         if (in_array($curr_subscription_arr['campaign'.$i], $orig_subscription_arr)) {
             //nothing to process
@@ -241,7 +242,7 @@ function manageSubscriptions($focus)
     }
     //compare both arrays and find differences
     $i=0;
-    while ($i<(count($curr_unsubscription_arr)/2)) {
+    while ($i<((is_countable($curr_unsubscription_arr) ? count($curr_unsubscription_arr) : 0)/2)) {
         //if current subscription existed in original subscription list, do nothing
         if (in_array($curr_unsubscription_arr['campaign'.$i], $orig_unsubscription_arr)) {
             //nothing to process

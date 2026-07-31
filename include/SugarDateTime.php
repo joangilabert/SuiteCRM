@@ -44,6 +44,7 @@
  * Extends regular PHP DateTime with useful services
  * @api
  */
+#[\AllowDynamicProperties]
 class SugarDateTime extends DateTime
 {
     // Recognized properties and their formats
@@ -108,7 +109,8 @@ class SugarDateTime extends DateTime
      * @return SugarDateTime
      * @see DateTime::createFromFormat
      */
-    public static function createFromFormat($format, $time, $timezone = null)
+    #[ReturnTypeWillChange]
+    public static function createFromFormat($format, $time, $timezone = null) : DateTime|false
     {
         if (empty($time) || empty($format)) {
             return false;
@@ -134,14 +136,20 @@ class SugarDateTime extends DateTime
 
     /**
      * Internal _createFromFormat implementation for 5.2
+     *
      * @internal
+     * @deprecated No longer necessary since PHP 5.2 is no longer supported.
      * @param string $format Format like in date()
      * @param string $time Time string to parse
-     * @param DateTimeZone $timezone TZ
+     * @param \DateTimeZone|null $timezone TZ
      * @return SugarDateTime
      * @see DateTime::createFromFormat
      */
-    protected static function _createFromFormat($format, $time, DateTimeZone $timezone = null)
+    // STIC Custom 20250220 JBL - Avoid Deprecated Warning: Using explicit nullable type
+    // https://github.com/SinergiaTIC/SinergiaCRM/pull/477
+    // protected static function _createFromFormat($format, $time, DateTimeZone $timezone = null)
+    protected static function _createFromFormat($format, $time, ?DateTimeZone $timezone = null)
+    // END STIC Custom    
     {
         $res = new self();
         if (!empty($timezone)) {
@@ -154,7 +162,7 @@ class SugarDateTime extends DateTime
             // strip spaces before am/pm as our formats don't have them
             $time = preg_replace('/\s+(AM|PM)/i', '\1', $time);
             // TODO: better way to not risk locale stuff problems?
-            $data = strptime($time, $str_format);
+            $data = date_parse_from_format($str_format, $time);
             if (empty($data)) {
                 $GLOBALS['log']->error("Cannot parse $time for format $format");
                 return null;
@@ -174,7 +182,7 @@ class SugarDateTime extends DateTime
             $data += self::$data_init; // fill in missing parts
         } else {
             // Windows, etc. might not have strptime - we'd have to work harder here
-            $data = $res->_strptime($time, $format);
+            $data = date_parse_from_format($format, $time);
         }
         if (empty($data)) {
             $GLOBALS['log']->error("Cannot parse $time for format $format");
@@ -276,7 +284,9 @@ class SugarDateTime extends DateTime
     }
 
     /**
-     * Get specific hour of today
+     * Get specific hour of today.
+     *
+     * @deprecated This function is unused and will be removed in a future release.
      * @param int $hour_index
      * @return SugarDateTime
      */
@@ -293,6 +303,8 @@ class SugarDateTime extends DateTime
 
     /**
      * Get the last second of current hour
+     *
+     * @deprecated This function is unused and will be removed in a future release.
      * @return SugarDateTime
      */
     public function get_hour_end_time()
@@ -304,6 +316,8 @@ class SugarDateTime extends DateTime
 
     /**
      * Get the last second of the current day
+     *
+     * @deprecated This function is unused and will be removed in a future release.
      * @return SugarDateTime
      */
     public function get_day_end_time()
@@ -327,8 +341,8 @@ class SugarDateTime extends DateTime
 
     /**
      * Get the beginning of the last day of i's the month
-     * @deprecated
-     * FIXME: no idea why this function exists and what's the use of it
+     *
+     * @deprecated This function is unused and will be removed in a future release.
      * @param int $month_index Month, January is 0
      * @return SugarDateTime
      */
@@ -343,6 +357,7 @@ class SugarDateTime extends DateTime
 
     /**
      * Get the beginning of i's day of the month
+     *
      * @param int $day_index 0 is the first day of the month (sic!)
      * @return SugarDateTime
      */
@@ -380,6 +395,8 @@ class SugarDateTime extends DateTime
     /**
      * Create a list of time slots for calendar view
      * Times must be in user TZ
+     *
+     * @deprecated This function is unused and will be removed in a future release.
      * @param string $view Which view we are using - day, week, month
      * @param SugarDateTime $start_time Start time
      * @param SugarDateTime $end_time End time
@@ -416,6 +433,7 @@ class SugarDateTime extends DateTime
 
     /**
      * Get the beginning of the given day
+     *
      * @param int $day  Day, starting with 1, default is current
      * @param int $month Month, starting with 1, default is current
      * @param int $year Year, default is current
@@ -425,9 +443,9 @@ class SugarDateTime extends DateTime
     {
         $newdate = clone $this;
         $newdate->setDate(
-             $year?$year:$this->year,
-             $month?$month:$this->month,
-             $day?$day:$this->day
+            $year?$year:$this->year,
+            $month?$month:$this->month,
+            $day?$day:$this->day
         );
         $newdate->setTime(0, 0);
         return $newdate;
@@ -435,6 +453,7 @@ class SugarDateTime extends DateTime
 
     /**
      * Get the last second of the given day
+     *
      * @param int $day  Day, starting with 1, default is current
      * @param int $month Month, starting with 1, default is current
      * @param int $year Year, default is current
@@ -444,9 +463,9 @@ class SugarDateTime extends DateTime
     {
         $newdate = clone $this;
         $newdate->setDate(
-             $year?$year:$this->year,
-             $month?$month:$this->month,
-             $day?$day:$this->day
+            $year?$year:$this->year,
+            $month?$month:$this->month,
+            $day?$day:$this->day
         );
         $newdate->setTime(23, 59, 59);
         return $newdate;
@@ -454,6 +473,8 @@ class SugarDateTime extends DateTime
 
     /**
      * Get the beginning of the first day of the year
+     *
+     * @deprecated This function is unused and will be removed in a future release.
      * @param int $year
      * @return SugarDateTime
      */
@@ -505,6 +526,7 @@ class SugarDateTime extends DateTime
 
     /**
      * Get query string for the date, year=%d&month=%d&day=%d&hour=%d
+     *
      * @return string
      */
     public function get_date_str()
@@ -544,11 +566,14 @@ class SugarDateTime extends DateTime
 
     protected static $strptime_short_mon;
     protected static $strptime_long_mon;
+
     /**
      * DateTime homebrew parser
      *
      * Since some OSes and PHP versions (please upgrade to 5.3!) do not support built-in parsing functions,
      * we have to restort to this ugliness.
+     *
+     * @deprecated This function is unnecessary since we no longer support PHP 5.2, and will be removed in a future release.
      * @internal
      * @param string $time  Time formatted string
      * @param string $format Format, as accepted by strptime()
@@ -601,13 +626,15 @@ class SugarDateTime extends DateTime
                 if ($data["tm_hour"] != 12) {
                     $data["tm_hour"] += 12;
                 }
-            } elseif ($ampm == 'am') {
-                if ($data["tm_hour"] == 12) {
-                    // 12:00am is 00:00
-                    $data["tm_hour"] = 0;
-                }
             } else {
-                return false;
+                if ($ampm == 'am') {
+                    if ($data["tm_hour"] == 12) {
+                        // 12:00am is 00:00
+                        $data["tm_hour"] = 0;
+                    }
+                } else {
+                    return false;
+                }
             }
         }
 
@@ -617,13 +644,15 @@ class SugarDateTime extends DateTime
                 if ($data["tm_hour"] != 12) {
                     $data["tm_hour"] += 12;
                 }
-            } elseif ($ampm == 'AM') {
-                if ($data["tm_hour"] == 12) {
-                    // 12:00am is 00:00
-                    $data["tm_hour"] = 0;
-                }
             } else {
-                return false;
+                if ($ampm == 'AM') {
+                    if ($data["tm_hour"] == 12) {
+                        // 12:00am is 00:00
+                        $data["tm_hour"] = 0;
+                    }
+                } else {
+                    return false;
+                }
             }
         }
 

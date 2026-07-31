@@ -4,7 +4,8 @@ namespace Api\V8\Param;
 use Api\V8\Param\Options as ParamOption;
 use Symfony\Component\OptionsResolver\OptionsResolver;
 
-class DeleteModuleParams extends BaseParam
+#[\AllowDynamicProperties]
+class DeleteModuleParams extends BaseParam implements ModuleAwareParamInterface
 {
     /**
      * @return string

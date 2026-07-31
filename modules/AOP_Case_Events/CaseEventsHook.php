@@ -41,6 +41,7 @@
 /**
  * Class CaseEventsHook.
  */
+#[\AllowDynamicProperties]
 class CaseEventsHook
 {
     private static $diffFields = array(
@@ -70,9 +71,9 @@ class CaseEventsHook
             if ((isset($old->$fieldName) ? $old->$fieldName : null) !==
                 (isset($new->$fieldName) ? $new->$fieldName : null)
             ) {
-                $event = new AOP_Case_Events();
-                $oldDisplay = $old->$displayField;
-                $newDisplay = $new->$displayField;
+                $event = BeanFactory::newBean('AOP_Case_Events');
+                $oldDisplay = $old->$displayField ?? '';
+                $newDisplay = $new->$displayField ?? '';
                 $desc = $name . ' changed from ' . $oldDisplay . ' to ' . $newDisplay . '.';
                 $event->name = $desc;
                 $event->description = $desc;
@@ -96,7 +97,7 @@ class CaseEventsHook
         if (isset($_REQUEST['module']) && $_REQUEST['module'] === 'Import') {
             return;
         }
-        $oldBean = new aCase();
+        $oldBean = BeanFactory::newBean('Cases');
         $oldBean->retrieve($bean->id);
         $events = $this->compareBeans($oldBean, $bean);
         foreach ($events as $event) {

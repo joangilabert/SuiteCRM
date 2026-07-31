@@ -43,9 +43,10 @@ if (!defined('sugarEntry') || !sugarEntry) {
  */
 
 
+#[\AllowDynamicProperties]
 class InsideViewLogicHook
 {
-    const URL_BASE = 'https://my.insideview.com/iv/crm/';
+    public const URL_BASE = 'https://my.insideview.com/iv/crm/';
 
     protected function handleFieldMap($bean, $mapping)
     {
@@ -72,7 +73,7 @@ class InsideViewLogicHook
 
         $outStr = '';
         foreach ($outArray as $k => $v) {
-            $outStr .= $k.'='.rawurlencode(html_entity_decode($v, ENT_QUOTES)).'&';
+            $outStr .= $k.'='.rawurlencode(html_entity_decode((string) $v, ENT_QUOTES)).'&';
         }
         
         $outStr = rtrim($outStr, '&');
@@ -176,14 +177,20 @@ class InsideViewLogicHook
         // Use the per-module functions to build the frame
         if (is_a($bean, 'Account')) {
             $url = $this->getAccountFrameUrl($bean, $extraUrl);
-        } elseif (is_a($bean, 'Contact')) {
-            $url = $this->getContactFrameUrl($bean, $extraUrl);
-        } elseif (is_a($bean, 'Lead')) {
-            $url = $this->getLeadFrameUrl($bean, $extraUrl);
-        } elseif (is_a($bean, 'Opportunity')) {
-            $url = $this->getOpportunityFrameUrl($bean, $extraUrl);
         } else {
-            $url = '';
+            if (is_a($bean, 'Contact')) {
+                $url = $this->getContactFrameUrl($bean, $extraUrl);
+            } else {
+                if (is_a($bean, 'Lead')) {
+                    $url = $this->getLeadFrameUrl($bean, $extraUrl);
+                } else {
+                    if (is_a($bean, 'Opportunity')) {
+                        $url = $this->getOpportunityFrameUrl($bean, $extraUrl);
+                    } else {
+                        $url = '';
+                    }
+                }
+            }
         }
 
         if ($url != '') {

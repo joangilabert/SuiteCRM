@@ -25,14 +25,14 @@
  * @param string
  * @param Smarty
  */
-function smarty_outputfilter_trimwhitespace($source, &$smarty)
+function smarty_outputfilter_trimwhitespace($source)
 {
     // Pull out the script blocks
     preg_match_all("!<script[^>]*?>.*?</script>!is", $source, $match);
     $_script_blocks = $match[0];
     $source = preg_replace(
         "!<script[^>]*?>.*?</script>!is",
-                           '@@@SMARTY:TRIM:SCRIPT@@@',
+        '@@@SMARTY:TRIM:SCRIPT@@@',
         $source
     );
 
@@ -41,16 +41,16 @@ function smarty_outputfilter_trimwhitespace($source, &$smarty)
     $_pre_blocks = $match[0];
     $source = preg_replace(
         "!<pre[^>]*?>.*?</pre>!is",
-                           '@@@SMARTY:TRIM:PRE@@@',
+        '@@@SMARTY:TRIM:PRE@@@',
         $source
     );
-    
+
     // Pull out the textarea blocks
     preg_match_all("!<textarea[^>]*?>.*?</textarea>!is", $source, $match);
     $_textarea_blocks = $match[0];
     $source = preg_replace(
         "!<textarea[^>]*?>.*?</textarea>!is",
-                           '@@@SMARTY:TRIM:TEXTAREA@@@',
+        '@@@SMARTY:TRIM:TEXTAREA@@@',
         $source
     );
 

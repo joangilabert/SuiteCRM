@@ -50,12 +50,12 @@ require_once('include/formbase.php');
 
 global $current_user;
 
-$sugarbean = new Project();
+$sugarbean = BeanFactory::newBean('Project');
 $sugarbean = populateFromPost('', $sugarbean);
 
 $projectTasks = array();
 if (isset($_REQUEST['duplicateSave']) && $_REQUEST['duplicateSave'] === "true") {
-    $base_project_id = $_REQUEST['duplicateId'];
+    $base_project_id = DBManagerFactory::getInstance()->quote($_REQUEST['duplicateId']);
 } else {
     $base_project_id = $sugarbean->id;
 }
@@ -65,7 +65,7 @@ if (isset($_REQUEST['save_type']) || isset($_REQUEST['duplicateSave']) && $_REQU
     $row = $sugarbean->db->fetchByAssoc($result);
 
     while ($row != null) {
-        $projectTaskBean = new ProjectTask();
+        $projectTaskBean = BeanFactory::newBean('ProjectTask');
         $projectTaskBean->id = $row['id'];
         $projectTaskBean->retrieve();
         $projectTaskBean->date_entered = '';
@@ -81,9 +81,11 @@ if (isset($_REQUEST['save_type'])) {
     if ($_REQUEST['save_type'] == 'TemplateToProject') {
         $sugarbean->name = $_REQUEST['project_name'];
         $sugarbean->is_template = 0;
-    } elseif ($_REQUEST['save_type'] == 'ProjectToTemplate') {
-        $sugarbean->name = $_REQUEST['template_name'];
-        $sugarbean->is_template = true;
+    } else {
+        if ($_REQUEST['save_type'] == 'ProjectToTemplate') {
+            $sugarbean->name = $_REQUEST['template_name'];
+            $sugarbean->is_template = true;
+        }
     }
 } else {
     if (isset($_REQUEST['is_template']) && $_REQUEST['is_template'] == '1') {
@@ -111,7 +113,8 @@ $sugarbean->save($check_notify);
 $return_id = $sugarbean->id;
 
 if (isset($_REQUEST['save_type']) || isset($_REQUEST['duplicateSave']) && $_REQUEST['duplicateSave'] === "true") {
-    for ($i = 0; $i < count($projectTasks); $i++) {
+    $projectTasksCount = count($projectTasks);
+    for ($i = 0; $i < $projectTasksCount; $i++) {
         if (isset($_REQUEST['save_type']) || (isset($_REQUEST['duplicateSave']) && $_REQUEST['duplicateSave'] === "true")) {
             $projectTasks[$i]->id = '';
             $projectTasks[$i]->project_id = $sugarbean->id;
@@ -119,7 +122,7 @@ if (isset($_REQUEST['save_type']) || isset($_REQUEST['duplicateSave']) && $_REQU
         if ($sugarbean->is_template) {
             $projectTasks[$i]->assigned_user_id = '';
         }
-        $projectTasks[$i]->team_id = $sugarbean->team_id;
+        $projectTasks[$i]->team_id = $sugarbean->team_id ?? '';
         if (empty($projectTasks[$i]->duration_unit)) {
             $projectTasks[$i]->duration_unit = " ";
         } //Since duration_unit cannot be null.

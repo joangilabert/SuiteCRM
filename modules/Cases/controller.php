@@ -42,13 +42,14 @@ if (!defined('sugarEntry') || !sugarEntry) {
     die('Not A Valid Entry Point');
 }
 
+#[\AllowDynamicProperties]
 class CasesController extends SugarController
 {
     public function action_get_kb_articles()
     {
         global $mod_strings;
         global $app_list_strings;
-        $search = trim($_POST['search']);
+        $search = DBManagerFactory::getInstance()->quote(trim($_POST['search']));
 
         $relevanceCalculation = "CASE WHEN name LIKE '$search' THEN 10 
                                 ELSE 0 END + CASE WHEN name LIKE '%$search%' THEN 5 
@@ -89,11 +90,11 @@ class CasesController extends SugarController
         global $mod_strings;
 
         $article_id = $_POST['article'];
-        $article = new AOK_KnowledgeBase();
+        $article = BeanFactory::newBean('AOK_KnowledgeBase');
         $article->retrieve($article_id);
 
         echo '<span class="tool-tip-title"><strong>' . $mod_strings['LBL_TOOL_TIP_TITLE'] . '</strong>' . $article->name . '</span><br />';
-        echo '<span class="tool-tip-title"><strong>' . $mod_strings['LBL_TOOL_TIP_BODY'] . '</strong></span>' . html_entity_decode($article->description);
+        echo '<span class="tool-tip-title"><strong>' . $mod_strings['LBL_TOOL_TIP_BODY'] . '</strong></span>' . html_entity_decode((string) $article->description);
 
         if (!$this->IsNullOrEmptyString($article->additional_info)) {
             echo '<hr id="tool-tip-separator">';

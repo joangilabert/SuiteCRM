@@ -88,7 +88,7 @@ $beanList = filterFieldsFromBeans($subclasses);
 $xtpl->assign("BEAN_LIST", json_encode($beanList));
 
 $personTypeList = "<select id='personTypeSelect'>";
-if (count($beanList) > 0) {
+if ((is_countable($beanList) ? count($beanList) : 0) > 0) {
     $count=0;
     foreach ($beanList as $b) {
         $personTypeList.="<option value='".$count."'>".$b->name."</option>";
@@ -149,7 +149,7 @@ $isValidator = new SuiteValidator();
 
 
 if (isset($_REQUEST['campaign_id']) && $isValidator->isValidId($_REQUEST['campaign_id'])) {
-    $campaign = new Campaign();
+    $campaign = BeanFactory::newBean('Campaigns');
     if ($campaign) {
         $campaign->retrieve($_REQUEST['campaign_id']);
         $xtpl->assign('CAMPAIGN_ID', $campaign->id);

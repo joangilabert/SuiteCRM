@@ -43,6 +43,7 @@ if (!defined('sugarEntry') || !sugarEntry) {
 
 
 
+#[\AllowDynamicProperties]
 class AuthenticationController
 {
     public $loggedIn = false; //if a user has attempted to login
@@ -159,7 +160,7 @@ class AuthenticationController
             }
 
             // Check for running Admin Wizard
-            $config = new Administration();
+            $config = BeanFactory::newBean('Administration');
             $config->retrieveSettings();
             $postSilentInstallAdminWizardCompleted = $GLOBALS['current_user']->getPreference('postSilentInstallAdminWizardCompleted');
             if ((is_admin($GLOBALS['current_user']) && empty($config->settings['system_adminwizard']) && $_REQUEST['action'] != 'AdminWizard') ||($postSilentInstallAdminWizardCompleted !== null && !$postSilentInstallAdminWizardCompleted)) {

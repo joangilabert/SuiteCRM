@@ -43,11 +43,12 @@ if (!defined('sugarEntry')) {
 
 
 /**
- * This class is an implemenatation class for all the web services
+ * This class is an implementation class for all the web services
  */
 require_once('service/core/SoapHelperWebService.php');
 SugarWebServiceImpl::$helperObject = new SoapHelperWebServices();
 
+#[\AllowDynamicProperties]
 class SugarWebServiceImpl
 {
     public static $helperObject = null;
@@ -150,23 +151,32 @@ class SugarWebServiceImpl
     /**
      * Retrieve a list of beans.  This is the primary method for getting list of SugarBeans from Sugar using the SOAP API.
      *
-     * @param String $session -- Session ID returned by a previous call to login.
-     * @param String $module_name -- The name of the module to return records from.  This name should be the name the module was developed under (changing a tab name is studio does not affect the name that should be passed into this method)..
-     * @param String $query -- SQL where clause without the word 'where'
-     * @param String $order_by -- SQL order by clause without the phrase 'order by'
+     * @param string $session -- Session ID returned by a previous call to login.
+     * @param string $module_name -- The name of the module to return records from.  This name should be the name the module was developed under (changing a tab name is studio does not affect the name that should be passed into this method)..
+     * @param string $query -- SQL where clause without the word 'where'
+     * @param string $order_by -- SQL order by clause without the phrase 'order by'
      * @param integer $offset -- The record offset to start from.
-     * @param Array  $select_fields -- A list of the fields to be included in the results. This optional parameter allows for only needed fields to be retrieved.
-     * @param Array $link_name_to_fields_array -- A list of link_names and for each link_name, what fields value to be returned. For ex.'link_name_to_fields_array' => array(array('name' =>  'email_addresses', 'value' => array('id', 'email_address', 'opt_out', 'primary_address')))
-    * @param integer $max_results -- The maximum number of records to return.  The default is the sugar configuration value for 'list_max_entries_per_page'
-     * @param integer $deleted -- false if deleted records should not be include, true if deleted records should be included.
-     * @return Array 'result_count' -- integer - The number of records returned
+     * @param array $select_fields -- A list of the fields to be included in the results. This optional parameter allows for only needed fields to be retrieved.
+     * @param array $link_name_to_fields_array -- A list of link_names and for each link_name, what fields value to be returned. For ex.'link_name_to_fields_array' => array(array('name' =>  'email_addresses', 'value' => array('id', 'email_address', 'opt_out', 'primary_address')))
+     * @param integer $max_results -- The maximum number of records to return.  The default is the sugar configuration value for 'list_max_entries_per_page'
+     * @param bool $deleted -- false if deleted records should not be include, true if deleted records should be included.
+     * @return array 'result_count' -- integer - The number of records returned
      *               'next_offset' -- integer - The start of the next page (This will always be the previous offset plus the number of rows returned.  It does not indicate if there is additional data unless you calculate that the next_offset happens to be closer than it should be.
      *               'entry_list' -- Array - The records that were retrieved
-     *	     		 'relationship_list' -- Array - The records link field data. The example is if asked about accounts email address then return data would look like Array ( [0] => Array ( [name] => email_addresses [records] => Array ( [0] => Array ( [0] => Array ( [name] => id [value] => 3fb16797-8d90-0a94-ac12-490b63a6be67 ) [1] => Array ( [name] => email_address [value] => hr.kid.qa@example.com ) [2] => Array ( [name] => opt_out [value] => 0 ) [3] => Array ( [name] => primary_address [value] => 1 ) ) [1] => Array ( [0] => Array ( [name] => id [value] => 403f8da1-214b-6a88-9cef-490b63d43566 ) [1] => Array ( [name] => email_address [value] => kid.hr@example.name ) [2] => Array ( [name] => opt_out [value] => 0 ) [3] => Array ( [name] => primary_address [value] => 0 ) ) ) ) )
-    * @exception 'SoapFault' -- The SOAP error, if any
-    */
-    public function get_entry_list($session, $module_name, $query, $order_by, $offset, $select_fields, $link_name_to_fields_array, $max_results, $deleted)
-    {
+     *                 'relationship_list' -- Array - The records link field data. The example is if asked about accounts email address then return data would look like Array ( [0] => Array ( [name] => email_addresses [records] => Array ( [0] => Array ( [0] => Array ( [name] => id [value] => 3fb16797-8d90-0a94-ac12-490b63a6be67 ) [1] => Array ( [name] => email_address [value] => hr.kid.qa@example.com ) [2] => Array ( [name] => opt_out [value] => 0 ) [3] => Array ( [name] => primary_address [value] => 1 ) ) [1] => Array ( [0] => Array ( [name] => id [value] => 403f8da1-214b-6a88-9cef-490b63d43566 ) [1] => Array ( [name] => email_address [value] => kid.hr@example.name ) [2] => Array ( [name] => opt_out [value] => 0 ) [3] => Array ( [name] => primary_address [value] => 0 ) ) ) ) )
+     * @exception 'SoapFault' -- The SOAP error, if any
+     */
+    public function get_entry_list(
+        $session = null,
+        $module_name = null,
+        $query = null,
+        $order_by = null,
+        $offset = null,
+        $select_fields = null,
+        $link_name_to_fields_array = null,
+        $max_results = null,
+        $deleted = false
+    ) {
         $GLOBALS['log']->info('Begin: SugarWebServiceImpl->get_entry_list');
         global  $beanList, $beanFiles;
         $error = new SoapError();
@@ -235,10 +245,10 @@ class SugarWebServiceImpl
         } // foreach
 
         // Calculate the offset for the start of the next page
-        $next_offset = $offset + sizeof($output_list);
+        $next_offset = $offset + count($output_list);
 
         $GLOBALS['log']->info('End: SugarWebServiceImpl->get_entry_list');
-        return array('result_count'=>sizeof($output_list), 'next_offset'=>$next_offset, 'entry_list'=>$output_list, 'relationship_list' => $linkoutput_list);
+        return array('result_count'=>count($output_list), 'next_offset'=>$next_offset, 'entry_list'=>$output_list, 'relationship_list' => $linkoutput_list);
     } // fn
 
 
@@ -257,7 +267,7 @@ class SugarWebServiceImpl
      * 				 - deleted - integer - How many relationships were deleted
      * @exception 'SoapFault' -- The SOAP error, if any
      */
-    public function set_relationship($session, $module_name, $module_id, $link_field_name, $related_ids, $name_value_list, $delete)
+    public function set_relationship($session, $module_name, $module_id, $link_field_name, $related_ids, $name_value_list=array(), $delete=false)
     {
         $GLOBALS['log']->info('Begin: SugarWebServiceImpl->set_relationship');
         $error = new SoapError();
@@ -317,7 +327,7 @@ class SugarWebServiceImpl
         } // if
 
         if ((empty($module_names) || empty($module_ids) || empty($link_field_names) || empty($related_ids)) ||
-        (sizeof($module_names) != (sizeof($module_ids) || sizeof($link_field_names) || sizeof($related_ids)))) {
+        (count($module_names) != (count($module_ids) || count($link_field_names) || count($related_ids)))) {
             $error->set_error('invalid_data_format');
             self::$helperObject->setFaultObject($error);
             $GLOBALS['log']->info('End: SugarWebServiceImpl->set_relationships');
@@ -405,7 +415,7 @@ class SugarWebServiceImpl
             $list = $result['rows'];
             $filterFields = $result['fields_set_on_rows'];
 
-            if (sizeof($list) > 0) {
+            if ((is_countable($list) ? count($list) : 0) > 0) {
                 // get the related module name and instantiate a bean for that.
                 $submodulename = $mod->$link_field_name->getRelatedModuleName();
                 $submoduleclass = $beanList[$submodulename];
@@ -536,13 +546,13 @@ class SugarWebServiceImpl
         $GLOBALS['log']->info('Begin: SugarWebServiceImpl->login');
         global $sugar_config, $system_config;
         $error = new SoapError();
-        $user = new User();
+        $user = BeanFactory::newBean('Users');
         $success = false;
         if (!empty($user_auth['encryption']) && $user_auth['encryption'] === 'PLAIN') {
             $user_auth['password'] = md5($user_auth['password']);
         }
         //rrs
-        $system_config = new Administration();
+        $system_config = BeanFactory::newBean('Administration');
         $system_config->retrieveSettings('system');
         $authController = new AuthenticationController();
         //rrs
@@ -593,7 +603,7 @@ class SugarWebServiceImpl
         $_SESSION['authenticated_user_id'] = $current_user->id;
         $_SESSION['unique_key'] = $sugar_config['unique_key'];
         $current_user->call_custom_logic('after_login');
-        $GLOBALS['log']->info('End: SugarWebServiceImpl->login - succesful login');
+        $GLOBALS['log']->info('End: SugarWebServiceImpl->login - successful login');
         $nameValueArray = array();
         global $current_language;
         $nameValueArray['user_id'] = self::$helperObject->get_name_value('user_id', $current_user->id);
@@ -601,7 +611,7 @@ class SugarWebServiceImpl
         $nameValueArray['user_language'] = self::$helperObject->get_name_value('user_language', $current_language);
         $cur_id = $current_user->getPreference('currency');
         $nameValueArray['user_currency_id'] = self::$helperObject->get_name_value('user_currency_id', $cur_id);
-        $currencyObject = new Currency();
+        $currencyObject = BeanFactory::newBean('Currencies');
         $currencyObject->retrieve($cur_id);
         $nameValueArray['user_currency_name'] = self::$helperObject->get_name_value('user_currency_name', $currencyObject->name);
         $_SESSION['user_language'] = $current_language;
@@ -654,7 +664,7 @@ class SugarWebServiceImpl
         require_once('sugar_version.php');
         require_once('modules/Administration/Administration.php');
 
-        $admin  = new Administration();
+        $admin  = BeanFactory::newBean('Administration');
         $admin->retrieveSettings('info');
         $sugar_version = '';
         if (isset($admin->settings['info_sugar_version'])) {
@@ -708,8 +718,14 @@ class SugarWebServiceImpl
             return;
         } // if
 
-        $class_name = $beanList[$module_name];
-        require_once($beanFiles[$class_name]);
+        $class_name = $beanList[$module_name] ?? '';
+        $class_file = $beanFiles[$class_name] ?? '';
+        if (!empty($class_file)) {
+            require_once($class_file);
+        } else {
+            $GLOBALS['log']->error('End: SugarWebServiceImpl->get_module_fields FAILED on getting class definition for ' . $module_name);
+            return;
+        }
         $seed = new $class_name();
         if ($seed->ACLAccess('ListView', true) || $seed->ACLAccess('DetailView', true) || 	$seed->ACLAccess('EditView', true)) {
             $return = self::$helperObject->get_return_module_fields($seed, $module_name, $fields);
@@ -796,7 +812,7 @@ class SugarWebServiceImpl
             return;
         } // if
         require_once('modules/Notes/Note.php');
-        $note = new Note();
+        $note = BeanFactory::newBean('Notes');
 
         $note->retrieve($id);
         if (!self::$helperObject->checkACLAccess($note, 'DetailView', $error, 'no_access')) {
@@ -870,7 +886,7 @@ class SugarWebServiceImpl
         } // if
 
         require_once('modules/DocumentRevisions/DocumentRevision.php');
-        $dr = new DocumentRevision();
+        $dr = BeanFactory::newBean('DocumentRevisions');
         $dr->retrieve($id);
         if (!empty($dr->filename)) {
             $filename = "upload://{$dr->id}";
@@ -918,6 +934,7 @@ class SugarWebServiceImpl
             $sugar_config['list_max_entries_per_page'] = $max_results;
         }
 
+        $unified_search_modules = [];
         require_once('modules/Home/UnifiedSearchAdvanced.php');
         require_once 'include/utils.php';
         $usa = new UnifiedSearchAdvanced();
@@ -978,7 +995,7 @@ class SugarWebServiceImpl
                     $emailQuery = false;
 
                     $where = '';
-                    if (count($where_clauses) > 0) {
+                    if ((is_countable($where_clauses) ? count($where_clauses) : 0) > 0) {
                         $where = '('. implode(' ) OR ( ', $where_clauses) . ')';
                     }
 
@@ -999,7 +1016,7 @@ class SugarWebServiceImpl
                     $filterFields[] = 'id';
                 } // if
                     $ret_array = $seed->create_new_list_query('', $where, $filterFields, array(), 0, '', true, $seed, true);
-                    if (empty($params) or !is_array($params)) {
+                    if (empty($params) || !is_array($params)) {
                         $params = array();
                     }
                     if (!isset($params['custom_select'])) {
@@ -1095,7 +1112,7 @@ LEFT JOIN email_addresses ea ON (ea.id = eabl.email_address_id) ";
 
 
     /**
-    *   Once we have successfuly done a mail merge on a campaign, we need to notify Sugar of the targets
+    *   Once we have successfully done a mail merge on a campaign, we need to notify Sugar of the targets
     *   and the campaign_id for tracking purposes
     *
     * @param String session  -- Session ID returned by a previous call to login.
@@ -1115,7 +1132,7 @@ LEFT JOIN email_addresses ea ON (ea.id = eabl.email_address_id) ";
             $GLOBALS['log']->info('End: SugarWebServiceImpl->set_campaign_merge');
             return;
         } // if
-        if (empty($campaign_id) or !is_array($targets) or count($targets) == 0) {
+        if (empty($campaign_id) || !is_array($targets) || count($targets) == 0) {
             $error->set_error('invalid_set_campaign_merge_data');
             self::$helperObject->setFaultObject($error);
             $GLOBALS['log']->debug('set_campaign_merge: Merge action status will not be updated, because, campaign_id is null or no targets were selected.');

@@ -4,7 +4,8 @@ namespace Api\V8\Param;
 use Api\V8\Param\Options as ParamOption;
 use Symfony\Component\OptionsResolver\OptionsResolver;
 
-class GetModuleParams extends BaseParam
+#[\AllowDynamicProperties]
+class GetModuleParams extends BaseParam implements ModuleAwareParamInterface
 {
     /**
      * @return string

@@ -247,9 +247,10 @@ class ListLayoutMetaDataParser extends AbstractMetaDataParser implements MetaDat
             } else {
                 if (is_string($def['studio'])) {
                     return $def['studio'] != 'false' && $def['studio'] != 'hidden';
-                }
-                if (is_bool($def['studio'])) {
-                    return $def['studio'];
+                } else {
+                    if (is_bool($def['studio'])) {
+                        return $def['studio'];
+                    }
                 }
             }
         }
@@ -291,7 +292,7 @@ class ListLayoutMetaDataParser extends AbstractMetaDataParser implements MetaDat
     {
         $GLOBALS ['log']->debug(get_class($this) . "->populateFromRequest() - fielddefs = " . print_r(
             $this->_fielddefs,
-                true
+            true
         ));
         /**
          * Transfer across any reserved fields, that is,
@@ -306,7 +307,7 @@ class ListLayoutMetaDataParser extends AbstractMetaDataParser implements MetaDat
              * If the field is on the layout, but studio disabled, put it back on the layout at the front
              */
             if (isset($def['studio']) && (
-                    (
+                (
                         is_array($def['studio']) && isset($def['studio']['listview']) &&
                         ($def['studio']['listview'] === false || strtolower($def['studio']['listview']) == 'false'
                             || strtolower($def['studio']['listview']) == 'required')
@@ -353,7 +354,7 @@ class ListLayoutMetaDataParser extends AbstractMetaDataParser implements MetaDat
                 }
 
                 if (isset($_REQUEST [strtolower($fieldname) . 'width'])) {
-                    $width = substr($_REQUEST [$fieldname . 'width'], 6, 3);
+                    $width = substr((string) $_REQUEST [$fieldname . 'width'], 6, 3);
                     if (strpos($width, "%") != false) {
                         $width = substr($width, 0, 2);
                     }
@@ -388,7 +389,7 @@ class ListLayoutMetaDataParser extends AbstractMetaDataParser implements MetaDat
      * @param string $class class name
      * @return array view definitions by field definitions
      */
-    public static function createViewDefsByFieldDefs(array $fieldDefs, $class = __CLASS__)
+    public static function createViewDefsByFieldDefs(array $fieldDefs, $class = self::class)
     {
         $rejectTypes = array(
             'html' => 'html',

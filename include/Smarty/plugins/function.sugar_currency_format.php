@@ -61,25 +61,30 @@ r14718 - 2006-07-17 17:39:10 -0700 (Mon, 17 Jul 2006) - wayne - format the curre
  * @param array
  * @param Smarty
  */
-function smarty_function_sugar_currency_format($params, &$smarty)
-{
+function smarty_function_sugar_currency_format($params, &$smarty) {
 
     // Bug #47406 : Currency field doesn't accept 0.00 as default value
-    if (!isset($params['var']) || $params['var'] === '') {
+	if(!isset($params['var']) || $params['var'] === '') {
         return '';
     }
-    
+
     global $locale;
-    if (empty($params['currency_id'])) {
-        $params['currency_id'] = $locale->getPrecedentPreference('currency');
-        if (!isset($params['convert'])) {
-            $params['convert'] = true;
-        }
-        if (!isset($params['currency_symbol'])) {
-            $params['currency_symbol'] = $locale->getPrecedentPreference('default_currency_symbol');
+    if(empty($params['currency_id'])){
+        if ($_REQUEST['action'] === 'Popup' && $params['field_name'] !== 'amount_usdollar') {
+            $params['currency_id'] = getCurrencyId($_REQUEST['module'], $params['id']);
+            $params['currency_symbol'] = $locale->currencies[$params['currency_id']]['symbol'];
+        } else {
+            $params['currency_id'] = $locale->getPrecedentPreference('currency');
+            if(!isset($params['convert'])) {
+                $params['convert'] = true;
+            }
+
+            if(!isset($params['currency_symbol'])) {
+                $params['currency_symbol'] = $locale->getPrecedentPreference('default_currency_symbol');
+            }
         }
     }
-   
+
     $_contents = currency_format_number($params['var'], $params);
 
     if (!empty($params['assign'])) {
@@ -88,3 +93,5 @@ function smarty_function_sugar_currency_format($params, &$smarty)
         return $_contents;
     }
 }
+
+?>

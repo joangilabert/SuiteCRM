@@ -1,9 +1,14 @@
 <!--- Provide a general summary of your changes in the Title above -->
+<!--- Please be aware that as of the 31st January 2022 we no longer support 7.10.x.
+New PRs to hotfix-7.10.x will be invalid. If your fix is still applicable to 7.12.x, 
+please create the pull request to the hotfix branch accordingly. -->
+
 
 ## Description
 <!--- Describe your changes in detail -->
 <!--- If fixing a bug, there should be an issue describing it with steps to reproduce -->
 <!--- Please link to the issue here unless your commit contains the issue number -->
+<!--- Ensure that all code ``` is surrounded ``` by triple back quotes. This can also be done over multiple lines -->
 
 ## Motivation and Context
 <!--- Why is this change required? What problem does it solve? -->

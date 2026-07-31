@@ -46,6 +46,7 @@ if (!isset($install_script) || !$install_script) {
     die($mod_strings['ERR_NO_DIRECT_SCRIPT']);
 }
 
+#[\AllowDynamicProperties]
 class NonDBLocalization extends Localization
 {
     public function __construct()
@@ -86,6 +87,7 @@ class NonDBLocalization extends Localization
     }
 }
 
+#[\AllowDynamicProperties]
 class InstallLayout
 {
     public static function getSelect($name, $options, $default)
@@ -219,7 +221,7 @@ EOQ;
             </div>
 
             <footer id="install_footer">
-                <p id="footer_links"><a href="https://suitecrm.com" target="_blank">Visit suitecrm.com</a> | <a href="https://suitecrm.com/index.php?option=com_kunena&view=category&Itemid=1137&layout=list" target="_blank">Support Forums</a> | <a href="https://docs.suitecrm.com/admin/installation-guide/" target="_blank">Installation Guide</a> | <a href="LICENSE.txt" target="_blank">License</a>
+                <p id="footer_links"><a href="https://suitecrm.com" target="_blank">Visit suitecrm.com</a> | <a href="https://suitecrm.com/suitecrm/forum" target="_blank">Support Forums</a> | <a href="https://docs.suitecrm.com/admin/installation-guide/" target="_blank">Installation Guide</a> | <a href="LICENSE.txt" target="_blank">License</a>
             </footer>
         </div>
     </body>
@@ -297,8 +299,8 @@ EOQ2;
                 if (!empty($value)) {
                     if (!empty($value['required'])) {
                         $form .= "<span class=\"required\">*</span>";
+                    } else {
                     }
-                    
                     if (!empty($_SESSION[$name])) {
                         $sessval = $_SESSION[$name];
                     } else {
@@ -389,7 +391,7 @@ FORM;
     <span id='connection_user_div' style="display:none">
         <div class="formrow">
             <label>{$mod_strings['LBL_DBCONF_SUITE_DB_USER']} <span class="required">*</span></label>
-            <input type="text" name="setup_db_sugarsales_user" maxlength="16" value="{$_SESSION['setup_db_sugarsales_user']}" />
+            <input type="text" name="setup_db_sugarsales_user" value="{$_SESSION['setup_db_sugarsales_user']}" />
         </div>
         <div class="clear"></div>
         <div class="formrow">
@@ -522,12 +524,6 @@ EOQ;
 </div>
 EOQ;
 
-        $out .= <<<EOQ
-
-EOQ;
-
-
-
         // ------------------
         //  Choose Demo Data
         // ------------------------->
@@ -569,7 +565,7 @@ EOQ3;
             foreach ($_SESSION['installation_scenarios'] as $scenario) {
                 $key = $scenario['key'];
                 $description = $scenario['description'];
-                $scenarioModuleList =  implode($scenario['modulesScenarioDisplayName'], ',');
+                $scenarioModuleList = implode(',', $scenario['modulesScenarioDisplayName']);
                 $title = $scenario['title'];
 
                 $scenarioSelection.= "<input type='checkbox' name='scenarios[]' value='$key' checked><b>$title</b>.  $description ($scenarioModuleList).<br>";
@@ -592,343 +588,6 @@ EOQ3;
 EOQ;
 
         //--End of scenarios
-
-        //---------------
-        // SMTP Settings
-        //-------------------->
-
-        // smtp
-        // TODO-t: test it for all types
-        $MAIL_SSL_OPTIONS_GMAIL = get_select_options_with_id($app_list_strings['email_settings_for_ssl'], '2');
-        //$MAIL_SSL_OPTIONS_YAHOO = get_select_options_with_id($app_list_strings['email_settings_for_ssl'], '1');
-        $MAIL_SSL_OPTIONS_EXCHG = get_select_options_with_id($app_list_strings['email_settings_for_ssl'], 'none');
-        $MAIL_SSL_OPTIONS_OTHER = get_select_options_with_id($app_list_strings['email_settings_for_ssl'], 'none');
-
-        // set default notify_allow_default_outbound checkbox value
-        $notify_allow_default_outbound_checked = empty($_SESSION['notify_allow_default_outbound']) ? '' : ' checked="checked" ';
-
-        // set default smtp toggle buttons selected value
-        if (empty($_SESSION['smtp_tab_selected'])) {
-            $_SESSION['smtp_tab_selected'] = 'smtp_tab_other';
-        }
-        
-        if (!isset($_SESSION['smtp_from_name']) || !$_SESSION['smtp_from_name']) {
-            $_SESSION['smtp_from_name'] = 'SuiteCRM';
-        }
-        if (!isset($_SESSION['smtp_from_addr']) || !$_SESSION['smtp_from_addr']) {
-            $_SESSION['smtp_from_addr'] = 'do_not_reply@example.com';
-        }
-
-        $out .= <<<EOQ
-        <div class="floatbox full" id="fb2">
-            <!-- smtp settings -->
-            <h3 onclick="$(this).next().toggle();" class="toggler">&raquo; {$mod_strings['LBL_MAIL_SMTP_SETTINGS']}</h3>
-            <div style="display: none;">
-
-            <br>
-            <!--
-            <p>{$mod_strings['LBL_WIZARD_SMTP_DESC']}</p>
-            -->
-
-            <!-- smtp types toggler buttons -->
-
-            <p style="display: inline;">
-            
-            <div>
-                <div class="formrow">
-                    <label>{$mod_strings['LBL_FROM_NAME']}</label>
-                    <input type="text" name="smtp_from_name" value="{$_SESSION['smtp_from_name']}">
-                </div>
-                <div class="formrow">
-                    <label>{$mod_strings['LBL_FROM_ADDR']}</label>
-                    <input type="email" name="smtp_from_addr" value="{$_SESSION['smtp_from_addr']}">
-                </div>
-            </div>
-            <div class="clear"></div>
-
-            {$mod_strings['LBL_CHOOSE_EMAIL_PROVIDER']} </p><div class="tooltip-toggle"> <em>i</em> <div class="tooltip">{$mod_strings['LBL_WIZARD_SMTP_DESC']}</div></div>
-            <div class="clear"></div>
-            <div>
-                <input type="button" class="smtp_tab_toggler" id="smtp_tab_gmail_toggler" for="smtp_tab_gmail" value="{$mod_strings['LBL_SMTPTYPE_GMAIL']}" />
-                <input type="button" class="smtp_tab_toggler" id="smtp_tab_yahoo_toggler" for="smtp_tab_yahoo" value="{$mod_strings['LBL_SMTPTYPE_YAHOO']}" />
-                <input type="button" class="smtp_tab_toggler" id="smtp_tab_exchange_toggler" for="smtp_tab_exchange" value="{$mod_strings['LBL_SMTPTYPE_EXCHANGE']}" />
-                <input type="button" class="smtp_tab_toggler selected" id="smtp_tab_other_toggler" for="smtp_tab_other" value="{$mod_strings['LBL_SMTPTYPE_OTHER']}" />
-                <input type="hidden" name="smtp_tab_selected" value="{$_SESSION['smtp_tab_selected']}">
-            </div>
-            <!-- smtp / gmail tab -->
-
-            <div class="form_section smtp_tab" id="smtp_tab_gmail">
-
-                <div class="formrow">
-                    <label>{$mod_strings['LBL_MAIL_SMTPSERVER']}</label>
-                    <input type="text" name="smtp_tab_gmail[mail_smtpserver]" size="25" maxlength="255" value="smtp.gmail.com">
-                </div>
-
-                <div class="formrow">
-                    <label>{$mod_strings['LBL_MAIL_SMTPPORT']}</label>
-                    <input type="text" name="smtp_tab_gmail[mail_smtpport]" size="5" maxlength="5" value="587">
-                </div>
-
-                <div class="clear"></div>
-
-                <div class="formrow">
-                    <label>{$mod_strings['LBL_MAIL_SMTPAUTH_REQ']}</label>
-                    <input type="checkbox" name="smtp_tab_gmail[mail_smtpauth_req]" id="smtp_tab_gmail__mail_smtpauth_req" value="1" checked="checked" onclick="toggleSMTPAuthSettings(this, 'toggleArea_1');">
-                </div>
-
-                <div class="formrow">
-                    <label>{$mod_strings['LBL_EMAIL_SMTP_SSL_OR_TLS']}</label>
-                    <select name="smtp_tab_gmail[mail_smtpssl]">
-                        {$MAIL_SSL_OPTIONS_GMAIL}
-                    </select>
-                </div>
-
-                <div class="clear"></div>
-
-
-                <div class="toggleArea" id="toggleArea_1">
-                <div class="formrow">
-                    <label>{$mod_strings['LBL_GMAIL_SMTPUSER']}</label>
-                        <input type="text" name="smtp_tab_gmail[mail_smtpuser]" id="smtp_tab_gmail__mail_smtpuser" size="25" maxlength="255">
-                </div>
-
-                <div class="clear"></div>
-
-                <div class="formrow">
-                    <label>{$mod_strings['LBL_GMAIL_SMTPPASS']}</label>
-                        <input type="password" name="smtp_tab_gmail[mail_smtppass]" id="smtp_tab_gmail__mail_smtppass" size="25" maxlength="255" value="" tabindex="1">
-                </div>
-
-                <div class="clear"></div>
-
-                <div class="formrow">
-                    <label>{$mod_strings['LBL_ALLOW_DEFAULT_SELECTION']} <i>i<div class="tooltip">{$mod_strings['LBL_ALLOW_DEFAULT_SELECTION_HELP']}</div></i></label>
-                        <input name="smtp_tab_gmail[notify_allow_default_outbound]" id="smtp_tab_gmail__notify_allow_default_outbound" value="2" tabindex="1" class="checkbox" type="checkbox" {$notify_allow_default_outbound_checked}>
-                    </div>
-                </div>
-
-                <div class="clear"></div>
-            </div>
-
-            <!-- smtp / yahoo! mail tab -->
-
-            <div class="form_section smtp_tab" id="smtp_tab_yahoo">
-
-                <input type="hidden" name="smtp_tab_yahoo[mail_smtpserver]" size="25" maxlength="255" value="smtp.mail.yahoo.com">
-                <input type="text" name="smtp_tab_yahoo[mail_smtpport]" size="5" maxlength="5" value="465">
-                <input type="hidden" name="smtp_tab_yahoo[mail_smtpssl]" value="1">
-
-                <div class="formrow">
-                    <label>{$mod_strings['LBL_YAHOOMAIL_SMTPUSER']}</label>
-                    <input type="text" name="smtp_tab_yahoo[mail_smtpuser]" size="25" maxlength="255">
-                </div>
-
-                <div class="clear"></div>
-
-                <div class="formrow">
-                    <label>{$mod_strings['LBL_YAHOOMAIL_SMTPPASS']}</label>
-                    <input type="password" name="smtp_tab_yahoo[mail_smtppass]" size="25" maxlength="255" value="" tabindex="1">
-                </div>
-
-                <div class="clear"></div>
-
-                <div class="formrow">
-                    <label>{$mod_strings['LBL_ALLOW_DEFAULT_SELECTION']} <i>i<div class="tooltip">{$mod_strings['LBL_ALLOW_DEFAULT_SELECTION_HELP']}</div></i></label>
-                    <input name="smtp_tab_yahoo[notify_allow_default_outbound]" value="2" tabindex="1" class="checkbox" type="checkbox" {$notify_allow_default_outbound_checked}>
-                </div>
-
-                <div class="clear"></div>
-            </div>
-
-            <!-- smtp / ms-exchange tab -->
-
-            <div class="form_section smtp_tab" id="smtp_tab_exchange">
-
-                <div class="formrow">
-                    <label>{$mod_strings['LBL_EXCHANGE_SMTPSERVER']}</label>
-                    <input type="text" name="smtp_tab_exchange[mail_smtpserver]" size="25" maxlength="255" value="">
-                </div>
-
-                <div class="formrow">
-                    <label>{$mod_strings['LBL_EXCHANGE_SMTPPORT']}</label>
-                    <input type="text" name="smtp_tab_exchange[mail_smtpport]" size="5" maxlength="5" value="25">
-                </div>
-
-                <div class="clear"></div>
-
-                <div class="formrow">
-                    <label>{$mod_strings['LBL_MAIL_SMTPAUTH_REQ']}</label>
-                    <input type="checkbox" name="smtp_tab_exchange[mail_smtpauth_req]" id="smtp_tab_exchange__mail_smtpauth_req" value="1" checked="checked" onclick="toggleSMTPAuthSettings(this, 'toggleArea_2');">
-                </div>
-
-                <div class="formrow">
-                    <label>{$mod_strings['LBL_EMAIL_SMTP_SSL_OR_TLS']}</label>
-                    <select name="smtp_tab_exchange[mail_smtpssl]" tabindex="501">
-                        {$MAIL_SSL_OPTIONS_EXCHG}
-                    </select>
-                </div>
-
-                <div class="clear"></div>
-
-                <div class="toggleArea" id="toggleArea_2">
-                <div class="formrow">
-                    <label>{$mod_strings['LBL_EXCHANGE_SMTPUSER']}</label>
-                        <input type="text" name="smtp_tab_exchange[mail_smtpuser]" id="smtp_tab_exchange__mail_smtpuser" size="25" maxlength="255">
-                </div>
-
-                <div class="clear"></div>
-
-                <div class="formrow">
-                    <label>{$mod_strings['LBL_EXCHANGE_SMTPPASS']}</label>
-                        <input type="password" name="smtp_tab_exchange[mail_smtppass]" id="smtp_tab_exchange__mail_smtppass" size="25" maxlength="255" value="" tabindex="1">
-                </div>
-
-                <div class="clear"></div>
-
-                <div class="formrow">
-                    <label>{$mod_strings['LBL_ALLOW_DEFAULT_SELECTION']} <i>i<div class="tooltip">{$mod_strings['LBL_ALLOW_DEFAULT_SELECTION_HELP']}</div></i></label>
-                        <input name="smtp_tab_exchange[notify_allow_default_outbound]" id="smtp_tab_exchange__notify_allow_default_outbound" value="2" tabindex="1" class="checkbox" type="checkbox" {$notify_allow_default_outbound_checked}>
-                    </div>
-                </div>
-
-                <div class="clear"></div>
-            </div>
-
-            <!-- smtp / other tab-->
-
-            <div class="form_section smtp_tab" id="smtp_tab_other">
-
-                <div class="formrow">
-                    <label>{$mod_strings['LBL_MAIL_SMTPSERVER']}</label>
-                    <input type="text" name="smtp_tab_other[mail_smtpserver]" size="25" maxlength="255" value="">
-                </div>
-
-                <div class="formrow">
-                    <label>{$mod_strings['LBL_MAIL_SMTPPORT']}</label>
-                    <input type="text" name="smtp_tab_other[mail_smtpport]" size="5" maxlength="5" value="25">
-                </div>
-
-                <div class="clear"></div>
-
-                <div class="formrow">
-                    <label>{$mod_strings['LBL_MAIL_SMTPAUTH_REQ']}</label>
-                    <input type="hidden" name="smtp_tab_other[mail_smtpauth_req]" value="0">
-                    <input type="checkbox" id="mail_smtpauth_req_chk" name="smtp_tab_other[mail_smtpauth_req]" value="1" checked="checked" onclick="toggleSMTPAuthSettings(this, 'toggleArea_3');">
-                </div>
-
-                <div class="formrow">
-                    <label>{$mod_strings['LBL_EMAIL_SMTP_SSL_OR_TLS']}</label>
-                    <select name="smtp_tab_other[mail_smtpssl]" tabindex="501">
-                        {$MAIL_SSL_OPTIONS_OTHER}
-                    </select>
-                </div>
-
-                <div class="clear"></div>
-
-                <div class="toggleArea" id="toggleArea_3">
-                <div class="formrow">
-                    <label>{$mod_strings['LBL_MAIL_SMTPUSER']}</label>
-                        <input type="text" name="smtp_tab_other[mail_smtpuser]" id="smtp_tab_other__mail_smtpuser" size="25" maxlength="255">
-                </div>
-
-                <div class="clear"></div>
-
-                <div class="formrow">
-                    <label>{$mod_strings['LBL_MAIL_SMTPPASS']}</label>
-                        <input type="password" name="smtp_tab_other[mail_smtppass]" id="smtp_tab_other__mail_smtppass" size="25" maxlength="255" value="" tabindex="1">
-                </div>
-
-                <div class="clear"></div>
-
-                <div class="formrow">
-                    <label>{$mod_strings['LBL_ALLOW_DEFAULT_SELECTION']} <i>i<div class="tooltip">{$mod_strings['LBL_ALLOW_DEFAULT_SELECTION_HELP']}</div></i></label>
-                    <input type="hidden" name="smtp_tab_other[notify_allow_default_outbound]" value="0">
-                    <input id="notify_allow_default_outbound_chk" name="smtp_tab_other[notify_allow_default_outbound]" value="2" tabindex="1" class="checkbox" type="checkbox" {$notify_allow_default_outbound_checked}>
-                </div>
-                </div>
-
-                <div class="clear"></div>
-            <!-- </div> -->
-
-            <!-- smtp default values & tabs toggler js & tooltip help -->
-
-            <script>
-
-                var toggleSMTPAuthFields = {
-                    toggleArea_1 : {
-                        user: 'smtp_tab_gmail__mail_smtpuser',
-                        pass: 'smtp_tab_gmail__mail_smtppass',
-                        allow: 'smtp_tab_gmail__notify_allow_default_outbound'
-                    },
-                    toggleArea_2 : {
-                        user: 'smtp_tab_exchange__mail_smtpuser',
-                        pass: 'smtp_tab_exchange__mail_smtppass',
-                        allow: 'smtp_tab_exchange__notify_allow_default_outbound'
-                    },
-                    toggleArea_3 : {
-                        user: 'smtp_tab_other__mail_smtpuser',
-                        pass: 'smtp_tab_other__mail_smtppass',
-                        allow: 'notify_allow_default_outbound_chk'
-                    }
-                };
-
-                var toggleSMTPAuthSettings = function(chkbox, elemID) {
-                    if($(chkbox).prop('checked')) {
-                        $('#' + elemID).show();
-                    }
-                    else {
-                        $('#' + toggleSMTPAuthFields[elemID].user).val('');
-                        $('#' + toggleSMTPAuthFields[elemID].pass).val('');
-                        $('#' + toggleSMTPAuthFields[elemID].allow).prop('checked', false);
-                        $('#' + elemID).hide();
-                    }
-                };
-
-                $(function(){
-
-                    $('.smtp_tab_toggler').click(function(){
-                        $('.smtp_tab_toggler.selected').removeClass('selected');
-                        $(this).addClass('selected');
-                        $('.smtp_tab').hide();
-                        $('#'+$(this).attr('for')).show();
-                        $('input[name="smtp_tab_selected"]').val($(this).attr('for'));
-                    });
-
-                    // save last selected tab and set as default when form (re)load
-                    $('#{$_SESSION['smtp_tab_selected']}_toggler').click();
-
-                    $('select[name="smtp_tab_gmail[mail_smtpssl]"] option').each(function(){
-                        if(!$(this).html()) {
-                            $(this).html('-none-');
-                        }
-                    });
-                    $('select[name="smtp_tab_yahoo[mail_smtpssl]"] option').each(function(){
-                        if(!$(this).html()) {
-                            $(this).html('-none-');
-                        }
-                    });
-                    $('select[name="smtp_tab_exchange[mail_smtpssl]"] option').each(function(){
-                        if(!$(this).html()) {
-                            $(this).html('-none-');
-                        }
-                    });
-                    $('select[name="smtp_tab_other[mail_smtpssl]"] option').each(function(){
-                        if(!$(this).html()) {
-                            $(this).html('-none-');
-                        }
-                    });
-
-
-                    toggleSMTPAuthSettings(document.getElementById('smtp_tab_gmail__mail_smtpauth_req'), 'toggleArea_1');
-                    toggleSMTPAuthSettings(document.getElementById('smtp_tab_exchange__mail_smtpauth_req'), 'toggleArea_2');
-                    toggleSMTPAuthSettings(document.getElementById('mail_smtpauth_req_chk'), 'toggleArea_3');
-
-                });
-            </script>
-
-            </div> <!-- toggle hidden box end -->
-EOQ;
-
 
         // db setup (dbConfig_a.php)
         $out2 =<<<EOQ2
@@ -960,8 +619,6 @@ EOQ2;
         $out .= <<<EOQ
 
             <!-- Branding  -->
-            </div>
-        </div>
         <div class="floatbox full" id="fb3">
             <h3 onclick="$(this).next().toggle();" class="toggler">&raquo; {$mod_strings['LBL_WIZARD_SYSTEM_TITLE']}</h3>
 
@@ -1198,10 +855,56 @@ EOQ;
 </table>
 </div>
 EOQ;
+        $out .= "</div>";
 
-        $out.= "</div>";
+        // --------------------------
+        //  Advanced Database Configuration
+        // --------------------------------->
 
+        require_once(__DIR__ . '/suite_install/collations.php');
 
+        $collationCB = "<select name='setup_db_collation' id='setup_db_collation' class='select' onChange='document.getElementById(\"setup_db_charset\").value = document.getElementById(\"setup_db_collation\").value.split(\"_\")[0];'>";
+        $charset = "<select name='setup_db_charset' id='setup_db_charset' class='select'>";
+
+        if (isset($collations) && isset($_SESSION['setup_db_type']) && $_SESSION['setup_db_type'] == "mysql") {
+                foreach ($collations['mysql'] as $collation) {
+                    $collationCB .= "<option value='" . $collation['name'] . "' >" . $collation['name'] . "</option>";
+                    $charset .= "<option value='" . $collation['charset'] . "' >" . $collation['charset'] . "</option>";
+                }
+        }
+
+        $collationCB .= '</select>';
+        $charset .= '</select>';
+
+        $out .= <<<EOQ3
+        <div class="floatbox full" id="fb5">
+          <h3 onclick="$(this).next().toggle();" class="toggler">&raquo; {$mod_strings['LBL_DBCONF_ADV_DB_CFG_TITLE']}</h3>
+          <div class="form_section" style="display: none;">
+            <!-- smtp settings -->
+	    <br>
+            <!--
+            <p>{$mod_strings['LBL_WIZARD_SMTP_DESC']}</p>
+            -->
+
+	    <!-- smtp types toggler buttons -->
+
+	    <p style="display: inline;">
+
+	    <div>
+                <div class="formrow">
+                    <label>{$mod_strings['LBL_DBCONF_COLLATION']}</label>
+                    {$collationCB}
+                </div>
+                <div class="formrow">
+                    <label>{$mod_strings['LBL_DBCONF_CHARSET']}</label>
+                    {$charset}
+                </div>
+            </div>
+            <div class="clear"></div>
+          </div>
+        </div>
+
+EOQ3;
 
         return $out;
     }
@@ -1635,7 +1338,10 @@ EOQ;
                             }
                             postData += "&setup_db_host_name="+document.installForm.setup_db_host_name.value;
                             postData += "&setup_db_admin_user_name="+document.installForm.setup_db_admin_user_name.value;
-                            postData += "&setup_db_admin_password="+encodeURIComponent(document.installForm.setup_db_admin_password.value);
+			    postData += "&setup_db_admin_password="+encodeURIComponent(document.installForm.setup_db_admin_password.value);
+                            postData += "&setup_db_collation="+document.installForm.setup_db_collation.value;
+			    postData += "&setup_db_charset="+document.installForm.setup_db_charset.value;
+
                             if(typeof(document.installForm.setup_db_sugarsales_user) != 'undefined'){
                                 postData += "&setup_db_sugarsales_user="+document.installForm.setup_db_sugarsales_user.value;
                             }
@@ -1715,8 +1421,28 @@ EOQ;
      */
     public function show($data = null)
     {
+        global $mod_strings;
+        global $sugar_version;
+        global $js_custom_version;
+        global $app_list_strings;
+        global $db;
+        global $current_language;
+        global $errs;
+        global $sugarConfigDefaults ;
+        global $drivers;
+        global $checked;
+        global $errors;
+        global $supportedLanguages;
+        global $customSession;
+        global $customLog;
+        global $customId;
+        global $customSessionHidden;
+        global $customLogHidden;
+        global $customIdHidden;
+        global $next_step;
+        global $sugar_md;
         foreach ($data as $__key => $__val) {
-            $$__key = $__val;
+            ${$__key} = $__val;
         }
         $formId = 'installForm';
         $out = $this->getOutput(
@@ -1759,6 +1485,7 @@ EOQ;
     }
 }
 
+#[\AllowDynamicProperties]
 class DisplayErrors
 {
     private static $settingsStack = array();
@@ -1804,7 +1531,7 @@ $setup_db_type = $_SESSION['setup_db_type'];
 
 $errs = '';
 if (isset($validation_errors)) {
-    if (count($validation_errors) > 0) {
+    if ((is_countable($validation_errors) ? count($validation_errors) : 0) > 0) {
         $errs  = '<div id="errorMsgs">';
         $errs .= "<p>{$mod_strings['LBL_SYSOPTS_ERRS_TITLE']}</p>";
         $errs .= '<ul>';
@@ -1853,8 +1580,13 @@ if (!isset($_SESSION['setup_db_manager'])) {
 
 $db = getInstallDbInstance();
 
+if(!isset($_SESSION['setup_db_collation']) || $_SESSION['setup_db_collation'] ==''){
+    $_SESSION['setup_db_collation'] = 'utf8mb4_general_ci';
+}
 
-
+if(!isset($_SESSION['setup_db_charset']) || $_SESSION['setup_db_charset'] ==''){
+    $_SESSION['setup_db_charset'] = 'utf8mb4';
+}
 
 
 //----------------- siteConfig_a.php Site Config & admin user

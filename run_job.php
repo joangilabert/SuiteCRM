@@ -41,7 +41,7 @@
  * display the words "Powered by SugarCRM" and "Supercharged by SuiteCRM".
  */
 
-chdir(dirname(__FILE__));
+chdir(__DIR__);
 
 require_once('include/entryPoint.php');
 
@@ -62,7 +62,7 @@ if (empty($current_language)) {
 $app_list_strings = return_app_list_strings_language($current_language);
 $app_strings = return_application_language($current_language);
 
-$current_user = new User();
+$current_user = BeanFactory::newBean('Users');
 $current_user->getSystemUser();
 
 $GLOBALS['log']->debug('Starting job {$argv[1]} execution as ${argv[2]}');

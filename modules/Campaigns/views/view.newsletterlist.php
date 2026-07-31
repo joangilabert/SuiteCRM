@@ -45,21 +45,21 @@ if (!defined('sugarEntry') || !sugarEntry) {
 /**
  */
 
-require_once('include/MVC/View/views/view.list.php');
 
+#[\AllowDynamicProperties]
 class ViewNewsLetterList extends ViewList
 {
     public function processSearchForm()
     {
         // we have a query
-        if (!empty($_SERVER['HTTP_REFERER']) && preg_match('/action=EditView/', $_SERVER['HTTP_REFERER'])) { // from EditView cancel
+        if (!empty($_SERVER['HTTP_REFERER']) && preg_match('/action=EditView/', (string) $_SERVER['HTTP_REFERER'])) { // from EditView cancel
             $this->searchForm->populateFromArray($this->storeQuery->query);
         } else {
             $this->searchForm->populateFromRequest();
         }
         $where_clauses = $this->searchForm->generateSearchWhere(true, $this->seed->module_dir);
         $where_clauses[] = "campaigns.campaign_type in ('NewsLetter')";
-        if (count($where_clauses) > 0) {
+        if ((is_countable($where_clauses) ? count($where_clauses) : 0) > 0) {
             $this->where = '('. implode(' ) AND ( ', $where_clauses) . ')';
         }
         $GLOBALS['log']->info("List View Where Clause: $this->where");

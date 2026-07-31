@@ -44,6 +44,7 @@ require_once('include/tabs.php');
  * Old search form
  * @api
  */
+#[\AllowDynamicProperties]
 class SearchForm
 {
     /**
@@ -126,20 +127,6 @@ class SearchForm
                                   'link'   => $module . '|saved_views',
                                   'key'    => $module . '|saved_views');
         }
-    }
-
-    /**
-     * @deprecated deprecated since version 7.6, PHP4 Style Constructors are deprecated and will be remove in 7.8, please update your code, use __construct instead
-     */
-    public function SearchForm($module, &$seedBean, $tpl = null)
-    {
-        $deprecatedMessage = 'PHP4 Style Constructors are deprecated and will be remove in 7.8, please update your code';
-        if (isset($GLOBALS['log'])) {
-            $GLOBALS['log']->deprecated($deprecatedMessage);
-        } else {
-            trigger_error($deprecatedMessage, E_USER_DEPRECATED);
-        }
-        self::__construct($module, $seedBean, $tpl);
     }
 
     /**
@@ -617,8 +604,9 @@ class SearchForm
         } else {
             if ($return) {
                 return $text;
+            } else {
+                echo $text;
             }
-            echo $text;
         }
     }
 
@@ -658,8 +646,9 @@ class SearchForm
         } else {
             if ($return) {
                 return $text;
+            } else {
+                echo $text;
             }
-            echo $text;
         }
     }
 
@@ -695,7 +684,7 @@ class SearchForm
         global $app_strings;
 
         $SAVED_SEARCHES_OPTIONS = '';
-        $savedSearch = new SavedSearch();
+        $savedSearch = BeanFactory::newBean('SavedSearch');
         $SAVED_SEARCHES_OPTIONS = $savedSearch->getSelect($this->module);
         $str = "<input tabindex='2' title='{$app_strings['LBL_SEARCH_BUTTON_TITLE']}' onclick='SUGAR.savedViews.setChooser()' class='button' type='submit' name='button' value='{$app_strings['LBL_SEARCH_BUTTON_LABEL']}' id='search_form_submit'/>&nbsp;";
         $str .= "<input tabindex='2' title='{$app_strings['LBL_CLEAR_BUTTON_TITLE']}' onclick='SUGAR.searchForm.clear_form(this.form); return false;' class='button' type='button' name='clear' value=' {$app_strings['LBL_CLEAR_BUTTON_LABEL']} ' id='search_form_clear'/>";

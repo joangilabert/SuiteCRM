@@ -43,6 +43,7 @@ if (!defined('sugarEntry') || !sugarEntry) {
 
 require_once('include/SugarObjects/forms/PersonFormBase.php');
 
+#[\AllowDynamicProperties]
 class LeadFormBase extends PersonFormBase
 {
     public $moduleName = 'Leads';
@@ -67,11 +68,15 @@ class LeadFormBase extends PersonFormBase
 
         $query .= " WHERE deleted != 1 AND (status <> 'Converted' OR status IS NULL) AND ";
 
+        $dbManager = DBManagerFactory::getInstance();
         //Use the first and last name from the $_POST to filter.  If only last name supplied use that
-        if (isset($_POST[$prefix.'first_name']) && strlen($_POST[$prefix.'first_name']) != 0 && isset($_POST[$prefix.'last_name']) && strlen($_POST[$prefix.'last_name']) != 0) {
-            $query .= " (first_name='". $_POST[$prefix.'first_name'] . "' AND last_name = '". $_POST[$prefix.'last_name'] ."')";
+        if (isset($_POST[$prefix.'first_name']) && strlen((string) $_POST[$prefix.'first_name']) != 0 && isset($_POST[$prefix.'last_name']) && strlen((string) $_POST[$prefix.'last_name']) != 0) {
+            $firstName = $dbManager->quote($_POST[$prefix.'first_name' ?? '']);
+            $lastName = $dbManager->quote($_POST[$prefix.'last_name' ?? '']);
+            $query .= " (first_name='". $firstName . "' AND last_name = '". $lastName ."')";
         } else {
-            $query .= " last_name = '". $_POST[$prefix.'last_name'] ."'";
+            $lastName = $dbManager->quote($_POST[$prefix.'last_name' ?? '']);
+            $query .= " last_name = '". $lastName ."'";
         }
         return $query;
     }
@@ -100,27 +105,27 @@ class LeadFormBase extends PersonFormBase
         $user_id = $current_user->id;
         $lbl_email_address = $mod_strings['LBL_EMAIL_ADDRESS'];
         $form = <<<EOQ
-		<input type="hidden" name="${prefix}record" value="">
-		<input type="hidden" name="${prefix}status" value="New">
-		<input type="hidden" name="${prefix}assigned_user_id" value='${user_id}'>
-		<table class='evenListRow' border='0' width='100%'><tr><td nowrap cospan='1'>$lbl_first_name<br><input name="${prefix}first_name" type="text" value=""></td><td colspan='1'><FONT class="required">$lbl_required_symbol</FONT>&nbsp;$lbl_last_name<br><input name='${prefix}last_name' type="text" value=""></td></tr>
+		<input type="hidden" name="{$prefix}record" value="">
+		<input type="hidden" name="{$prefix}status" value="New">
+		<input type="hidden" name="{$prefix}assigned_user_id" value='{$user_id}'>
+		<table class='evenListRow' border='0' width='100%'><tr><td nowrap cospan='1'>$lbl_first_name<br><input name="{$prefix}first_name" type="text" value=""></td><td colspan='1'><FONT class="required">$lbl_required_symbol</FONT>&nbsp;$lbl_last_name<br><input name='{$prefix}last_name' type="text" value=""></td></tr>
 		<tr><td colspan='4'><hr></td></tr>
-		<tr><td nowrap colspan='1'>${mod_strings['LBL_TITLE']}<br><input name='${prefix}title' type="text" value=""></td><td nowrap colspan='1'>${mod_strings['LBL_DEPARTMENT']}<br><input name='${prefix}department' type="text" value=""></td></tr>
+		<tr><td nowrap colspan='1'>{$mod_strings['LBL_TITLE']}<br><input name='{$prefix}title' type="text" value=""></td><td nowrap colspan='1'>{$mod_strings['LBL_DEPARTMENT']}<br><input name='{$prefix}department' type="text" value=""></td></tr>
 		<tr><td colspan='4'><hr></td></tr>
-		<tr><td nowrap colspan='4'>$lbl_address<br><input type='text' name='${prefix}primary_address_street' size='80'></td></tr>
-		<tr><td> ${mod_strings['LBL_CITY']}<BR><input name='${prefix}primary_address_city'  maxlength='100' value=''></td><td>${mod_strings['LBL_STATE']}<BR><input name='${prefix}primary_address_state'  maxlength='100' value=''></td><td>${mod_strings['LBL_POSTAL_CODE']}<BR><input name='${prefix}primary_address_postalcode'  maxlength='100' value=''></td><td>${mod_strings['LBL_COUNTRY']}<BR><select name='${prefix}primary_address_country' size='1'>{$primary_address_country_options}</select></td></tr>
+		<tr><td nowrap colspan='4'>$lbl_address<br><input type='text' name='{$prefix}primary_address_street' size='80'></td></tr>
+		<tr><td> {$mod_strings['LBL_CITY']}<BR><input name='{$prefix}primary_address_city'  maxlength='100' value=''></td><td>{$mod_strings['LBL_STATE']}<BR><input name='{$prefix}primary_address_state'  maxlength='100' value=''></td><td>{$mod_strings['LBL_POSTAL_CODE']}<BR><input name='{$prefix}primary_address_postalcode'  maxlength='100' value=''></td><td>{$mod_strings['LBL_COUNTRY']}<BR><select name='{$prefix}primary_address_country' size='1'>{$primary_address_country_options}</select></td></tr>
 		<tr><td colspan='4'><hr></td></tr>
-		<tr><td nowrap >$lbl_phone<br><input name='${prefix}phone_work' type="text" value=""></td><td nowrap >${mod_strings['LBL_MOBILE_PHONE']}<br><input name='${prefix}phone_mobile' type="text" value=""></td><td nowrap >${mod_strings['LBL_FAX_PHONE']}<br><input name='${prefix}phone_fax' type="text" value=""></td><td nowrap >${mod_strings['LBL_HOME_PHONE']}<br><input name='${prefix}phone_home' type="text" value=""></td></tr>
+		<tr><td nowrap >$lbl_phone<br><input name='{$prefix}phone_work' type="text" value=""></td><td nowrap >{$mod_strings['LBL_MOBILE_PHONE']}<br><input name='{$prefix}phone_mobile' type="text" value=""></td><td nowrap >{$mod_strings['LBL_FAX_PHONE']}<br><input name='{$prefix}phone_fax' type="text" value=""></td><td nowrap >{$mod_strings['LBL_HOME_PHONE']}<br><input name='{$prefix}phone_home' type="text" value=""></td></tr>
 		<tr><td colspan='4'><hr></td></tr>
-		<tr><td nowrap colspan='1'>$lbl_email_address<br><input name='${prefix}email1' type="text" value=""></td><td nowrap colspan='1'>${mod_strings['LBL_OTHER_EMAIL_ADDRESS']}<br><input name='${prefix}email2' type="text" value=""></td></tr>
-		<tr><td nowrap colspan='4'>${mod_strings['LBL_DESCRIPTION']}<br><textarea cols='80' rows='4' name='${prefix}description' ></textarea></td></tr></table>
+		<tr><td nowrap colspan='1'>$lbl_email_address<br><input name='{$prefix}email1' type="text" value=""></td><td nowrap colspan='1'>{$mod_strings['LBL_OTHER_EMAIL_ADDRESS']}<br><input name='{$prefix}email2' type="text" value=""></td></tr>
+		<tr><td nowrap colspan='4'>{$mod_strings['LBL_DESCRIPTION']}<br><textarea cols='80' rows='4' name='{$prefix}description' ></textarea></td></tr></table>
 
 EOQ;
 
 
         $javascript = new javascript();
         $javascript->setFormName($formname);
-        $javascript->setSugarBean(new Lead());
+        $javascript->setSugarBean(BeanFactory::newBean('Leads'));
         $javascript->addField('email1', 'false', $prefix);
         $javascript->addField('email2', 'false', $prefix);
         $javascript->addRequiredFields($prefix);
@@ -149,25 +154,25 @@ EOQ;
         $user_id = $current_user->id;
         $lbl_email_address = $mod_strings['LBL_EMAIL_ADDRESS'];
         $form = <<<EOQ
-		<input type="hidden" name="${prefix}record" value="">
-		<input type="hidden" name="${prefix}email2" value="">
-		<input type="hidden" name="${prefix}status" value="New">
-		<input type="hidden" name="${prefix}assigned_user_id" value='${user_id}'>
+		<input type="hidden" name="{$prefix}record" value="">
+		<input type="hidden" name="{$prefix}email2" value="">
+		<input type="hidden" name="{$prefix}status" value="New">
+		<input type="hidden" name="{$prefix}assigned_user_id" value='{$user_id}'>
 <p>		$lbl_first_name<br>
-		<input name="${prefix}first_name" type="text" value=""><br>
+		<input name="{$prefix}first_name" type="text" value=""><br>
 		$lbl_last_name <span class="required">$lbl_required_symbol</span><br>
-		<input name='${prefix}last_name' type="text" value=""><br>
+		<input name='{$prefix}last_name' type="text" value=""><br>
 		$lbl_phone<br>
-		<input name='${prefix}phone_work' type="text" value=""><br>
+		<input name='{$prefix}phone_work' type="text" value=""><br>
 		$lbl_email_address<br>
-		<input name='${prefix}email1' type="text" value=""></p>
+		<input name='{$prefix}email1' type="text" value=""></p>
 
 EOQ;
 
 
         $javascript = new javascript();
         $javascript->setFormName($formname);
-        $javascript->setSugarBean(new Lead());
+        $javascript->setSugarBean(BeanFactory::newBean('Leads'));
         $javascript->addField('email1', 'false', $prefix);
         $javascript->addField('email2', 'false', $prefix);
         $javascript->addRequiredFields($prefix);
@@ -196,13 +201,13 @@ EOQ;
         $the_form = get_left_form_header($mod_strings['LBL_NEW_FORM_TITLE']);
         $the_form .= <<<EOQ
 
-		<form name="${prefix}LeadSave" onSubmit="return check_form('${prefix}LeadSave')" method="POST" action="index.php">
-			<input type="hidden" name="${prefix}module" value="Leads">
-			<input type="hidden" name="${prefix}action" value="Save">
+		<form name="{$prefix}LeadSave" onSubmit="return check_form('{$prefix}LeadSave')" method="POST" action="index.php">
+			<input type="hidden" name="{$prefix}module" value="Leads">
+			<input type="hidden" name="{$prefix}action" value="Save">
 EOQ;
-        $the_form .= $this->getFormBody($prefix, $mod, "${prefix}LeadSave");
+        $the_form .= $this->getFormBody($prefix, $mod, "{$prefix}LeadSave");
         $the_form .= <<<EOQ
-		<p><input title="$lbl_save_button_title" accessKey="$lbl_save_button_key" class="button" type="submit" name="${prefix}button" value="  $lbl_save_button_label  " ></p>
+		<p><input title="$lbl_save_button_title" accessKey="$lbl_save_button_key" class="button" type="submit" name="{$prefix}button" value="  $lbl_save_button_label  " ></p>
 		</form>
 
 EOQ;
@@ -212,6 +217,44 @@ EOQ;
         return $the_form;
     }
 
+    /**
+     * Starting from a Lead bean, searches for an account_id to match the given account_name.
+     * This relationship is handled loosely, to allow for Leads to refer to non-existent accounts.
+     * Makes changes to the bean, but does not Save it. Will clear an existing account_id,
+     * if there isn't one (and only one) to match the account_name.
+     *
+     * Returns the new account_id, if one is assigned.
+     *
+     * @param $leadBean
+     * @return string
+     */
+    public static function handleLeadAccountName($leadBean)
+    {
+        if (isset($leadBean->account_name)) {
+            $account_query =
+                "SELECT id FROM accounts WHERE deleted != 1 AND name = '" .
+                $leadBean->db->quote(trim($leadBean->account_name)) .
+                "'";
+            $account_results = $leadBean->db->query($account_query);
+            $row = $leadBean->db->fetchByAssoc($account_results);
+
+            if (!isset($leadBean->account_id) || $leadBean->account_id === '') {
+                // If id is empty, and we can find one, and only one, matching account, we fill it
+                if ($account_results->num_rows === 1) {
+                    $leadBean->account_id = $row['id'];
+                }
+            } else {
+                if (isset($leadBean->fetched_row['account_name']) &&
+                    strcmp($leadBean->account_name, $leadBean->fetched_row['account_name']) !== 0) {
+                    // if account_name is being changed in this edit, update the id whether it was present before or not,
+                    // or bank it if there were zero (or more than one) account_name matches
+                    $leadBean->account_id = (($account_results->num_rows === 1) ? $row['id'] : '');
+                }
+            }
+        }
+
+        return $leadBean->account_id;
+    }
 
     public function handleSave($prefix, $redirect=true, $useRequired=false, $do_save=true, $exist_lead=null)
     {
@@ -219,7 +262,7 @@ EOQ;
         require_once('include/formbase.php');
 
         if (empty($exist_lead)) {
-            $focus = new Lead();
+            $focus = BeanFactory::newBean('Leads');
         } else {
             $focus = $exist_lead;
         }
@@ -309,13 +352,15 @@ EOQ;
                     ob_clean();
                     $json = getJSONobj();
                     echo $json->encode(array('status' => 'dupe', 'get' => $location));
-                } elseif (!empty($_REQUEST['ajax_load'])) {
-                    echo "<script>SUGAR.ajaxUI.loadContent('index.php?$location');</script>";
                 } else {
-                    if (!empty($_POST['to_pdf'])) {
-                        $location .= '&to_pdf='.urlencode($_POST['to_pdf']);
+                    if (!empty($_REQUEST['ajax_load'])) {
+                        echo "<script>SUGAR.ajaxUI.loadContent('index.php?$location');</script>";
+                    } else {
+                        if (!empty($_POST['to_pdf'])) {
+                            $location .= '&to_pdf='.urlencode($_POST['to_pdf']);
+                        }
+                        header("Location: index.php?$location");
                     }
-                    header("Location: index.php?$location");
                 }
                 return null;
             }
@@ -328,6 +373,8 @@ EOQ;
             $focus->do_not_call = 0;
         }
 
+        static::handleLeadAccountName($focus);
+
         if ($do_save) {
             if (!empty($GLOBALS['check_notify'])) {
                 $focus->save($GLOBALS['check_notify']);
@@ -339,7 +386,7 @@ EOQ;
         $return_id = $focus->id;
 
         if (isset($_POST[$prefix.'prospect_id']) &&  !empty($_POST[$prefix.'prospect_id'])) {
-            $prospect=new Prospect();
+            $prospect=BeanFactory::newBean('Prospects');
             $prospect->retrieve($_POST[$prefix.'prospect_id']);
             $prospect->lead_id=$focus->id;
             // Set to keep email in target
@@ -366,7 +413,7 @@ EOQ;
 
             // fake this case like it's already saved.
 
-            $email = new Email();
+            $email = BeanFactory::newBean('Emails');
             $email->retrieve($_REQUEST['inbound_email_id']);
             $email->parent_type = 'Leads';
             $email->parent_id = $focus->id;

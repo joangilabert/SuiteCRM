@@ -42,12 +42,18 @@ if (!defined('sugarEntry') || !sugarEntry) {
     die('Not A Valid Entry Point');
 }
 
-/**
- * Returns the display labels for a module path and field.
- * @param $modulePath
- * @param $field
- * @return array
- */
+function getAorAllowedFieldFunctions(): array
+{
+    $list_strings = return_app_list_strings_language('en_us');
+    return array_filter(array_keys($list_strings['aor_function_list']), 'strlen');
+}
+
+function getAorAllowedSortDirections(): array
+{
+    $list_strings = return_app_list_strings_language('en_us');
+    return array_filter(array_keys($list_strings['aor_sort_operator']), 'strlen');
+}
+
 function getDisplayForField($modulePath, $field, $reportModule)
 {
     global $app_list_strings;
@@ -87,7 +93,7 @@ function getDisplayForField($modulePath, $field, $reportModule)
     $fieldDisplay = trim($fieldDisplay, ':');
     foreach ($modulePathDisplay as &$module) {
         $module = isset($app_list_strings['aor_moduleList'][$module]) ? $app_list_strings['aor_moduleList'][$module] : (
-        isset($app_list_strings['moduleList'][$module]) ? $app_list_strings['moduleList'][$module] : $module
+            isset($app_list_strings['moduleList'][$module]) ? $app_list_strings['moduleList'][$module] : $module
         );
     }
     return array('field' => $fieldDisplay, 'type'=>$fieldType, 'module' => str_replace(' ', '&nbsp;', implode(' : ', $modulePathDisplay)));
@@ -95,6 +101,7 @@ function getDisplayForField($modulePath, $field, $reportModule)
 
 function requestToUserParameters($reportBean = null)
 {
+    global $app_list_strings;
     $params = array();
     if (!empty($_REQUEST['parameter_id'])) {
         $dateCount = 0;
@@ -108,7 +115,7 @@ function requestToUserParameters($reportBean = null)
 
             $condition = BeanFactory::getBean('AOR_Conditions', $_REQUEST['parameter_id'][$key]);
             $value = $_REQUEST['parameter_value'][$key];
-            if ($reportBean && $condition) {
+            if ($reportBean && $condition && !array_key_exists($value, $app_list_strings['date_time_period_list'])) {
                 $value = fixUpFormatting($reportBean->report_module, $condition->field, $value);
             }
 
@@ -122,10 +129,10 @@ function requestToUserParameters($reportBean = null)
             // Fix for issue #1272 - AOR_Report module cannot update Date type parameter.
             if ($_REQUEST['parameter_type'][$key] === 'Date') {
                 $values = array();
-                $values[] = $_REQUEST['parameter_date_value'][$dateCount];
-                $values[] = $_REQUEST['parameter_date_sign'][$dateCount];
-                $values[] = $_REQUEST['parameter_date_number'][$dateCount];
-                $values[] = $_REQUEST['parameter_date_time'][$dateCount];
+                $values[] = $_REQUEST['parameter_date_value'][$key];
+                $values[] = $_REQUEST['parameter_date_sign'][$key];
+                $values[] = $_REQUEST['parameter_date_number'][$key];
+                $values[] = $_REQUEST['parameter_date_time'][$key];
 
                 $params[$parameterId] = array(
                     'id' => $parameterId,
@@ -138,29 +145,29 @@ function requestToUserParameters($reportBean = null)
 
             // determine if parameter is a date
             if ($_REQUEST['parameter_type'][$key] === 'Value') {
-                $paramLength = strlen($_REQUEST['parameter_value'][$key]);
+                $paramLength = strlen((string) $_REQUEST['parameter_value'][$key]);
                 $paramValue = $_REQUEST['parameter_value'][$key];
                 if ($paramLength === 10) {
-                    if (strpos($paramValue, '/') === 2 || strpos($paramValue, '/') === 4) {
+                    if (strpos((string) $paramValue, '/') === 2 || strpos((string) $paramValue, '/') === 4) {
                         $params[$parameterId] = array(
                             'id' => $parameterId,
                             'operator' => $_REQUEST['parameter_operator'][$key],
                             'type' => $_REQUEST['parameter_type'][$key],
-                            'value' => convertToDateTime($_REQUEST['parameter_value'][$key])->format('Y-m-d H:i:s'),
+                            'value' => $value,
                         );
-                    } elseif (strpos($paramValue, '-') === 2 || strpos($paramValue, '-') === 4) {
+                    } elseif (strpos((string) $paramValue, '-') === 2 || strpos((string) $paramValue, '-') === 4) {
                         $params[$parameterId] = array(
                             'id' => $parameterId,
                             'operator' => $_REQUEST['parameter_operator'][$key],
                             'type' => $_REQUEST['parameter_type'][$key],
-                            'value' => convertToDateTime($_REQUEST['parameter_value'][$key])->format('Y-m-d H:i:s'),
+                            'value' => $value,
                         );
-                    } elseif (strpos($paramValue, '.') === 2 || strpos($paramValue, '.') === 4) {
+                    } elseif (strpos((string) $paramValue, '.') === 2 || strpos((string) $paramValue, '.') === 4) {
                         $params[$parameterId] = array(
                             'id' => $parameterId,
                             'operator' => $_REQUEST['parameter_operator'][$key],
                             'type' => $_REQUEST['parameter_type'][$key],
-                            'value' => convertToDateTime($_REQUEST['parameter_value'][$key])->format('Y-m-d H:i:s'),
+                            'value' => $value,
                         );
                     }
                 }
@@ -184,7 +191,7 @@ function getConditionsAsParameters($report, $override = array())
             continue;
         }
 
-        $path = unserialize(base64_decode($condition->module_path));
+        $path = unserialize(base64_decode($condition->module_path),['allowed_classes' => false]);
         $field_module = $report->report_module;
         if ($path[0] != $report->report_module) {
             foreach ($path as $rel) {
@@ -195,7 +202,7 @@ function getConditionsAsParameters($report, $override = array())
             }
         }
 
-        $additionalConditions = unserialize(base64_decode($condition->value));
+        $additionalConditions = unserialize(base64_decode($condition->value),['allowed_classes' => false]);
 
 
         $value = isset($override[$condition->id]['value']) ? $override[$condition->id]['value'] : $value = $condition->value;
@@ -225,13 +232,13 @@ function getConditionsAsParameters($report, $override = array())
  * @param $date_time_period_list_selected
  * @return DateTime
  */
-function getPeriodDate($date_time_period_list_selected)
+function getPeriodDate($date_time_period_list_selected, $type = '')
 {
-    global $sugar_config;
+    global $sugar_config, $timedate;
     $datetime_period = new DateTime();
 
     // Setup when year quarters start & end
-    if ($sugar_config['aor']['quarters_begin']) {
+    if (isset($sugar_config['aor']['quarters_begin'])) {
         $q = calculateQuarters($sugar_config['aor']['quarters_begin']);
     } else {
         $q = calculateQuarters();
@@ -323,6 +330,10 @@ function getPeriodDate($date_time_period_list_selected)
     // set time to 00:00:00
     $datetime_period = $datetime_period->setTime(0, 0, 0);
 
+    if($type === 'datetime') {
+        $datetime_period->sub(DateInterval::createFromDateString($timedate->getUserUTCOffset() . ' minutes'));
+    }
+
     return $datetime_period;
 }
 
@@ -331,48 +342,73 @@ function getPeriodDate($date_time_period_list_selected)
  * @param $date_time_period_list_selected
  * @return DateTime
  */
-function getPeriodEndDate($dateTimePeriodListSelected)
+function getPeriodEndDate($dateTimePeriodListSelected, $type = '')
 {
+    global $timedate;
+
+    $datetimePeriod = null;
+
     switch ($dateTimePeriodListSelected) {
         case 'today':
-        case 'yesterday':
             $datetimePeriod = new DateTime();
             break;
+        case 'yesterday':
+            $datetimePeriod = new DateTime("yesterday");
+            if($type === 'datetime') {
+                $datetimePeriod->setTime(23, 59, 59);
+            }
+            break;
         case 'this_week':
-            $datetimePeriod = new DateTime("next week monday");
-            $datetimePeriod->setTime(0, 0, 0);
+            $datetimePeriod = new DateTime("this week sunday");
+            if($type === 'datetime') {
+                $datetimePeriod->setTime(23, 59, 59);
+            }
             break;
         case 'last_week':
-            $datetimePeriod = new DateTime("this week monday");
-            $datetimePeriod->setTime(0, 0, 0);
+            $datetimePeriod = new DateTime("last week sunday");
+            if($type === 'datetime') {
+                $datetimePeriod->setTime(23, 59, 59);
+            }
             break;
         case 'this_month':
-            $datetimePeriod = new DateTime('first day of next month');
-            $datetimePeriod->setTime(0, 0, 0);
+            $datetimePeriod = new DateTime('last day of this month');
+            if($type === 'datetime') {
+                $datetimePeriod->setTime(23, 59, 59);
+            }
             break;
         case 'last_month':
-            $datetimePeriod = new DateTime("first day of this month");
-            $datetimePeriod->setTime(0, 0, 0);
+            $datetimePeriod = new DateTime("last day of last month");
+            if($type === 'datetime') {
+                $datetimePeriod->setTime(23, 59, 59);
+            }
             break;
         case 'this_quarter':
             $thisMonth = new DateTime('first day of this month');
             $thisMonth = $thisMonth->format('n');
             if ($thisMonth < 4) {
                 // quarter 1
-                $datetimePeriod = new DateTime('first day of april');
-                $datetimePeriod->setTime(0, 0, 0);
+                $datetimePeriod = new DateTime('last day of march');
+                if($type === 'datetime') {
+                    $datetimePeriod->setTime(23, 59, 59);
+                }
             } elseif ($thisMonth > 3 && $thisMonth < 7) {
                 // quarter 2
-                $datetimePeriod = new DateTime('first day of july');
-                $datetimePeriod->setTime(0, 0, 0);
+                $datetimePeriod = new DateTime('last day of june');
+                if($type === 'datetime') {
+                    $datetimePeriod->setTime(23, 59, 59);
+                }
             } elseif ($thisMonth > 6 && $thisMonth < 10) {
                 // quarter 3
-                $datetimePeriod = new DateTime('first day of october');
-                $datetimePeriod->setTime(0, 0, 0);
+                $datetimePeriod = new DateTime('last day of september');
+                if($type === 'datetime') {
+                    $datetimePeriod->setTime(23, 59, 59);
+                }
             } elseif ($thisMonth > 9) {
                 // quarter 4
-                $datetimePeriod = new DateTime('next year first day of january');
-                $datetimePeriod->setTime(0, 0, 0);
+                $datetimePeriod = new DateTime('this year last day of december');
+                if($type === 'datetime') {
+                    $datetimePeriod->setTime(23, 59, 59);
+                }
             }
             break;
         case 'last_quarter':
@@ -380,30 +416,46 @@ function getPeriodEndDate($dateTimePeriodListSelected)
             $thisMonth = $thisMonth->format('n');
             if ($thisMonth < 4) {
                 // previous quarter 1
-                $datetimePeriod = new DateTime('this year first day of january');
-                $datetimePeriod->setTime(0, 0, 0);
+                $datetimePeriod = new DateTime('this year last day of december');
+                if($type === 'datetime') {
+                    $datetimePeriod->setTime(23, 59, 59);
+                }
             } elseif ($thisMonth > 3 && $thisMonth < 7) {
                 // previous quarter 2
-                $datetimePeriod = new DateTime('first day of april');
-                $datetimePeriod->setTime(0, 0, 0);
+                $datetimePeriod = new DateTime('last day of march');
+                if($type === 'datetime') {
+                    $datetimePeriod->setTime(23, 59, 59);
+                }
             } elseif ($thisMonth > 6 && $thisMonth < 10) {
                 // previous quarter 3
-                $datetimePeriod = new DateTime('first day of july');
-                $datetimePeriod->setTime(0, 0, 0);
+                $datetimePeriod = new DateTime('last day of june');
+                if($type === 'datetime') {
+                    $datetimePeriod->setTime(23, 59, 59);
+                }
             } elseif ($thisMonth > 9) {
                 // previous quarter 4
-                $datetimePeriod = new DateTime('first day of october');
-                $datetimePeriod->setTime(0, 0, 0);
+                $datetimePeriod = new DateTime('last day of september');
+                if($type === 'datetime') {
+                    $datetimePeriod->setTime(23, 59, 59);
+                }
             }
             break;
         case 'this_year':
-            $datetimePeriod = new DateTime('next year first day of january');
-            $datetimePeriod->setTime(0, 0, 0);
+            $datetimePeriod = new DateTime('this year last day of december');
+            if($type === 'datetime') {
+                $datetimePeriod->setTime(23, 59, 59);
+            }
             break;
         case 'last_year':
-            $datetimePeriod = new DateTime("this year first day of january");
-            $datetimePeriod->setTime(0, 0, 0);
+            $datetimePeriod = new DateTime("last year last day of december");
+            if($type === 'datetime') {
+                $datetimePeriod->setTime(23, 59, 59);
+            }
             break;
+    }
+
+    if($type === 'datetime') {
+        $datetimePeriod->sub(DateInterval::createFromDateString($timedate->getUserUTCOffset() . ' minutes'));
     }
 
     return $datetimePeriod;
@@ -473,6 +525,7 @@ function calculateQuarters($offsetMonths = 0)
  */
 function convertToDateTime($value)
 {
+
     global $current_user, $timedate;
 
     $user_dateformat = $current_user->getPreference('datef');
@@ -481,6 +534,8 @@ function convertToDateTime($value)
     if ($timedate->check_matching_format($value, $timedate->get_db_date_format())) {
         $user_dateformat = $timedate->get_db_date_format();
     }
+
+    $formattedValue = null;
 
     switch ($user_dateformat) {
         case 'Y-m-d':

@@ -5,7 +5,7 @@
  * SugarCRM, Inc. Copyright (C) 2004-2013 SugarCRM Inc.
  *
  * SuiteCRM is an extension to SugarCRM Community Edition developed by SalesAgility Ltd.
- * Copyright (C) 2011 - 2018 SalesAgility Ltd.
+ * Copyright (C) 2011 - 2019 SalesAgility Ltd.
  *
  * This program is free software; you can redistribute it and/or modify it under
  * the terms of the GNU Affero General Public License version 3 as published by the
@@ -157,6 +157,8 @@ $mod_strings = array(
     'LBL_VIEW_DETAIL' => 'View Details',
     'LBL_OVERRIDE_BUSINESS_HOURS' => 'Consider Working days',
 
+    'LBL_IMPORT_PROJECTS' => 'Import Projects',
+
     'LBL_PROJECTS_SEARCH' => 'Search Projects',
     'LBL_USERS_SEARCH' => 'Search Users',
     'LBL_CONTACTS_SEARCH' => 'Select  Contacts',
@@ -173,5 +175,9 @@ $mod_strings = array(
     'LBL_PROJECT_CONTACTS_1_FROM_CONTACTS_TITLE' => 'Project Contacts from Contacts Title',
     'LBL_AM_PROJECTTEMPLATES_PROJECT_1_FROM_PROJECT_TITLE' => 'Project Templates: Project from Project Title',
     'LBL_AOS_QUOTES_PROJECT' => 'Quotes: Project',
+    'LBL_TASKS_NOT_FOUND' => 'There are no Tasks to build the Gantt Table',
 
+
+    'LBL_ASCENDING' => 'Ascending',
+    'LBL_DESCENDING' => 'Descending',
 );

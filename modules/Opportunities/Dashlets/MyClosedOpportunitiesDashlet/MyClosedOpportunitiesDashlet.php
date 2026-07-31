@@ -46,6 +46,7 @@ if (!defined('sugarEntry') || !sugarEntry) {
 
 require_once('include/Dashlets/Dashlet.php');
 
+#[\AllowDynamicProperties]
 class MyClosedOpportunitiesDashlet extends Dashlet
 {
     protected $total_opportunities;
@@ -71,7 +72,7 @@ class MyClosedOpportunitiesDashlet extends Dashlet
             $this->autoRefresh = $def['autoRefresh'];
         }
         
-        $this->seedBean = new Opportunity();
+        $this->seedBean = BeanFactory::newBean('Opportunities');
 
         $qry = "SELECT * from opportunities WHERE assigned_user_id = '" . $current_user->id . "' AND deleted=0";
         $result = $this->seedBean->db->query($this->seedBean->create_list_count_query($qry));

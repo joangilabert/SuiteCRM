@@ -41,19 +41,13 @@ if (!defined('sugarEntry') || !sugarEntry) {
  * display the words "Powered by SugarCRM" and "Supercharged by SuiteCRM".
  */
 
-/*********************************************************************************
-
- * Description:  TODO: To be written.
- * Portions created by SugarCRM are Copyright (C) SugarCRM, Inc.
- * All Rights Reserved.
- * Contributor(s): ______________________________________..
- ********************************************************************************/
 
 
 
 
 
-$focus = new EmailMarketing();
+
+$focus = BeanFactory::newBean('EmailMarketing');
 
 if (!isset($_REQUEST['record'])) {
     sugar_die("A record number must be specified to delete the marketing campaign.");
@@ -66,7 +60,7 @@ if (!$focus->ACLAccess('Delete')) {
 $focus->mark_deleted($_REQUEST['record']);
 
 if (isset($_REQUEST['record'])) {
-    $query = "DELETE FROM emailman WHERE marketing_id ='" . $_REQUEST['record'] ."'";
+    $query = "DELETE FROM emailman WHERE marketing_id ='" . $focus->db->quote($_REQUEST['record']) ."'";
     $focus->db->query($query);
 }
 

@@ -41,13 +41,7 @@ if (!defined('sugarEntry') || !sugarEntry) {
  * display the words "Powered by SugarCRM" and "Supercharged by SuiteCRM".
  */
 
-/*********************************************************************************
 
- * Description:  TODO: To be written.
- * Portions created by SugarCRM are Copyright (C) SugarCRM, Inc.
- * All Rights Reserved.
- * Contributor(s): ______________________________________..
- ********************************************************************************/
 
 /******** general UI Stuff ***********/
 
@@ -66,7 +60,7 @@ global $sugar_version, $sugar_config;
 
 /*************** GENERAL SETUP WORK **********/
 
-$focus = new Campaign();
+$focus = BeanFactory::newBean('Campaigns');
 if (isset($_REQUEST['record'])) {
     $focus->retrieve($_REQUEST['record']);
 }
@@ -117,7 +111,7 @@ $sqs_objects = array('parent_name' => $qsd->getQSParent(),
                     'unsubscription_name' => getProspectListQSObjects('prospect_list_type_exempt', 'unsubscription_name', 'wiz_step3_unsubscription_name_id'),
                     'subscription_name' => getProspectListQSObjects('prospect_list_type_default', 'subscription_name', 'wiz_step3_subscription_name_id'),
                     );
-                    
+
 
 $quicksearch_js = '<script type="text/javascript" language="javascript">sqs_objects = ' . $json->encode($sqs_objects) . '</script>';
 
@@ -226,12 +220,14 @@ $currency = new ListCurrency();
 if (isset($focus->currency_id) && !empty($focus->currency_id)) {
     $selectCurrency = $currency->getSelectOptions($focus->currency_id);
     $ss->assign("CURRENCY", $selectCurrency);
-} elseif ($current_user->getPreference('currency') && !isset($focus->id)) {
-    $selectCurrency = $currency->getSelectOptions($current_user->getPreference('currency'));
-    $ss->assign("CURRENCY", $selectCurrency);
 } else {
-    $selectCurrency = $currency->getSelectOptions();
-    $ss->assign("CURRENCY", $selectCurrency);
+    if ($current_user->getPreference('currency') && !isset($focus->id)) {
+        $selectCurrency = $currency->getSelectOptions($current_user->getPreference('currency'));
+        $ss->assign("CURRENCY", $selectCurrency);
+    } else {
+        $selectCurrency = $currency->getSelectOptions();
+        $ss->assign("CURRENCY", $selectCurrency);
+    }
 }
 global $current_user;
 if (is_admin($current_user) && $_REQUEST['module'] != 'DynamicLayout' && !empty($_SESSION['editinplace'])) {
@@ -244,7 +240,7 @@ if (is_admin($current_user) && $_REQUEST['module'] != 'DynamicLayout' && !empty(
 
 echo $currency->getJavascript();
 
-$seps = get_number_seperators();
+$seps = get_number_separators();
 $ss->assign("NUM_GRP_SEP", $seps[0]);
 $ss->assign("DEC_SEP", $seps[1]);
 
@@ -256,13 +252,13 @@ if ($campaign_type == 'general') {
     $myTypeOptionsArr = array();
     $OptionsArr = $app_list_strings['campaign_type_dom'];
     foreach ($OptionsArr as $key=>$val) {
-        if ($val =='Newsletter' || $val =='Email' || $val =='') {
+        if ($key =='NewsLetter' || $key =='Email' || $key =='') {
             //do not add
         } else {
             $myTypeOptionsArr[$key] = $val;
         }
     }
-    
+
     //now create select option html without the newsletter/email, or blank ('') options
     $type_option_html =' ';
     $selected = false;
@@ -320,14 +316,15 @@ $focus->load_relationship('tracked_urls');
 
 $trkr_lists = $focus->tracked_urls->get();
 $trkr_html ='';
-$ss->assign('TRACKER_COUNT', count($trkr_lists));
-if (count($trkr_lists)>0) {
+$trkrHtmlCount = is_countable($trkr_lists) ? count($trkr_lists) : 0;
+$ss->assign('TRACKER_COUNT', $trkrHtmlCount);
+if ($trkrHtmlCount>0) {
     global $odd_bg, $even_bg, $hilite_bg;
-    
+
     $trkr_count = 0;
     //create the html to create tracker table
     foreach ($trkr_lists as $trkr_id) {
-        $ct_focus = new CampaignTracker();
+        $ct_focus = BeanFactory::newBean('CampaignTrackers');
         $ct_focus->retrieve($trkr_id);
         if (isset($ct_focus->tracker_name) && !empty($ct_focus->tracker_name)) {
             if ($ct_focus->is_optout) {
@@ -344,7 +341,7 @@ if (count($trkr_lists)>0) {
         }
         $trkr_count =$trkr_count+1;
     }
-    
+
     $trkr_html .= "<div id='no_trackers'></div>";
 } else {
     $trkr_html .= "<div id='no_trackers'><table width='100%' border='0' cellspacing='0' cellpadding='0'><tr class='evenListRowS1'><td>".$mod_strings['LBL_NONE']."</td></tr></table></div>";
@@ -367,7 +364,7 @@ if (count($trkr_lists)>0) {
         'field_to_name_array' => array(
             'id' => 'wiz_step3_subscription_name_id',
             'name' => 'wiz_step3_subscription_name',
-            
+
             ),
         );
 
@@ -381,7 +378,7 @@ $ss->assign('encoded_subscription_popup_request_data', $encoded_newsletter_popup
         'field_to_name_array' => array(
             'id' => 'wiz_step3_unsubscription_name_id',
             'name' => 'unsubscription_name',
-            
+
             ),
         );
 
@@ -395,7 +392,7 @@ $ss->assign('encoded_unsubscription_popup_request_data', $encoded_newsletter_pop
         'field_to_name_array' => array(
             'id' => 'wiz_step3_test_name_id',
             'name' => 'test_name',
-            
+
             ),
         );
 
@@ -411,7 +408,7 @@ $ss->assign('encoded_test_popup_request_data', $encoded_newsletter_popup_request
             'id' => 'popup_target_list_id',
             'name' => 'popup_target_list_name',
             'list_type' => 'popup_target_list_type',
-            
+
             ),
         );
 
@@ -474,10 +471,10 @@ if ((isset($_REQUEST['wizardtype']) && $_REQUEST['wizardtype'] ==1) || ($focus->
     //this is a newsletter type campaign, fill in subscription values
 
     //if prospect lists are returned, then iterate through and populate form values
-    if (count($prospect_lists)>0) {
+    if ((is_countable($prospect_lists) ? count($prospect_lists) : 0)>0) {
         foreach ($prospect_lists as $pl_id) {
             //retrieve prospect list
-            $pl = new ProspectList();
+            $pl = BeanFactory::newBean('ProspectLists');
             $pl->retrieve($pl_id);
 
             if (isset($pl->list_type) && !empty($pl->list_type)) {
@@ -507,10 +504,10 @@ if ((isset($_REQUEST['wizardtype']) && $_REQUEST['wizardtype'] ==1) || ($focus->
     $ss->assign("PL_DOM_STMT", $dom_txt);
     $trgt_count = 0;
     $trgt_html = ' ';
-    if (count($prospect_lists)>0) {
+    if ((is_countable($prospect_lists) ? count($prospect_lists) : 0)>0) {
         foreach ($prospect_lists as $pl_id) {
             //retrieve prospect list
-            $pl = new ProspectList();
+            $pl = BeanFactory::newBean('ProspectLists');
             $pl_focus = $pl->retrieve($pl_id);
             $trgt_html .= "<div id='existing_trgt".$trgt_count."'> <table class='tabDetailViewDL2' width='100%'>" ;
             $trgt_html .= "<td width='100' style=\"width:25%\"> <input id='existing_target_name". $trgt_count ."' type='hidden' type='text' size='60' maxlength='255' name='existing_target_name". $trgt_count ."'  value='". ($pl_focus?$pl_focus->name:'-')."' ><a href=\"index.php?module=ProspectLists&action=DetailView&record=" . $pl_focus->id . "\" target=\"_blank\" title=\"" . $mod_strings['LBL_OPEN_IN_NEW_WINDOW'] . "\">". ($pl_focus?$pl_focus->name:'-')."</a></td>";
@@ -530,7 +527,7 @@ if ((isset($_REQUEST['wizardtype']) && $_REQUEST['wizardtype'] ==1) || ($focus->
     $ss->assign('EXISTING_TARGETS', $trgt_html);
 }
 
-    
+
 /**************************** WIZARD UI DIV Stuff *******************/
 $mrkt_string = $mod_strings['LBL_NAVIGATION_MENU_MARKETING'];
 if (!empty($focus->id)) {
@@ -545,14 +542,14 @@ if (!empty($focus->id)) {
         $summ_url .= "&return_id=".$focus->id."&record=".$focus->id;
         $summ_url .= "'> ". $mod_strings['LBL_NAVIGATION_MENU_SUMMARY']."</a>";
     }
-   
+
 
 
 $script_to_call ='';
     if (!empty($focus->id)) {
         $maxStep = 2;
         $script_to_call = "link_navs(1, {$maxStep});";
-        if (isset($_REQUEST['direct_step']) and !empty($_REQUEST['direct_step'])) {
+        if (isset($_REQUEST['direct_step']) && !empty($_REQUEST['direct_step'])) {
             $directStep = (int) $_REQUEST['direct_step'];
             if ($directStep < 1) {
                 $directStep = 1;
@@ -638,10 +635,10 @@ if ($campaign_type == 'general') {
     $ss->assign('HIDE_CONTINUE', 'submit');
 }
 
-$ss->assign('TOTAL_STEPS', count($steps));
+$ss->assign('TOTAL_STEPS', is_countable($steps) ? count($steps) : 0);
 $sshtml = create_wiz_step_divs($steps, $ss);
 $ss->assign('STEPS', $sshtml);
-             
+
 
 /**************************** FINAL END OF PAGE UI Stuff *******************/
 
@@ -676,6 +673,7 @@ if (!$focus->id && isset($campaign_id) && $campaign_id) {
 function create_newsletter_steps()
 {
     global $mod_strings;
+    $steps = [];
     $steps[$mod_strings['LBL_NAVIGATION_MENU_GEN1']]          = file_exists('custom/modules/Campaigns/tpls/WizardCampaignHeader.tpl') ? 'custom/modules/Campaigns/tpls/WizardCampaignHeader.tpl' : 'modules/Campaigns/tpls/WizardCampaignHeader.tpl';
     //$steps[$mod_strings['LBL_NAVIGATION_MENU_GEN2']]          = file_exists('custom/modules/Campaigns/tpls/WizardCampaignBudget.tpl') ? 'custom/modules/Campaigns/tpls/WizardCampaignBudget.tpl' : 'modules/Campaigns/tpls/WizardCampaignBudget.tpl';
     //$steps[$mod_strings['LBL_NAVIGATION_MENU_TRACKERS']]      = file_exists('custom/modules/Campaigns/tpls/WizardCampaignTracker.tpl') ? 'custom/modules/Campaigns/tpls/WizardCampaignTracker.tpl' : 'modules/Campaigns/tpls/WizardCampaignTracker.tpl';
@@ -686,6 +684,7 @@ function create_newsletter_steps()
 function create_campaign_steps()
 {
     global $mod_strings;
+    $steps = [];
     $steps[$mod_strings['LBL_NAVIGATION_MENU_GEN1']]          = file_exists('custom/modules/Campaigns/tpls/WizardCampaignHeader.tpl') ? 'custom/modules/Campaigns/tpls/WizardCampaignHeader.tpl' : 'modules/Campaigns/tpls/WizardCampaignHeader.tpl';
     $steps[$mod_strings['LBL_NAVIGATION_MENU_GEN2']]          = file_exists('custom/modules/Campaigns/tpls/WizardCampaignBudget.tpl') ? 'custom/modules/Campaigns/tpls/WizardCampaignBudget.tpl' : 'modules/Campaigns/tpls/WizardCampaignBudget.tpl';
     $steps[$mod_strings['LBL_TARGET_LISTS']]                   = file_exists('custom/modules/Campaigns/tpls/WizardCampaignTargetListForNonNewsLetter.tpl') ? 'custom/modules/Campaigns/tpls/WizardCampaignTargetListForNonNewsLetter.tpl' : 'modules/Campaigns/tpls/WizardCampaignTargetListForNonNewsLetter.tpl';
@@ -695,6 +694,7 @@ function create_campaign_steps()
 function create_email_steps()
 {
     global $mod_strings;
+    $steps = [];
     $steps[$mod_strings['LBL_NAVIGATION_MENU_GEN1']]          = file_exists('custom/modules/Campaigns/tpls/WizardCampaignHeader.tpl') ? 'custom/modules/Campaigns/tpls/WizardCampaignHeader.tpl' : 'modules/Campaigns/tpls/WizardCampaignHeader.tpl';
     //$steps[$mod_strings['LBL_NAVIGATION_MENU_GEN2']]          = file_exists('custom/modules/Campaigns/tpls/WizardCampaignBudget.tpl') ? 'custom/modules/Campaigns/tpls/WizardCampaignBudget.tpl' : 'modules/Campaigns/tpls/WizardCampaignBudget.tpl';
     //$steps[$mod_strings['LBL_NAVIGATION_MENU_TRACKERS']]      = file_exists('custom/modules/Campaigns/tpls/WizardCampaignTracker.tpl') ? 'custom/modules/Campaigns/tpls/WizardCampaignTracker.tpl' : 'modules/Campaigns/tpls/WizardCampaignTracker.tpl';
@@ -720,8 +720,10 @@ function create_wiz_step_divs($steps, $ss)
 
 function create_wiz_menu_items($steps, $type, $mrkt_string, $summ_url, $view = null, $campaign_id = null, $marketing_id = null, $template_id = null)
 {
+
     global $mod_strings;
 
+    $i = 0;
 
     if ($view == 'dotlist') {
         include_once 'modules/Campaigns/DotListWizardMenu.php';
@@ -732,7 +734,7 @@ function create_wiz_menu_items($steps, $type, $mrkt_string, $summ_url, $view = n
                 $templateURLForProgressBar = "index.php?action=WizardMarketing&module=Campaigns&return_module=Campaigns&return_action=WizardHome&return_id={$campaign_id}&campaign_id={$campaign_id}&jump=2&marketing_id={$marketing_id}&record={$marketing_id}&campaign_type=Email&template_id={$template_id}";
             }
 
-            if (preg_match('/\bhref=\'([^\']*)/', $mrkt_string, $matches)) {
+            if (preg_match('/\bhref=\'([^\']*)/', (string) $mrkt_string, $matches)) {
                 $templateURLForProgressBar = $matches[1];
             }
 
@@ -740,7 +742,7 @@ function create_wiz_menu_items($steps, $type, $mrkt_string, $summ_url, $view = n
         }
 
         if ($type == 'newsletter' || $type == 'email') {
-            preg_match('/\bhref=\'([^\']*)/', $mrkt_string, $matches);
+            preg_match('/\bhref=\'([^\']*)/', (string) $mrkt_string, $matches);
             if (isset($matches[1])) {
                 $marketingLink = $matches[1] . ($matches[1] ? '&jump=2' : false);
             } else {

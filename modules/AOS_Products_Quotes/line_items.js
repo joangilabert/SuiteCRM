@@ -77,7 +77,7 @@ function insertLineItems(product,group){
 
   for(var p in product){
     if(document.getElementById(type + p + ln) !== null){
-      if(product[p] !== '' && isNumeric(product[p]) && p != 'vat'  && p != 'product_id' && p != 'name' && p != "part_number"){
+      if (product[p] !== '' && isNumeric(product[p]) && p !== 'vat' && p !== 'product_id' && p !== 'name' && p !== "part_number" && p !== "description" && p !== "item_description") {
         document.getElementById(type + p + ln).value = format2Number(product[p]);
       } else {
         document.getElementById(type + p + ln).value = product[p];
@@ -343,7 +343,7 @@ function insertServiceLine(tableid, groupid) {
   }
 
   var a2 = x.insertCell(2);
-  a2.innerHTML = "<input type='text' name='service_product_discount[" + servln + "]' id='service_product_discount" + servln + "'  maxlength='50' value='' title='' tabindex='116' onblur='calculateLine(" + servln + ",\"service_\");' onblur='calculateLine(" + servln + ",\"service_\");' class='service_discount_text'><input type='hidden' name='service_product_discount_amount[" + servln + "]' id='service_product_discount_amount" + servln + "' value=''/>";
+  a2.innerHTML = "<input type='text' name='service_product_discount[" + servln + "]' id='service_product_discount" + servln + "'  maxlength='50' value='' title='' tabindex='116' onblur='calculateLine(" + servln + ",\"service_\");' class='service_discount_text'><input type='hidden' name='service_product_discount_amount[" + servln + "]' id='service_product_discount_amount" + servln + "' value=''/>";
   a2.innerHTML += "<select tabindex='116' name='service_discount[" + servln + "]' id='service_discount" + servln + "' onchange='calculateLine(" + servln + ",\"service_\");' class='service_discount_select'>" + discount_hidden + "</select>";
 
   var b = x.insertCell(3);
@@ -755,7 +755,7 @@ function calculateTotal(key)
 {
   if (typeof key === 'undefined') {  key = 'lineItems'; }
   var row = document.getElementById(key).getElementsByTagName('tbody');
-  if(key == 'lineItems') key = '';
+  if(key === 'lineItems') key = '';
   var length = row.length;
   var head = {};
   var tot_amt = 0;
@@ -839,6 +839,10 @@ function calculateTotal(key)
   set_value(key+'shipping_tax_amt',shippingtax_amt);
 
   tax += shippingtax_amt;
+
+  if (typeof tax === 'string'){
+    tax = Number(tax);
+  }
 
   set_value(key+'tax_amount',tax);
 
@@ -942,7 +946,13 @@ function formatNumber(n, num_grp_sep, dec_sep, round, precision) {
     if (round > 0 && n.length > 1) {
       n[1] = parseFloat("0." + n[1]);
       n[1] = Math.round(n[1] * Math.pow(10, round)) / Math.pow(10, round);
+      if(n[1].toString().includes('.')) {
       n[1] = n[1].toString().split(".")[1];
+    }
+      else {
+	  n[0] = (parseInt(n[0]) + n[1]).toString();
+	  n[1] = "";
+      }
     }
     if (round <= 0) {
       n[0] = Math.round(parseInt(n[0], 10) * Math.pow(10, round)) / Math.pow(10, round);

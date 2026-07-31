@@ -48,6 +48,7 @@ require_once('include/EditView/EditView2.php');
  * MassUpdate class for updating multiple records at once
  * @api
  */
+#[\AllowDynamicProperties]
 class MassUpdate
 {
     /*
@@ -111,7 +112,7 @@ class MassUpdate
         unset($_REQUEST['current_query_by_page']);
         unset($_REQUEST[session_name()]);
         unset($_REQUEST['PHPSESSID']);
-        $query = json_encode($_REQUEST);
+        $query = htmlspecialchars(json_encode($_REQUEST), ENT_QUOTES, 'UTF-8');
 
         if (!isset($_REQUEST['module'])) {
             LoggerManager::getLogger()->warn('Undefined index: module');
@@ -184,7 +185,7 @@ eoq;
                 if (empty($value)) {
                     unset($_POST[$post]);
                 }
-            } elseif (strlen($value) == 0) {
+            } elseif (strlen((string) $value ?? '') == 0) {
                 if (isset($this->sugarbean->field_defs[$post]) && $this->sugarbean->field_defs[$post]['type'] == 'radioenum' && isset($_POST[$post])) {
                     $_POST[$post] = '';
                 } else {
@@ -202,8 +203,8 @@ eoq;
                         $_POST[$post] = 0;
                     }
                     if (!empty($this->sugarbean->field_defs[$post]['dbType']) && strcmp(
-                            $this->sugarbean->field_defs[$post]['dbType'],
-                            'varchar'
+                        $this->sugarbean->field_defs[$post]['dbType'],
+                        'varchar'
                         ) == 0
                     ) {
                         if (strcmp($value, '1') == 0) {
@@ -393,15 +394,12 @@ eoq;
                                     $parentenum_value = $newbean->$parentenum_name;
 
                                     $dynamic_field_name = $field_name['name'];
-                                    // Dynamic field set value.
-                                    list($dynamic_field_value) = explode('_', $newbean->$dynamic_field_name);
 
-                                    if ($parentenum_value != $dynamic_field_value) {
-
+                                    if (strpos($newbean->$dynamic_field_name, $parentenum_value) !== 0) {
                                         // Change to the default value of the correct value set.
                                         $defaultValue = '';
                                         foreach ($app_list_strings[$field_name['options']] as $key => $value) {
-                                            if (strpos($key, $parentenum_value) === 0) {
+                                            if (strpos((string) $key, (string) $parentenum_value) === 0) {
                                                 $defaultValue = $key;
                                                 break;
                                             }
@@ -452,9 +450,9 @@ eoq;
         $sugar_config = $configurator->config;
 
         if ($this->sugarbean->bean_implements('ACL') && (!ACLController::checkAccess(
-                    $this->sugarbean->module_dir,
-                    'edit',
-                    true
+            $this->sugarbean->module_dir,
+            'edit',
+            true
                 ) || !ACLController::checkAccess($this->sugarbean->module_dir, 'massupdate', true))
         ) {
             return '';
@@ -834,7 +832,7 @@ EOJS;
         $types = get_select_options_with_id($parent_types, '');
         //BS Fix Bug 17110
         $pattern = "/\n<OPTION.*" . $app_strings['LBL_NONE'] . "<\/OPTION>/";
-        $types = preg_replace($pattern, "", $types);
+        $types = preg_replace($pattern, "", (string) $types);
         // End Fix
 
         $json = getJSONobj();
@@ -935,8 +933,8 @@ EOQ;
             'call_back_function' => 'set_return',
             'form_name' => 'MassUpdate',
             'field_to_name_array' => array(
-                'id' => "{$id_name}",
-                "$reportsDisplayName" => "{$varname}",
+                'id' => (string)($id_name),
+                (string)$reportsDisplayName => (string)($varname),
             ),
         );
 
@@ -946,7 +944,7 @@ EOQ;
         $qsName = array(
             'form' => 'MassUpdate',
             'method' => 'get_user_array',
-            'modules' => array("{$mod_type}"),
+            'modules' => array((string)($mod_type)),
             'group' => 'or',
             'field_list' => array('user_name', 'id'),
             'populate_list' => array("mass_{$varname}", "mass_{$id_name}"),
@@ -1007,8 +1005,8 @@ EOHTML;
             'call_back_function' => 'set_return',
             'form_name' => 'MassUpdate',
             'field_to_name_array' => array(
-                'id' => "{$id_name}",
-                'name' => "{$varname}",
+                'id' => (string)($id_name),
+                'name' => (string)($varname),
             ),
         );
 
@@ -1018,7 +1016,7 @@ EOHTML;
         $qsName = array(
             'form' => 'MassUpdate',
             'method' => 'query',
-            'modules' => array("{$mod_type}"),
+            'modules' => array((string)($mod_type)),
             'group' => 'or',
             'field_list' => array('name', 'id'),
             'populate_list' => array("mass_{$varname}", "mass_{$id_name}"),
@@ -1078,8 +1076,8 @@ EOHTML;
             'call_back_function' => 'set_return',
             'form_name' => 'MassUpdate',
             'field_to_name_array' => array(
-                'id' => "{$id_name}",
-                'name' => "{$varname}",
+                'id' => (string)($id_name),
+                'name' => (string)($varname),
             ),
         );
 
@@ -1238,17 +1236,17 @@ EOQ;
      */
     public function addDate($displayname, $varname)
     {
-        global $timedate;
+        global $timedate, $app_strings, $app_list_strings, $theme, $current_user;
         //letrium ltd
         $displayname = addslashes($displayname);
         $userformat = '(' . $timedate->get_user_date_format() . ')';
         $cal_dateformat = $timedate->get_cal_date_format();
-        global $app_strings, $app_list_strings, $theme;
+	$cal_fdow = $current_user->get_first_day_of_week() ? $current_user->get_first_day_of_week() : '0';
 
         $javascriptend = <<<EOQ
 		 <script type="text/javascript">
 		Calendar.setup ({
-			inputField : "${varname}jscal_field", daFormat : "$cal_dateformat", ifFormat : "$cal_dateformat", showsTime : false, button : "${varname}jscal_trigger", singleClick : true, step : 1, weekNumbers:false
+			inputField : "{$varname}jscal_field", daFormat : "$cal_dateformat", ifFormat : "$cal_dateformat", showsTime : false, button : "{$varname}jscal_trigger", singleClick : true, step : 1, startWeekday: $cal_fdow, weekNumbers:false
 		});
 		</script>
 EOQ;
@@ -1279,6 +1277,7 @@ EOQ;
 
     public function addRadioenum($displayname, $varname, $options)
     {
+        $_html_result = [];
         foreach ($options as $_key => $_val) {
             $_html_result[] = $this->addRadioenumItem($varname, $_key, $_val);
         }
@@ -1296,14 +1295,14 @@ EOQ;
      */
     public function addDatetime($displayname, $varname)
     {
-        global $timedate;
+        global $timedate, $app_strings, $app_list_strings, $theme, $current_user;
         $userformat = $timedate->get_user_time_format();
         $cal_dateformat = $timedate->get_cal_date_format();
-        global $app_strings, $app_list_strings, $theme;
+	$cal_fdow = $current_user->get_first_day_of_week() ? $current_user->get_first_day_of_week() : '0';
 
         $javascriptend = <<<EOQ
-		 
-	<span id="date_start_trigger" class="suitepicon suitepicon-module-calendar" onclick="return false;"></span>
+
+	<span id="{$varname}_trigger" class="suitepicon suitepicon-module-calendar" onclick="return false;"></span>
 EOQ;
         $dtscript = getVersionedScript('include/SugarFields/Fields/Datetimecombo/Datetimecombo.js');
         $html = <<<EOQ
@@ -1337,6 +1336,7 @@ EOQ;
 			button : "{$varname}_trigger",
 			singleClick : true,
 			step : 1,
+			startWeekday: $cal_fdow,
 			weekNumbers:false
 			});
 
@@ -1392,8 +1392,8 @@ EOQ;
 
     public function checkClearField($field, $value)
     {
-        if ($value == 1 && strpos($field, '_flag')) {
-            $fName = substr($field, -5);
+        if ($value == 1 && strpos((string) $field, '_flag')) {
+            $fName = substr((string) $field, -5);
             if (isset($this->sugarbean->field_defs[$field]['group'])) {
                 $group = $this->sugarbean->field_defs[$field]['group'];
                 if (isset($this->sugarbean->field_defs[$group])) {
@@ -1415,7 +1415,7 @@ EOQ;
                 //So currently massupdate will not gernerate the where sql. It will use the sql stored in the SESSION. But this will cause bug 24722, and it cannot be avoided now.
                 $where = $_SESSION['export_where'];
                 $whereArr = explode(" ", trim($where));
-                if ($whereArr[0] == trim('where')) {
+                if ($whereArr[0] === trim('where')) {
                     $whereClean = array_shift($whereArr);
                 }
                 $this->where_clauses = implode(" ", $whereArr);
@@ -1454,7 +1454,7 @@ EOQ;
         $searchForm->populateFromArray($query, null, true);
         $this->searchFields = $searchForm->searchFields;
         $where_clauses = $searchForm->generateSearchWhere(true, $module);
-        if (count($where_clauses) > 0) {
+        if ((is_countable($where_clauses) ? count($where_clauses) : 0) > 0) {
             $this->where_clauses = '(' . implode(' ) AND ( ', $where_clauses) . ')';
             $GLOBALS['log']->info("MassUpdate Where Clause: {$this->where_clauses}");
         } else {

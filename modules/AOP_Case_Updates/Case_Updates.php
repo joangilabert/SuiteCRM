@@ -123,7 +123,7 @@ function caseUpdates(record){
 
             showSubPanel('history', null, true);
             //Reload the case updates stream and history panels
-		    $("#LBL_AOP_CASE_UPDATES").load("index.php?module=Cases&action=DetailView&record="+record + " #LBL_AOP_CASE_UPDATES", function(){
+		    $("#aop_case_updates_threaded_span").load("index.php?module=Cases&action=DetailView&record="+record + " #aop_case_updates_threaded_span", function(){
 
 
             //Collapse all except newest update
@@ -224,7 +224,7 @@ function getUpdateDisplayHead(SugarBean $update)
     } elseif ($update->assigned_user_id) {
         $name = $update->getUpdateUser()->name;
     } else {
-        $name = 'Unknown';
+        $name = $mod_strings['LBL_UNKNOWN_CONTACT'];
     }
     $html = "<a href='' onclick='toggleCaseUpdate(\"" . $update->id . "\");return false;'>";
     $html .= "<img  id='caseUpdate" .
@@ -266,28 +266,27 @@ function display_single_update(AOP_Case_Updates $update)
         if ($update->internal) {
             $html = "<div id='caseStyleInternal'>" . getUpdateDisplayHead($update);
             $html .= "<div id='caseUpdate" . $update->id . "' class='caseUpdate'>";
-            $html .= nl2br(html_entity_decode($update->description));
+            $html .= nl2br(html_entity_decode(purify_html((string) $update->description, ['HTML.ForbiddenElements' => ['iframe' => true]])));
             $html .= '</div></div>';
 
             return $html;
-        } /*if standard update*/
-        $html = "<div id='lessmargin'><div id='caseStyleUser'>" . getUpdateDisplayHead($update);
-        $html .= "<div id='caseUpdate" . $update->id . "' class='caseUpdate'>";
-        $html .= nl2br(html_entity_decode($update->description));
-        $html .= '</div></div></div>';
+        } /*if standard update*/ else {
+            $html = "<div id='lessmargin'><div id='caseStyleUser'>" . getUpdateDisplayHead($update);
+            $html .= "<div id='caseUpdate" . $update->id . "' class='caseUpdate'>";
+            $html .= nl2br(html_entity_decode(purify_html((string) $update->description, ['HTML.ForbiddenElements' => ['iframe' => true]])));
+            $html .= '</div></div></div>';
 
-        return $html;
+            return $html;
+        }
     }
 
     /*if contact user*/
-    if ($update->contact_id) {
-        $html = "<div id='extramargin'><div id='caseStyleContact'>" . getUpdateDisplayHead($update);
-        $html .= "<div id='caseUpdate" . $update->id . "' class='caseUpdate'>";
-        $html .= nl2br(html_entity_decode($update->description));
-        $html .= '</div></div></div>';
+    $html = "<div id='extramargin'><div id='caseStyleContact'>" . getUpdateDisplayHead($update);
+    $html .= "<div id='caseUpdate" . $update->id . "' class='caseUpdate'>";
+    $html .= html_entity_decode(purify_html((string) $update->description, ['HTML.ForbiddenElements' => ['iframe' => true]]));
+    $html .= '</div></div></div>';
 
-        return $html;
-    }
+    return $html;
 }
 
 /**
@@ -300,6 +299,9 @@ function display_single_update(AOP_Case_Updates $update)
 function display_case_attachments($case)
 {
     $html = '';
+    if(empty($case->id)){
+        return '';
+    }
     $notes = $case->get_linked_beans('notes', 'Notes');
     if ($notes) {
         foreach ($notes as $note) {
@@ -338,7 +340,7 @@ function quick_edit_case_updates($case)
     require_once 'modules/ACLRoles/ACLRole.php';
     $user = $GLOBALS['current_user'];
     $id = $user->id;
-    $acl = new ACLRole();
+    $acl = BeanFactory::newBean('ACLRoles');
     $roles = $acl->getUserRoles($id);
 
     //Return if user cannot edit cases

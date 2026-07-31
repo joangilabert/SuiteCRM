@@ -41,10 +41,10 @@ if (!defined('sugarEntry') || !sugarEntry) {
  * display the words "Powered by SugarCRM" and "Supercharged by SuiteCRM".
  */
 
-
+global $beanFiles, $timedate, $current_user;
 ///////////////////////////////////////////////////////////////////////////////
 ////	EMAIL SEND/SAVE SETUP
-$focus = new Email();
+$focus = BeanFactory::newBean('Emails');
 
 if (!isset($prefix)) {
     $prefix = '';
@@ -75,8 +75,10 @@ foreach ($allfields as $field) {
     }
 }
 
-$focus->description = $_REQUEST['description_html'];
-$focus->description_html = $_REQUEST['description_html'];
+$description_html = $_REQUEST['description_html'] ?? '';
+
+$focus->description = $description_html;
+$focus->description_html = $description_html;
 
 if (!isset($_REQUEST['to_addrs'])) {
     $_REQUEST['to_addrs'] = "";
@@ -137,9 +139,9 @@ if (empty($object_arr)) {
 // do not parse email templates if the email is being saved as draft....
 if ($focus->type != 'draft' && count($object_arr) > 0) {
     require_once($beanFiles['EmailTemplate']);
-    $focus->name = EmailTemplate::parse_template($focus->name, $object_arr);
-    $focus->description = EmailTemplate::parse_template($focus->description, $object_arr);
-    $focus->description_html = EmailTemplate::parse_template($focus->description_html, $object_arr);
+    $focus->name = (new EmailTemplate())->parse_template($focus->name, $object_arr);
+    $focus->description = (new EmailTemplate())->parse_template($focus->description, $object_arr);
+    $focus->description_html = (new EmailTemplate())->parse_template($focus->description_html, $object_arr);
 }
 ////	END TEMPLATE PARSING
 ///////////////////////////////////////////////////////////////////////////////
@@ -157,11 +159,14 @@ if (empty($focus->id)) {
 $focus->handleAttachments();
 ////	END ATTACHMENT HANDLING
 ///////////////////////////////////////////////////////////////////////////////
+$dateStart = $_REQUEST['date_start'] ?? '';
+$timeStart = $_REQUEST['time_start'] ?? '';
+$meridiem = $_REQUEST['meridiem'] ?? '';
 $focus->status = 'draft';
 if ($focus->type == 'archived') {
     $focus->status= 'archived';
-    $focus->date_start = $_REQUEST['date_start'];
-    $focus->time_start = $_REQUEST['time_start'] . $_REQUEST['meridiem'];
+    $focus->date_start = $dateStart;
+    $focus->time_start = $timeStart . $meridiem;
 } elseif (($focus->type == 'out' || $focus->type == 'forward') && isset($_REQUEST['send']) && $_REQUEST['send'] == '1') {
     ///////////////////////////////////////////////////////////////////////////
     ////	REPLY PROCESSING
@@ -169,12 +174,12 @@ if ($focus->type == 'archived') {
     $new = array('<','>');
 
     if ($_REQUEST['from_addr'] != $_REQUEST['from_addr_name'].' &lt;'.$_REQUEST['from_addr_email'].'&gt;') {
-        if (false === strpos($_REQUEST['from_addr'], '&lt;')) { // we have an email only?
+        if (false === strpos((string) $_REQUEST['from_addr'], '&lt;')) { // we have an email only?
             $focus->from_addr = $_REQUEST['from_addr'];
             isValidEmailAddress($focus->from_addr);
             $focus->from_name = '';
         } else { // we have a compound string
-            $newFromAddr =  str_replace($old, $new, $_REQUEST['from_addr']);
+            $newFromAddr =  str_replace($old, $new, (string) $_REQUEST['from_addr']);
             $focus->from_addr = substr($newFromAddr, (1 + strpos($newFromAddr, '<')), (strpos($newFromAddr, '>') - strpos($newFromAddr, '<')) -1);
             isValidEmailAddress($focus->from_addr);
             $focus->from_name = substr($newFromAddr, 0, (strpos($newFromAddr, '<') -1));
@@ -197,17 +202,9 @@ if ($focus->type == 'archived') {
 $focus->to_addrs = $_REQUEST['to_addrs'];
 $focus->cc_addrs = $_REQUEST['cc_addrs'];
 $focus->bcc_addrs = $_REQUEST['bcc_addrs'];
-$focus->from_addr = $_REQUEST['from_addr'];
+$focus->from_addr = $_REQUEST['from_addr'] ?? '';
 isValidEmailAddress($focus->from_addr);
 
-
-// delete the existing relationship of all the email addresses with this email
-$query = "update emails_email_addr_rel set deleted = 1 WHERE email_id = '{$focus->id}'";
-$focus->db->query($query);
-
-// delete al the relationship of this email with all the beans
-//$query = "update emails_beans set deleted = 1, bean_id = '', bean_module = '' WHERE email_id = '{$focus->id}'";
-//$focus->db->query($query);
 if (!empty($_REQUEST['to_addrs_ids'])) {
     $exContactIds = explode(';', $_REQUEST['to_addrs_ids']);
 } else {
@@ -234,16 +231,16 @@ if (!isset($focus->date_start)) {
     list($focus->date_start, $focus->time_start) = $timedate->split_date_time($timedate->now());
 }
 
-$focus->date_sent = "";
+$focus->date_sent_received = "";
 
 require_once('include/formbase.php');
 $focus = populateFromPost('', $focus);
 
 //CCL - Bug: 40168 Fix ability to change date sent from saved emails
 if ($focus->type == 'archived') {
-    $focus->date_start = $_REQUEST['date_start'];
-    $focus->time_start = $_REQUEST['time_start'] . $_REQUEST['meridiem'];
-    $focus->date_sent = '';
+    $focus->date_start = $dateStart;
+    $focus->time_start = $timeStart . $meridiem;
+    $focus->date_sent_received = '';
 }
 
 $focus->save(false);

@@ -47,6 +47,7 @@ require_once('modules/Contacts/Contact.php');
  * TODO: Move to emails module. This class violates single responsibility principle. In that the emails
  * module should handle the email
  */
+#[\AllowDynamicProperties]
 class sendEmail
 {
     /**
@@ -62,7 +63,7 @@ class sendEmail
     {
         global $current_user, $mod_strings, $sugar_config;
         // First Create e-mail draft
-        $email = new Email();
+        $email = BeanFactory::newBean('Emails');
         // set the id for relationships
         $email->id = create_guid();
         $email->new_with_id = true;
@@ -74,6 +75,8 @@ class sendEmail
         // type is draft
         $email->type = "draft";
         $email->status = "draft";
+
+        $contact_id = '';
 
         if (!empty($module->billing_contact_id)) {
             $contact_id = $module->billing_contact_id;
@@ -102,7 +105,7 @@ class sendEmail
 
 
         // team id
-        $email->team_id = $current_user->default_team;
+        $email->team_id = $current_user->default_team ?? '';
         // assigned_user_id
         $email->assigned_user_id = $current_user->id;
         // Save the email object
@@ -112,7 +115,7 @@ class sendEmail
         $email_id = $email->id;
 
         if ($attach) {
-            $note = new Note();
+            $note = BeanFactory::newBean('Notes');
             $note->modified_user_id = $current_user->id;
             $note->created_by = $current_user->id;
             $note->name = $file_name;
@@ -122,7 +125,7 @@ class sendEmail
             $note->filename = $file_name;
             $noteId = $note->save();
 
-            if ($noteID !== false && !empty($noteId)) {
+            if (!empty($noteId)) {
                 rename($sugar_config['upload_dir'] . 'attachfile.pdf', $sugar_config['upload_dir'] . $note->id);
                 $email->attachNote($note);
             } else {

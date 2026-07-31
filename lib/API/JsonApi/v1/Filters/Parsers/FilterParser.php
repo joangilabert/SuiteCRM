@@ -41,8 +41,6 @@
 namespace SuiteCRM\API\JsonApi\v1\Filters\Parsers;
 
 use SuiteCRM\API\JsonApi\v1\Filters\Interfaces\OperatorInterface;
-use SuiteCRM\API\JsonApi\v1\Filters\Interfaces\ParserInterface;
-use Interop\Container\Exception\ContainerException;
 use Psr\Container\ContainerInterface;
 use SuiteCRM\API\JsonApi\v1\Filters\Operators\FieldOperator;
 use SuiteCRM\API\JsonApi\v1\Filters\Operators\Operator;
@@ -56,6 +54,7 @@ use SuiteCRM\Exception\InvalidArgumentException;
  * Class FilterParser
  * @package SuiteCRM\API\JsonApi\v1\Filters\Parsers
  */
+#[\AllowDynamicProperties]
 class FilterParser
 {
     /**
@@ -255,7 +254,7 @@ class FilterParser
                 $operators = '';
                 $operatorsMatches= array();
                 $operatorsArray= array();
-                if (preg_match_all('/\[+[A-Za-z0-9\_\-\.]+\]+/', $value, $operatorsMatches) !== false) {
+                if (preg_match_all('/\[+[A-Za-z0-9\_\-\.]+\]+/', (string) $value, $operatorsMatches) !== false) {
                     // split operators in from their operands
                     foreach ($operatorsMatches[0] as $operator) {
                         // Field Operators [field.fieldname]
@@ -270,7 +269,7 @@ class FilterParser
                             $operatorsArray[] = $operator;
                         } else {
                             throw new Exception(
-                               '[JsonApi][v1][Filters][Parsers][FilterParser]' .
+                                '[JsonApi][v1][Filters][Parsers][FilterParser]' .
                                '[parserFieldFilters][operator not found] please ensure that an operator has been added to '.
                                'containers '
                            );

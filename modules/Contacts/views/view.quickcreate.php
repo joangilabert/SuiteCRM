@@ -1,5 +1,4 @@
 <?php
-//FILE SUGARCRM flav=pro || flav=sales
 if (!defined('sugarEntry') || !sugarEntry) {
     die('Not A Valid Entry Point');
 }
@@ -43,8 +42,8 @@ if (!defined('sugarEntry') || !sugarEntry) {
  */
 
 
-require_once('include/MVC/View/views/view.quickcreate.php');
 
+#[\AllowDynamicProperties]
 class ContactsViewQuickcreate extends ViewQuickcreate
 {
     public function preDisplay()

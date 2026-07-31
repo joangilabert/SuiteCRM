@@ -46,11 +46,12 @@ require_once('include/EditView/QuickCreate.php');
 
 
 
+#[\AllowDynamicProperties]
 class AccountsQuickCreate extends QuickCreate
 {
     public $javascript;
     
-    public function process()
+    public function process($checkFormName = false, $formName = '')
     {
         global $current_user, $timedate, $app_list_strings, $current_language, $mod_strings;
         $mod_strings = return_module_language($current_language, 'Accounts');
@@ -67,7 +68,7 @@ class AccountsQuickCreate extends QuickCreate
         $this->javascript = new javascript();
         $this->javascript->setFormName('accountsQuickCreate');
         
-        $focus = new Account();
+        $focus = BeanFactory::newBean('Accounts');
         $this->javascript->setSugarBean($focus);
         $this->javascript->addAllFields('');
 

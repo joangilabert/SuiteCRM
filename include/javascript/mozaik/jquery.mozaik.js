@@ -77,11 +77,6 @@ var mozaik = {
         return html;
     },
 
-    //getPreloaderHTML: function() {
-    //    var html = '<div class="mozaik-preloader"><img alt="loading.." src="img/725.gif"></div>';
-    //    return html;
-    //}
-
     refreshWidthSet: function() {
         $('.mozaik-width-set .handler').each(function(i,e){
             var width = parseInt($(e).attr('data-width'));
@@ -158,6 +153,18 @@ var plgBackground = {
 (function($){
     $.fn.mozaik = function(options) {
 
+        /**
+         * TinyMCE configuration for Mozaik drag-and-drop email template builder
+         *
+         * This configuration is intentionally different from standard editors because:
+         * - undo/redo: Required for drag-drop template building operations
+         * - emoticons: Allows template personalization with emojis
+         * - media: Enables video/audio embedding in email templates
+         * - print/preview: Essential for template preview before use
+         * - Split toolbars: Better organization for template building context
+         *
+         * DO NOT standardize this config with other TinyMCE instances
+         */
         var tinyMCESettings = {
             plugins: [
                 'advlist autolink lists link image charmap print preview hr anchor pagebreak',
@@ -210,17 +217,10 @@ var plgBackground = {
                 "99CCFF", "Light sky blue",
                 "CC99FF", "Plum"
             ],
-            //setup: function(editor) {
-            //    var _editor = editor;
-            //    editor.on('focus', function(event){
-            //        mozaik.lastUsedEditor = _editor;
-            //    });
-            //}
 
             file_browser_callback: function(field_name, url, type, win, e) {
                 mozaik.uploadPathField = field_name;
                 if(type=='image') {
-                    // $('#mozaik_upload_form input').click();
                     $('form#upload_form input[type="file"]').each(function(i,e){
                         if($(e).css('display') != 'none') {
                             $(e).click();
@@ -323,7 +323,6 @@ var plgBackground = {
                     $.get(url, function (resp) {
                         addEditorListElement(name, resp, true, settings.toolPlugins);
                         onResize();
-                        //!@#
                     });
                 }
                 $(window).mouseup();
@@ -397,7 +396,7 @@ var plgBackground = {
                     var config = settings.tinyMCE;
                     config.selector = sels;
                     config.inline = true;
-                    tinyMCE.init(config);
+                    tinymce.init(config);
                 });
 
                 // initialize toolbar
@@ -417,7 +416,7 @@ var plgBackground = {
                     return false;
                 });
                 $mozaik.find('.mozaik-elem:last-child .mozaik-tool-source').bind('click', function(){
-                    var html = tinyMCE.activeEditor.getContent();
+                    var html = tinymce.activeEditor.getContent();
                     mozaik.ace.setValue(html);
                     $('#mozaik-ace').show();
                 });

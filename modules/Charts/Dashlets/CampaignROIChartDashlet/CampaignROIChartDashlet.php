@@ -47,6 +47,7 @@ if (!defined('sugarEntry') || !sugarEntry) {
 
 require_once('include/Dashlets/DashletGenericChart.php');
 
+#[\AllowDynamicProperties]
 class CampaignROIChartDashlet extends DashletGenericChart
 {
     public $campaign_id;
@@ -79,10 +80,16 @@ class CampaignROIChartDashlet extends DashletGenericChart
      */
     public function display()
     {
+        $campaignId = null;
+
+        if (isset($this->campaign_id)){
+            $campaignId = $this->campaign_id[0];
+        }
+
         $rawData = $this->constructQuery(
             $GLOBALS['app_list_strings']['roi_type_dom'],
             $GLOBALS['app_list_strings']['roi_type_dom'],
-            $this->campaign_id[0],
+            $campaignId,
             null,
             true,
             true,
@@ -92,7 +99,7 @@ class CampaignROIChartDashlet extends DashletGenericChart
 
         $currency_symbol = $GLOBALS['sugar_config']['default_currency_symbol'];
         if ($GLOBALS['current_user']->getPreference('currency')) {
-            $currency = new Currency();
+            $currency = BeanFactory::newBean('Currencies');
             $currency->retrieve($GLOBALS['current_user']->getPreference('currency'));
             $currency_symbol = $currency->symbol;
         }
@@ -108,7 +115,7 @@ class CampaignROIChartDashlet extends DashletGenericChart
         //$chartReadyData['data'] = [[1.1,2.2],[3.3,4.4]];
         $jsonData = json_encode($chartReadyData['data']);
         $jsonLabels = json_encode($chartReadyData['labels']);
-        $jsonLabelsAndValues = json_encode($chartReadyData['labelsAndValues']);
+        $jsonLabelsAndValues = json_encode($chartReadyData['labelsAndValues'] ?? []);
 
 
         $jsonKey = json_encode($chartReadyData['key']);
@@ -205,7 +212,7 @@ class CampaignROIChartDashlet extends DashletGenericChart
             id: '$canvasId',
             x: 10,
             y: 20,
-            text: 'Amount in ${currency_symbol}',
+            text: 'Amount in {$currency_symbol}',
             options: {
                 font: 'Arial',
                 bold: true,
@@ -229,7 +236,7 @@ EOD;
     {
         //global $app_strings,$mod_strings, $current_module_strings, $charset, $lang, $app_list_strings, $current_language,$sugar_config;
         global $mod_strings;
-        
+
         if (!$campaign_id) {
             $GLOBALS['log']->debug('roi chart need a campaign id');
             return false;
@@ -239,10 +246,10 @@ EOD;
 
         $chartData = array();
 
-        $focus = new Campaign();
+        $focus = BeanFactory::newBean('Campaigns');
         $focus->retrieve($campaign_id);
         $opp_count=0;
-        $opp_query  = "select count(*) opp_count,sum(" . db_convert("amount_usdollar", "IFNULL", array(0)).")  total_value";
+        $opp_query  = "select count(*) opp_count,sum(" . DBManagerFactory::getInstance()->convert("amount_usdollar", "IFNULL", array(0)).")  total_value";
         $opp_query .= " from opportunities";
         $opp_query .= " where campaign_id='$campaign_id'";
         $opp_query .= " and sales_stage='Prospecting'";
@@ -329,12 +336,18 @@ EOD;
 
     protected function prepareChartData($data, $currency_symbol, $thousands_symbol)
     {
+        $chart = [];
         //Use the  lead_source to categorise the data for the charts
         $chart['labels'] = array();
         $chart['data'] = array();
         //Need to add all elements into the key, as they are stacked (even though the category is not present, the value could be)
         $chart['key'] = array();
         $chart['tooltips']= array();
+        $chart['labelsAndValues']=array();
+
+        if (empty($data)) {
+            return $chart;
+        }
 
         foreach ($data as $key=>$value) {
             $formattedFloat = (float)number_format((float)$value, 2, '.', '');
@@ -356,6 +369,7 @@ EOD;
             $chart['tooltips'][]="<div><input type='hidden' class='stage' value='$stage'><input type='hidden' class='date' value='$key'></div>".$stage.'('.$currency_symbol.$formattedFloat.$thousands_symbol.') '.$key;
             */
         }
+
         return $chart;
     }
 }

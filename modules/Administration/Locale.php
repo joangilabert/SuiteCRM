@@ -50,12 +50,12 @@ require_once('modules/Configurator/Configurator.php');
 
 
 echo getClassicModuleTitle(
-        "Administration",
-        array(
+    "Administration",
+    array(
             "<a href='index.php?module=Administration&action=index'>".translate('LBL_MODULE_NAME', 'Administration')."</a>",
            $mod_strings['LBL_MANAGE_LOCALE'],
            ),
-        false
+    false
         );
 
 $cfg			= new Configurator();
@@ -112,7 +112,7 @@ $sugar_smarty->assign('NAMEFORMATS', $locale->getUsableLocaleNameOptions($sugar_
 if ($locale->invalidLocaleNameFormatUpgrade()) {
     $sugar_smarty->assign('upgradeInvalidLocaleNameFormat', 'bad name format upgrade');
 } else {
-    $sugar_smarty->clear_assign('upgradeInvalidLocaleNameFormat');
+    $sugar_smarty->clearAssign('upgradeInvalidLocaleNameFormat');
 }
 
 $sugar_smarty->assign('getNameJs', $locale->getNameJs());

@@ -40,16 +40,15 @@
 
 namespace SuiteCRM\API\v8\Exception;
 
-use SuiteCRM\Enumerator\ExceptionCode;
-
 /**
  * Class InvalidJsonApiRequestException
  * @package SuiteCRM\API\v8\Exception
  */
+#[\AllowDynamicProperties]
 class InvalidJsonApiRequestException extends ApiException
 {
-    const MSG_PREFIX = '[InvalidJsonApiRequest]';
-    const DEFAULT_CODE = 8010;
-    const HTTP_STATUS = 400;
-    const DETAIL_TEXT_LABEL = 'LBL_INVALID_JSON_API_REQUEST_EXCEPTION_DETAIL';
+    public const MSG_PREFIX = '[InvalidJsonApiRequest]';
+    public const DEFAULT_CODE = 8010;
+    public const HTTP_STATUS = 400;
+    public const DETAIL_TEXT_LABEL = 'LBL_INVALID_JSON_API_REQUEST_EXCEPTION_DETAIL';
 }

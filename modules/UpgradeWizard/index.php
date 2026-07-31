@@ -1,14 +1,11 @@
 <?php
-if (!defined('sugarEntry') || !sugarEntry) {
-    die('Not A Valid Entry Point');
-}
 /**
  *
  * SugarCRM Community Edition is a customer relationship management program developed by
  * SugarCRM, Inc. Copyright (C) 2004-2013 SugarCRM Inc.
  *
  * SuiteCRM is an extension to SugarCRM Community Edition developed by SalesAgility Ltd.
- * Copyright (C) 2011 - 2018 SalesAgility Ltd.
+ * Copyright (C) 2011 - 2021 SalesAgility Ltd.
  *
  * This program is free software; you can redistribute it and/or modify it under
  * the terms of the GNU Affero General Public License version 3 as published by the
@@ -41,19 +38,19 @@ if (!defined('sugarEntry') || !sugarEntry) {
  * display the words "Powered by SugarCRM" and "Supercharged by SuiteCRM".
  */
 
-/*********************************************************************************
+if (!defined('sugarEntry') || !sugarEntry) {
+    die('Not A Valid Entry Point');
+}
 
- * Description:
- * Portions created by SugarCRM are Copyright (C) SugarCRM, Inc. All Rights
- * Reserved. Contributor(s): ______________________________________..
- * *******************************************************************************/
+global $current_user;
+global $app_strings;
 
 if (!is_admin($current_user)) {
     sugar_die($app_strings['ERR_NOT_ADMIN']);
 }
 
 require_once('include/utils/db_utils.php');
-require_once('include/utils/zip_utils.php');
+require_once('include/utils/php_zip_utils.php');
 require_once('modules/UpgradeWizard/uw_utils.php');
 require_once('modules/Administration/UpgradeHistory.php');
 
@@ -64,6 +61,8 @@ if (!isset($locale) || empty($locale)) {
 }
 global $sugar_config;
 global $sugar_flavor;
+global $current_language;
+
 
 require_once('modules/Trackers/TrackerManager.php');
 $trackerManager = TrackerManager::getInstance();
@@ -260,7 +259,9 @@ if (isset($_REQUEST['step']) && $_REQUEST['step'] !=null) {
         //echo 'Previous run '.$previouUpgradeRun.'</br>';
         $upgradeStepFile = $previouUpgradeRun;
         //reset REQUEST
-        for ($i=0;$i<sizeof($steps['files']);$i++) {
+        $itemsCount = count($steps['files']);
+        //reset REQUEST
+        for ($i=0; $i<$itemsCount; $i++) {
             if ($steps['files'][$i]== $previouUpgradeRun) {
                 $_REQUEST['step']=$i;
                 break;
@@ -293,7 +294,10 @@ if ($upgradeStepFile == 'end') {
     //}
 }
 
-require('modules/UpgradeWizard/'.$upgradeStepFile.'.php');
+$additionalStep = $_REQUEST['additional_step'] ?? false;
+if (!isset($additionalStep) || !$additionalStep) {
+    require('modules/UpgradeWizard/' . $upgradeStepFile . '.php');
+}
 
 $afterCurrentStep = $_REQUEST['step'] + 1;
 
@@ -368,7 +372,7 @@ foreach ($installeds as $installed) {
                 $manifest_copy_files_to_dir = isset($manifest['copy_files']['to_dir']) ? clean_path($manifest['copy_files']['to_dir']) : "";
                 $manifest_copy_files_from_dir = isset($manifest['copy_files']['from_dir']) ? clean_path($manifest['copy_files']['from_dir']) : "";
                 $manifest_icon = clean_path($manifest['icon']);
-                $icon = "<!--not_in_theme!--><img src=\"" . $manifest_copy_files_to_dir . ($manifest_copy_files_from_dir != "" ? substr($manifest_icon, strlen($manifest_copy_files_from_dir)+1) : $manifest_icon) . "\">";
+                $icon = "<!--not_in_theme!--><img src=\"" . $manifest_copy_files_to_dir . ($manifest_copy_files_from_dir != "" ? substr((string) $manifest_icon, strlen((string) $manifest_copy_files_from_dir)+1) : $manifest_icon) . "\">";
             } else {
                 $icon = getImageForType($manifest['type']);
             }
@@ -502,6 +506,73 @@ function getSelectedModulesForLayoutMerge()
 </script>
 eoq;
 
+// If we are on step  4 then force a redirect to run again to pick up changes to smarty before setting the template.
+if ($_REQUEST['step'] === '4' && !$additionalStep) {
+    // Set session variables
+    $_SESSION['UW_MAIN'] = $uwMain;
+    $_SESSION['UW_JS'] = $js;
+    $_SESSION['STEP'] = $step;
+    $_SESSION['STEPS'] = $steps;
+    $_SESSION['MOD'] = $mod_strings;
+    $_SESSION['APP'] = $app_strings;
+    $_SESSION['showNext'] = $showNext;
+    $_SESSION['showCancel'] = $showCancel;
+    $_SESSION['showBack'] = $showBack;
+    $_SESSION['showRecheck'] = $showRecheck;
+    $_SESSION['showDone'] = $showDone;
+    $_SESSION['showExit'] = $showExit;
+    $_SESSION['STEP_NEXT'] = $stepNext;
+    $_SESSION['STEP_CANCEL'] = $stepCancel;
+    $_SESSION['STEP_BACK'] = $stepBack;
+    $_SESSION['STEP_RECHECK'] = $stepRecheck;
+    $_SESSION['STEPS_FILE'] = $steps['files'];
+    $_SESSION['UW_HISTORY'] = $uwHistory;
+    $_SESSION['disableNextForLicense'] = $disableNextForLicense;
+    $u_allow = 'true';
+    if (isset($stop) && $stop === true) {
+        $frozen = (isset($frozen)) ? '<br />' . $frozen : '';
+        $_SESSION['frozen'] = $frozen;
+        if ($step === 'upload') {
+            $u_allow = 'false';
+        }
+    }
+    $_SESSION['u_allow'] = $u_allow;
+    if (!empty($GLOBALS['top_message'])) {
+        $_SESSION['top_message'] = $GLOBALS['top_message'];
+    }
+
+    // Redirect to additional step and kill the process
+    header('Location: ' . $_SERVER['HTTP_REFERER'] . '?module=UpgradeWizard&action=index&step=4&additional_step=true');
+    die();
+}
+
+if($_REQUEST['step'] === '4' && $additionalStep) {
+    // Set Smarty variables
+    $uwMain = $_SESSION['UW_MAIN'];
+    $js = $_SESSION['UW_JS'];
+    $steps = $_SESSION['STEPS'];
+    $step = $_SESSION['STEP'];
+    $mod_strings = $_SESSION['MOD'];
+    $app_strings = $_SESSION['APP'];
+    $showNext = $_SESSION['showNext'];
+    $showCancel = $_SESSION['showCancel'];
+    $showBack = $_SESSION['showBack'];
+    $showRecheck = $_SESSION['showRecheck'];
+    $showDone = $_SESSION['showDone'];
+    $showExit = $_SESSION['showExit'];
+    $stepNext = $_SESSION['STEP_NEXT'];
+    $stepCancel = $_SESSION['STEP_CANCEL'];
+    $stepBack = $_SESSION['STEP_BACK'];
+    $stepRecheck = $_SESSION['STEP_RECHECK'];
+    $steps['files'] = $_SESSION['STEPS_FILE'];
+    $_SESSION['STEPS_STEP'] = $_REQUEST['step'];
+    $uwHistory = $_SESSION['UW_HISTORY'];
+    $disableNextForLicense = $_SESSION['disableNextForLicense'];
+    $frozen = $_SESSION['frozen'] ?? '';
+    $u_allow = $_SESSION['u_allow'];
+    $_SESSION['top_message'] = $GLOBALS['top_message'];
+}
+
 $smarty->assign('UW_MAIN', $uwMain);
 $smarty->assign('UW_JS', $js);
 $smarty->assign('CHECKLIST', getChecklist($steps, $step));
@@ -537,5 +608,8 @@ if (!empty($GLOBALS['top_message'])) {
 
 $smarty->assign('includeContainerCSS', false);
 $smarty->display('modules/UpgradeWizard/uw_main.tpl');
+
+// Clear session variables
+unset($_SESSION['UW_MAIN'], $_SESSION['UW_JS'], $_SESSION['STEP'], $_SESSION['STEPS'], $_SESSION['MOD'], $_SESSION['APP'], $_SESSION['showNext'], $_SESSION['showCancel'], $_SESSION['showBack'], $_SESSION['showRecheck'], $_SESSION['showDone'], $_SESSION['showExit'], $_SESSION['STEP_NEXT'], $_SESSION['STEP_CANCEL'], $_SESSION['STEP_BACK'], $_SESSION['STEP_RECHECK'], $_SESSION['STEPS_FILE'], $_SESSION['UW_HISTORY'], $_SESSION['disableNextForLicense'], $_SESSION['frozen'], $_SESSION['u_allow'], $_SESSION['top_message']);
 ////	END PAGE OUTPUT
 ///////////////////////////////////////////////////////////////////////////////

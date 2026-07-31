@@ -12,7 +12,7 @@
  * @method void am($role)
  * @method void lookForwardTo($achieveValue)
  * @method void comment($description)
- * @method \Codeception\Lib\Friend haveFriend($name, $actorClass = NULL)
+ * @method void pause()
  *
  * @SuppressWarnings(PHPMD)
 */
@@ -20,20 +20,6 @@ class UnitTester extends \Codeception\Actor
 {
     use _generated\UnitTesterActions;
 
-    /**
-     * @return \Psr\Container\ContainerInterface
-     */
-    public function getContainerInterface()
-    {
-        // load PSR 11 interface
-        if (isset($GLOBALS['container']) === false) {
-            $paths = new \SuiteCRM\Utility\Paths();
-            /** @noinspection PhpIncludeInspection */
-            require $paths->getContainersFilePath();
-        }
-
-        return $GLOBALS['container'];
-    }
     /**
      * Define custom actions here
      */

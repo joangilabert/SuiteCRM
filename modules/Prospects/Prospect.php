@@ -41,17 +41,12 @@ if (!defined('sugarEntry') || !sugarEntry) {
  * display the words "Powered by SugarCRM" and "Supercharged by SuiteCRM".
  */
 
-/*********************************************************************************
 
- * Description:  TODO: To be written.
- * Portions created by SugarCRM are Copyright (C) SugarCRM, Inc.
- * All Rights Reserved.
- * Contributor(s): ______________________________________..
- ********************************************************************************/
 
 require_once('include/SugarObjects/templates/person/Person.php');
 require_once __DIR__ . '/../../include/EmailInterface.php';
 
+#[\AllowDynamicProperties]
 class Prospect extends Person implements EmailInterface
 {
     public $field_name_map;
@@ -117,19 +112,7 @@ class Prospect extends Person implements EmailInterface
         parent::__construct();
     }
 
-    /**
-     * @deprecated deprecated since version 7.6, PHP4 Style Constructors are deprecated and will be remove in 7.8, please update your code, use __construct instead
-     */
-    public function Prospect()
-    {
-        $deprecatedMessage = 'PHP4 Style Constructors are deprecated and will be remove in 7.8, please update your code';
-        if (isset($GLOBALS['log'])) {
-            $GLOBALS['log']->deprecated($deprecatedMessage);
-        } else {
-            trigger_error($deprecatedMessage, E_USER_DEPRECATED);
-        }
-        self::__construct();
-    }
+
 
 
     public function fill_in_additional_list_fields()
@@ -205,13 +188,13 @@ class Prospect extends Person implements EmailInterface
         if (empty($module)) {
             //The call to retrieveTargetList contains a query that may contain a pound token
             $pattern = '/AND related_type = [\'#]([a-zA-Z]+)[\'#]/i';
-            if (preg_match($pattern, $query, $matches)) {
+            if (preg_match($pattern, (string) $query, $matches)) {
                 $module_name = $matches[1];
-                $query = preg_replace($pattern, "", $query);
+                $query = preg_replace($pattern, "", (string) $query);
             }
         }
 
-        $count = count($fields);
+        $count = is_countable($fields) ? count($fields) : 0;
         $index = 1;
         $sel_fields = "";
         if (!empty($fields)) {
@@ -265,8 +248,9 @@ class Prospect extends Person implements EmailInterface
             require_once($beanFiles[$class_name]);
             $seed = new $class_name();
             return $seed->retrieve($row['related_id']);
+        } else {
+            return null;
         }
-        return null;
     }
 
 

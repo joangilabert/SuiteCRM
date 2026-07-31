@@ -43,7 +43,7 @@ if (!defined('sugarEntry') || !sugarEntry) {
 }
 
 require_once('include/SugarFields/Fields/Base/SugarFieldBase.php');
-
+#[\AllowDynamicProperties]
 class SugarFieldRelate extends SugarFieldBase
 {
 
@@ -154,13 +154,14 @@ class SugarFieldRelate extends SugarFieldBase
                 'field_to_name_array' => $displayParams['field_to_name_array'],
             );
         } else {
+            $idName = $vardef['id_name'] ?? '';
             $popup_request_data = array(
                 'call_back_function' => $call_back_function,
                 'form_name' => $form_name,
                 'field_to_name_array' => array(
                     //'id' => (empty($displayParams['idName']) ? $vardef['id_name'] : ($displayParams['idName'] . '_' . $vardef['id_name'])) ,
                     //bug 43770: Assigned to value could not be saved during lead conversion
-                    'id' => (empty($displayParams['idNameHidden']) ? $vardef['id_name'] : ($displayParams['idNameHidden'] . $vardef['id_name'])),
+                    'id' => (empty($displayParams['idNameHidden']) ? $idName : ($displayParams['idNameHidden'] . $idName)),
                     ((empty($vardef['rname'])) ? 'name' : $vardef['rname']) => (empty($displayParams['idName']) ? $vardef['name'] : $displayParams['idName']),
                 ),
             );
@@ -172,8 +173,8 @@ class SugarFieldRelate extends SugarFieldBase
         } else {
             $displayParams['readOnly'] = $displayParams['readOnly'] == false ? '' : 'READONLY';
         }
-
-        $keys = $this->getAccessKey($vardef, 'RELATE', $vardef['module']);
+        $module = $vardef['module'] ?? '';
+        $keys = $this->getAccessKey($vardef, 'RELATE', $module);
         $displayParams['accessKeySelect'] = $keys['accessKeySelect'];
         $displayParams['accessKeySelectLabel'] = $keys['accessKeySelectLabel'];
         $displayParams['accessKeySelectTitle'] = $keys['accessKeySelectTitle'];
@@ -324,9 +325,9 @@ class SugarFieldRelate extends SugarFieldBase
             }
             for ($i = 0; $i < strlen($default_locale_name_format); $i++) {
                 $new_field .= array_key_exists(
-                    $default_locale_name_format{$i},
+                    $default_locale_name_format[$i],
                     $names
-                ) ? $names[$default_locale_name_format{$i}] : $default_locale_name_format{$i};
+                ) ? $names[$default_locale_name_format[$i]] : $default_locale_name_format[$i];
             }
         } else {
             $new_field = $rawField;
@@ -384,8 +385,9 @@ class SugarFieldRelate extends SugarFieldBase
             $returnValue = $settings->$fieldtype($value, $rvardef);
             if (!$returnValue) {
                 return false;
+            } else {
+                $value = $returnValue;
             }
-            $value = $returnValue;
         }
 
         if (isset($vardef['id_name'])) {

@@ -41,12 +41,7 @@ if (!defined('sugarEntry') || !sugarEntry) {
  * display the words "Powered by SugarCRM" and "Supercharged by SuiteCRM".
  */
 
-/*********************************************************************************
 
- * Description:
- * Portions created by SugarCRM are Copyright (C) SugarCRM, Inc. All Rights
- * Reserved. Contributor(s): ______________________________________..
- * *******************************************************************************/
 
 // LEGACY for old versions - emulating upload.php
 // aw: make this better for later versions.
@@ -81,7 +76,7 @@ if (version_compare(phpversion(), '5.2.0') >=0) {
     if (check_php_version() === -1) {
         $phpVersion = "<b><span class=stop>{$mod_strings['ERR_CHECKSYS_PHP_INVALID_VER']} ".constant('PHP_VERSION')." </span></b>";
         $error_txt = '<span class="error">'.$phpVersion.'</span>';
-        if (count($errors) == 0) {
+        if ((is_countable($errors) ? count($errors) : 0) == 0) {
             $errors[] = '';
         }
         $errors[] = $error_txt;
@@ -94,9 +89,8 @@ if (version_compare(phpversion(), '5.2.0') >=0) {
 
     //Quickcreatedefs on the basis of editviewdefs
     updateQuickCreateDefs();
-    upgradeSugarCache($_SESSION['install_file']);
 
-    if ((count($errors) == 1)) { // only diffs
+    if (((is_countable($errors) ? count($errors) : 0) == 1)) { // only diffs
         logThis('file preflight check passed successfully.');
         $stop = false;
         $out  = $mod_strings['LBL_UW_PREFLIGHT_TESTS_PASSED']."<BR><BR><font color='red'>".$mod_strings['LBL_UW_PREFLIGHT_TESTS_PASSED3']."</font>";
@@ -104,7 +98,7 @@ if (version_compare(phpversion(), '5.2.0') >=0) {
 
         $disableEmail = (empty($current_user->email1)) ? 'DISABLED' : 'CHECKED';
 
-        if (count($errors['manual']) > 0) {
+        if ((is_countable($errors['manual']) ? count($errors['manual']) : 0) > 0) {
             $preserveFiles = array();
 
             $diffs =<<<eoq
@@ -175,7 +169,7 @@ eoq;
                 $diffs .= "<tr><td valign='top'>";
                 $diffs .= "<input type='checkbox' name='diff_files[]' value='{$diff}' $checked>";
                 $diffs .= "</td><td valign='top'>";
-                $diffs .= str_replace(getcwd(), '.', $diff);
+                $diffs .= str_replace(getcwd(), '.', (string) $diff);
                 $diffs .= "</td></tr>";
             }
             $diffs .= "</table>";
@@ -190,7 +184,7 @@ eoq;
                     $preserve .= $mod_strings['LBL_UW_PREFLIGHT_PRESERVE_FILES'];
                     $preserve .= "</b></td></tr>";
                 }
-                $preserve .= "<tr><td valign='top'><i>".str_replace(getcwd(), '.', $pf)."</i></td></tr>";
+                $preserve .= "<tr><td valign='top'><i>".str_replace(getcwd(), '.', (string) $pf)."</i></td></tr>";
             }
             if (!empty($preserve)) {
                 $preserve .= '</table><br>';
@@ -207,8 +201,9 @@ eoq;
         foreach ($errors as $error) {
             if (is_array($error)) { // manual diff files
                 continue;
+            } else {
+                $out .= "{$error}<br />";
             }
-            $out .= "{$error}<br />";
         }
         $out .= "</span><br />";
     }
@@ -277,7 +272,7 @@ eoq;
         if (function_exists('sugar_fopen')) {
             $fp = sugar_fopen($sqlScript, 'r');
         } else {
-            $fp = fopen($sqlScript, 'r');
+            $fp = fopen($sqlScript, 'rb');
         }
         $contents = stream_get_contents($fp);
         $anyScriptChanges =$contents;
@@ -406,24 +401,6 @@ eoq;
 }
 //Add the backward compatibility check as well.
 
-//Php Backward compatibility checks
-if (ini_get("zend.ze1_compatibility_mode")) {
-    $stop = true;
-    if (empty($mod_strings['LBL_BACKWARD_COMPATIBILITY_ON'])) {
-        $mod_strings['LBL_BACKWARD_COMPATIBILITY_ON'] = 'Php Backward Compatibility mode is turned on. Set zend.ze1_compatibility_mode to Off for proceeding further';
-    }
-
-    $php_compatibility_warning =<<<eoq
-	<table cellpadding="3" cellspacing="0" border="0">
-		<tr>
-			<th colspan="2" align="left">
-				<span class='error'><b>{$mod_strings['LBL_BACKWARD_COMPATIBILITY_ON']}</b></span>
-			</th>
-		</tr>
-	</table>
-eoq;
-    $php_warnings .= $php_compatibility_warning;
-}
 if ($php_warnings != null) {
     $uwMain = $php_warnings;
 }

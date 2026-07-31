@@ -42,15 +42,15 @@ if (!defined('sugarEntry') || !sugarEntry) {
  */
 
 
-if (empty($_REQUEST['id']) || !preg_match("/^[\w\d\-]+$/", $_REQUEST['id'])) {
+if (empty($_REQUEST['id']) || !preg_match("/^[\w\d\-]+$/", (string) $_REQUEST['id'])) {
     die("Not a Valid Entry Point");
 }
 
 require_once('modules/Notes/Note.php');
-$note = new Note();
+$note = BeanFactory::newBean('Notes');
 //check if file is an email image
 if (!$note->retrieve_by_string_fields(array('id' => $_REQUEST['id'], 'parent_type' => "Emails"))) {
-    //die("Not a Valid Entry Point");
+    die("Not a Valid Entry Point");
 }
 
 $location = $GLOBALS['sugar_config']['upload_dir']."/" . $_REQUEST['id'];

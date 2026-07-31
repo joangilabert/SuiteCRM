@@ -46,13 +46,14 @@ if (!defined('sugarEntry') || !sugarEntry) {
 global $disable_date_format;
 $disable_date_format = true;
 
+#[\AllowDynamicProperties]
 class SoapHelperWebServices
 {
     public function get_field_list($value, $fields, $translate = true)
     {
         $GLOBALS['log']->info('Begin: SoapHelperWebServices->get_field_list(' . print_r(
             $value,
-                true
+            true
         ) . ', ' . print_r($fields, true) . ", $translate");
         $module_fields = array();
         $link_fields = array();
@@ -119,7 +120,7 @@ class SoapHelperWebServices
 
         if ($value->module_dir == 'Bugs') {
             require_once('modules/Releases/Release.php');
-            $seedRelease = new Release();
+            $seedRelease = BeanFactory::newBean('Releases');
             $options = $seedRelease->get_releases(true, "Active");
             $options_ret = array();
             foreach ($options as $name => $value) {
@@ -179,9 +180,9 @@ class SoapHelperWebServices
     {
         $GLOBALS['log']->info('Begin: SoapHelperWebServices->validate_user');
         global $server, $current_user, $sugar_config, $system_config;
-        $user = new User();
+        $user = BeanFactory::newBean('Users');
         $user->user_name = $user_name;
-        $system_config = new Administration();
+        $system_config = BeanFactory::newBean('Administration');
         $system_config->retrieveSettings('system');
         $authController = new AuthenticationController();
         // Check to see if the user name and password are consistent.
@@ -231,8 +232,20 @@ class SoapHelperWebServices
             if (!empty($_SESSION['is_valid_session']) && $this->is_valid_ip_address('ip_address') && $_SESSION['type'] == 'user') {
                 global $current_user;
                 require_once('modules/Users/User.php');
-                $current_user = new User();
-                $current_user->retrieve($_SESSION['user_id']);
+                $current_user = BeanFactory::newBean('Users');
+                $userLoaded = $current_user->retrieve($_SESSION['user_id']);
+
+                if (!$userLoaded || !$current_user->isEnabled()) {
+                    LogicHook::initialize();
+                    $GLOBALS['logic_hook']->call_custom_logic('Users', 'login_failed');
+                    $GLOBALS['log']->info('End: SoapHelperWebServices->validate_authenticated - validation failed');
+                    $GLOBALS['log']->security('v4 Api - Load user failed: user ' . $GLOBALS['current_user']->user_name . ' is not active');
+                    $GLOBALS['log']->debug("calling destroy");
+                    session_destroy();
+
+                    return false;
+                }
+
                 $this->login_success();
                 $GLOBALS['log']->info('Begin: SoapHelperWebServices->validate_authenticated - passed');
                 $GLOBALS['log']->info('End: SoapHelperWebServices->validate_authenticated');
@@ -274,7 +287,7 @@ class SoapHelperWebServices
                 } else {
                     // match class C IP addresses
                     for ($i = 0; $i < 3; $i++) {
-                        if ($session_parts[$i] == $client_parts[$i]) {
+                        if ($session_parts[$i] === $client_parts[$i]) {
                             $classCheck = 1;
                             continue;
                         }
@@ -342,6 +355,14 @@ class SoapHelperWebServices
     public function checkACLAccess($bean, $viewType, $errorObject, $error_key)
     {
         $GLOBALS['log']->info('Begin: SoapHelperWebServices->checkACLAccess');
+        if ($bean === false) {
+            $GLOBALS['log']->error('SoapHelperWebServices->checkACLAccess - no ACLAccess ($bean is "false")');
+            $errorObject->set_error($error_key);
+            $this->setFaultObject($errorObject);
+            $GLOBALS['log']->info('End: SoapHelperWebServices->checkACLAccess');
+
+            return false;
+        } // if
         if (!$bean->ACLAccess($viewType)) {
             $GLOBALS['log']->error('SoapHelperWebServices->checkACLAccess - no ACLAccess');
             $errorObject->set_error($error_key);
@@ -357,6 +378,18 @@ class SoapHelperWebServices
 
     public function checkQuery($errorObject, $query, $order_by = '')
     {
+        global $sugar_config;
+
+        if (!isset($sugar_config['disable_v4_api_query_where']) || $sugar_config['disable_v4_api_query_where'] === true) {
+            if (!empty($query)) {
+                $GLOBALS['log']->security("SoapHelperWebServices->checkQuery - query parameter blocked by disable_v4_api_query_where: $query");
+                $errorObject->set_error('no_access');
+                $this->setFaultObject($errorObject);
+
+                return false;
+            }
+        }
+
         require_once 'include/SugarSQLValidate.php';
         $valid = new SugarSQLValidate();
         if (!$valid->validateQueryClauses($query, $order_by)) {
@@ -423,7 +456,7 @@ class SoapHelperWebServices
                 return false;
             } elseif ($action == 'write' && strcmp(
                 strtolower($module_name),
-                    'users'
+                'users'
             ) == 0 && !$user->isAdminForModule($module_name)
             ) {
                 //rrs bug: 46000 - If the client is trying to write to the Users module and is not an admin then we need to stop them
@@ -464,7 +497,7 @@ class SoapHelperWebServices
                     $type = $var['type'];
 
                     if (strcmp($type, 'date') == 0) {
-                        $val = substr($val, 0, 10);
+                        $val = substr((string) $val, 0, 10);
                     } elseif (strcmp($type, 'enum') == 0 && !empty($var['options'])) {
                         //$val = $app_list_strings[$var['options']][$val];
                     }
@@ -530,26 +563,28 @@ class SoapHelperWebServices
 
 
             foreach ($filterFields as $field) {
-                $var = $value->field_defs[$field];
-                if (isset($value->{$var['name']})) {
-                    $val = $value->{$var['name']};
-                    $type = $var['type'];
+                if (isset($value->field_defs) && is_array($value->field_defs) && isset($value->field_defs[$field])) {
+                    $var = $value->field_defs[$field];
+                    if (isset($value->{$var['name']})) {
+                        $val = $value->{$var['name']};
+                        $type = $var['type'];
 
-                    if (strcmp($type, 'date') == 0) {
-                        $val = substr($val, 0, 10);
-                    } elseif (strcmp($type, 'enum') == 0 && !empty($var['options'])) {
-                        //$val = $app_list_strings[$var['options']][$val];
-                    }
+                        if (strcmp($type, 'date') == 0) {
+                            $val = substr((string) $val, 0, 10);
+                        } elseif (strcmp($type, 'enum') == 0 && !empty($var['options'])) {
+                            //$val = $app_list_strings[$var['options']][$val];
+                        }
 
-                    $list[$var['name']] = $this->get_name_value($var['name'], $val);
-                } // if
+                        $list[$var['name']] = $this->get_name_value($var['name'], $val);
+                    } // if
+                }
             } // foreach
         } // if
         $GLOBALS['log']->info('End: SoapHelperWebServices->get_name_value_list_for_fields');
         if ($this->isLogLevelDebug()) {
             $GLOBALS['log']->debug('SoapHelperWebServices->get_name_value_list_for_fields - return data = ' . var_export(
                 $list,
-                    true
+                true
             ));
         } // if
 
@@ -718,7 +753,7 @@ class SoapHelperWebServices
         if ($this->isLogLevelDebug()) {
             $GLOBALS['log']->debug('SoapHelperWebServices->get_return_value_for_link_fields - link info = ' . var_export(
                 $link_name_to_value_fields_array,
-                    true
+                true
             ));
         } // if
         $link_output = array();
@@ -756,7 +791,7 @@ class SoapHelperWebServices
         if ($this->isLogLevelDebug()) {
             $GLOBALS['log']->debug('SoapHelperWebServices->get_return_value_for_link_fields - output = ' . var_export(
                 $link_output,
-                    true
+                true
             ));
         } // if
 
@@ -840,7 +875,7 @@ class SoapHelperWebServices
         require_once($beanFiles[$class_name]);
         $ids = array();
         $count = 1;
-        $total = sizeof($name_value_lists);
+        $total = is_countable($name_value_lists) ? count($name_value_lists) : 0;
         foreach ($name_value_lists as $name_value_list) {
             $seed = new $class_name();
 
@@ -858,7 +893,7 @@ class SoapHelperWebServices
                     $vardef = $seed->field_name_map[$value['name']];
                     if (isset($app_list_strings[$vardef['options']]) && !isset($app_list_strings[$vardef['options']][$value])) {
                         if (in_array($val, $app_list_strings[$vardef['options']])) {
-                            $val = array_search($val, $app_list_strings[$vardef['options']]);
+                            $val = array_search($val, $app_list_strings[$vardef['options']], true);
                         }
                     }
                 }
@@ -915,7 +950,7 @@ class SoapHelperWebServices
                             $query = $seed->table_name . ".outlook_id = '" . DBManagerFactory::getInstance()->quote($seed->outlook_id) . "'";
                             $response = $seed->get_list($order_by, $query, 0, -1, -1, 0);
                             $list = $response['list'];
-                            if (count($list) > 0) {
+                            if ((is_countable($list) ? count($list) : 0) > 0) {
                                 foreach ($list as $value) {
                                     $seed->id = $value->id;
                                     break;
@@ -1061,7 +1096,7 @@ class SoapHelperWebServices
         $assigned_user_id = $current_user->id;
 
         // check if it already exists
-        $focus = new Account();
+        $focus = BeanFactory::newBean('Accounts');
         if ($focus->ACLAccess('Save')) {
             $class = get_class($seed);
             $temp = new $class();
@@ -1157,20 +1192,20 @@ class SoapHelperWebServices
             foreach ($contacts as $contact) {
                 if (!empty($trimmed_last) && strcmp($trimmed_last, $contact->last_name) == 0) {
                     if ((!empty($trimmed_email) || !empty($trimmed_email2)) && (strcmp(
-                            $trimmed_email,
-                                    $contact->email1
+                        $trimmed_email,
+                        $contact->email1
                         ) == 0 || strcmp(
-                                        $trimmed_email,
-                                    $contact->email2
+                            $trimmed_email,
+                            $contact->email2
                                     ) == 0 || strcmp(
                                         $trimmed_email2,
-                                    $contact->email
+                                        $contact->email
                                     ) == 0 || strcmp($trimmed_email2, $contact->email2) == 0)
                         ) {
                         $contact->load_relationship('accounts');
                         if (empty($seed->account_name) || strcmp(
-                                $seed->account_name,
-                                    $contact->account_name
+                            $seed->account_name,
+                            $contact->account_name
                             ) == 0
                             ) {
                             $GLOBALS['log']->info('End: SoapHelperWebServices->check_for_duplicate_contacts - duplicte found ' . $contact->id);
@@ -1204,7 +1239,7 @@ class SoapHelperWebServices
         $GLOBALS['log']->info('Begin: SoapHelperWebServices->decrypt_string');
         if (function_exists('openssl_decrypt')) {
             require_once('modules/Administration/Administration.php');
-            $focus = new Administration();
+            $focus = BeanFactory::newBean('Administration');
             $focus->retrieveSettings();
             $key = '';
             if (!empty($focus->settings['ldap_enc_key'])) {
@@ -1212,20 +1247,19 @@ class SoapHelperWebServices
             }
             if (empty($key)) {
                 $GLOBALS['log']->info('End: SoapHelperWebServices->decrypt_string - empty key');
-
                 return $string;
             } // if
             $buffer = $string;
             $key = substr(md5($key), 0, 24);
             $iv = "password";
             $GLOBALS['log']->info('End: SoapHelperWebServices->decrypt_string');
-
-            return openssl_decrypt($buffer, OPENSSL_CIPHER_3DES, $key, OPENSSL_ZERO_PADDING, $iv);
+            $decrypted = openssl_decrypt(pack("H*", $buffer), 'des-ede3-cbc', $key, OPENSSL_RAW_DATA|OPENSSL_ZERO_PADDING, $iv);
+            $decrypted = str_replace("\0", "", $decrypted);
+            return $decrypted;
         }
         $GLOBALS['log']->info('End: SoapHelperWebServices->decrypt_string');
-
         return $string;
-    } // fn
+    }
 
     public function isLogLevelDebug()
     {

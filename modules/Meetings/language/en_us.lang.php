@@ -5,7 +5,7 @@
  * SugarCRM, Inc. Copyright (C) 2004-2013 SugarCRM Inc.
  *
  * SuiteCRM is an extension to SugarCRM Community Edition developed by SalesAgility Ltd.
- * Copyright (C) 2011 - 2018 SalesAgility Ltd.
+ * Copyright (C) 2011 - 2019 SalesAgility Ltd.
  *
  * This program is free software; you can redistribute it and/or modify it under
  * the terms of the GNU Affero General Public License version 3 as published by the
@@ -113,6 +113,7 @@ $mod_strings = array(
     'LBL_SUBJECT' => 'Subject:',
     'LBL_TIME' => 'Start Time:',
     'LBL_USERS_SUBPANEL_TITLE' => 'Users',
+    'LBL_CALENDAR_ACCOUNTS' => 'Calendar Accounts',
     'LBL_PARENT_TYPE' => 'Parent Type',
     'LBL_PARENT_ID' => 'Parent ID',
     'LNK_MEETING_LIST' => 'View Meetings',
@@ -123,7 +124,7 @@ $mod_strings = array(
     'LBL_CREATED_USER' => 'Created User',
     'LBL_MODIFIED_USER' => 'Modified User',
     'NOTICE_DURATION_TIME' => 'Duration time must be greater than 0',
-    'LBL_MEETING_INFORMATION' => 'OVERVIEW',
+    'LBL_MEETING_INFORMATION' => 'OVERVIEW', //No need to be translated in all caps. Translation used just in menu action items when using the SuiteP template
     'LBL_LIST_JOIN_MEETING' => 'Join Meeting',
     'LBL_ACCEPT_STATUS' => 'Accept Status',
     'LBL_ACCEPT_LINK' => 'Accept Link',
@@ -136,12 +137,12 @@ $mod_strings = array(
 
     // create invitee functionallity
     'LBL_CREATE_INVITEE' => 'Create an invitee',
-    'LBL_CREATE_CONTACT' => 'As Contact',
-    'LBL_CREATE_LEAD' => 'As Lead',
-    'LBL_CREATE_AND_ADD' => 'Create & Add',
+    'LBL_CREATE_CONTACT' => 'As Contact',  // Create invitee functionallity
+    'LBL_CREATE_LEAD' => 'As Lead',  // Create invitee functionallity
+    'LBL_CREATE_AND_ADD' => 'Create & Add',  // Create invitee functionallity
     'LBL_CANCEL_CREATE_INVITEE' => 'Cancel',
     'LBL_EMPTY_SEARCH_RESULT' => 'Sorry, no results were found. Please create an invitee below.',
-    'LBL_NO_ACCESS' => 'You have no access to create $module',
+    'LBL_NO_ACCESS' => 'You have no access to create $module',  // Create invitee functionallity
 
     'LBL_REPEAT_TYPE' => 'Repeat Type',
     'LBL_REPEAT_INTERVAL' => 'Repeat Interval',
@@ -163,4 +164,8 @@ $mod_strings = array(
     'LBL_REMINDERS_REMOVE_REMINDER' => 'Remove reminder',
     'LBL_REMINDERS_ADD_ALL_INVITEES' => 'Add All Invitees',
     'LBL_REMINDERS_ADD_REMINDER' => 'Add reminder',
+
+    // for google sync
+    'LBL_GSYNC_ID' => 'Google Event ID',
+    'LBL_GSYNC_LASTSYNC' => 'Last Google Sync Timestamp',
 );

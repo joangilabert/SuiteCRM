@@ -1,5 +1,5 @@
 <?php
-if (! defined('sugarEntry') || ! sugarEntry) {
+if (!defined('sugarEntry') || !sugarEntry) {
     die('Not A Valid Entry Point');
 }
 /**
@@ -44,6 +44,7 @@ if (! defined('sugarEntry') || ! sugarEntry) {
 
 require_once('modules/ModuleBuilder/parsers/ModuleBuilderParser.php');
 
+#[\AllowDynamicProperties]
 class ParserModifyLayoutView extends ModuleBuilderParser
 {
     public $maxColumns; // number of columns in this layout
@@ -80,19 +81,23 @@ class ParserModifyLayoutView extends ModuleBuilderParser
         if (is_file($this->_workingFile)) {
             $this->_sourceFile = $this->_workingFile;
             $this->usingWorkingFile = true;
-        } elseif (is_file($this->_customFile)) {
-            $this->_sourceFile = $this->_customFile;
-        } elseif (! is_file($this->_sourceFile)) {
-            // if we don't have ANY defined metadata then improvise as best we can
-            if (strtolower($this->_view) == 'quickcreate') {
-                // special handling for quickcreates - base the quickcreate on the editview if no quickcreatedef exists
-                $this->_sourceFile = $this->_baseDirectory."editviewdefs.php";
-                if (is_file("custom/" . $this->_sourceFile)) {
-                    $this->_sourceFile = "custom/" . $this->_sourceFile;
-                }
-                $this->_sourceView = 'EditView';
+        } else {
+            if (is_file($this->_customFile)) {
+                $this->_sourceFile = $this->_customFile;
             } else {
-                $this->_fatalError('parser.modifylayout.php->init(): no metadata for '.$this->_module.' '.$this->_view);
+                if (! is_file($this->_sourceFile)) {
+                    // if we don't have ANY defined metadata then improvise as best we can
+                    if (strtolower($this->_view) == 'quickcreate') {
+                        // special handling for quickcreates - base the quickcreate on the editview if no quickcreatedef exists
+                        $this->_sourceFile = $this->_baseDirectory."editviewdefs.php";
+                        if (is_file("custom/" . $this->_sourceFile)) {
+                            $this->_sourceFile = "custom/" . $this->_sourceFile;
+                        }
+                        $this->_sourceView = 'EditView';
+                    } else {
+                        $this->_fatalError('parser.modifylayout.php->init(): no metadata for '.$this->_module.' '.$this->_view);
+                    }
+                }
             }
         }
 
@@ -245,7 +250,6 @@ class ParserModifyLayoutView extends ModuleBuilderParser
                 $this->_viewdefs ['panels'] [$panelID] [$rowID] = $newRow;
             }
         }
-        //          _pp($this->_viewdefs);
     }
 
     public function _padFields()
@@ -302,8 +306,8 @@ class ParserModifyLayoutView extends ModuleBuilderParser
             }
 
             $panel = $this->_viewdefs ['panels'] [$panelID];
-            $lastrow = count($panel) - 1; // index starts at 0
-            $lastcol = count($panel [$lastrow]);
+            $lastrow = (is_countable($panel) ? count($panel) : 0) - 1; // index starts at 0
+            $lastcol = is_countable($panel [$lastrow]) ? count($panel [$lastrow]) : 0;
 
             // if we're on the last column of the last row, start a new row
             //          print "lastrow=$lastrow lastcol=$lastcol";
@@ -355,6 +359,7 @@ class ParserModifyLayoutView extends ModuleBuilderParser
 
     public function _parseData($panels)
     {
+        $displayData = [];
         $fields = array();
         if (empty($panels)) {
             return $fields;
@@ -362,7 +367,7 @@ class ParserModifyLayoutView extends ModuleBuilderParser
 
         // Fix for a flexibility in the format of the panel sections - if only one panel, then we don't have a panel level defined, it goes straight into rows
         // See EditView2 for similar treatment
-        if (! empty($panels) && count($panels) > 0) {
+        if (! empty($panels) && (is_countable($panels) ? count($panels) : 0) > 0) {
             $keys = array_keys($panels);
             if (is_numeric($keys [0])) {
                 $defaultPanel = $panels;
@@ -379,8 +384,10 @@ class ParserModifyLayoutView extends ModuleBuilderParser
                     if (! empty($col)) {
                         if (is_string($col)) {
                             $properties ['name'] = $col;
-                        } elseif (! empty($col ['name'])) {
-                            $properties = $col;
+                        } else {
+                            if (! empty($col ['name'])) {
+                                $properties = $col;
+                            }
                         }
                     } else {
                         $properties ['name'] = translate('LBL_FILLER');
@@ -407,6 +414,7 @@ class ParserModifyLayoutView extends ModuleBuilderParser
 
     public function _getOrigFieldViewDefs()
     {
+        $viewdefs = [];
         $origFieldDefs = array();
         $GLOBALS['log']->debug("Original File = ".$this->_originalFile);
         if (file_exists($this->_originalFile)) {
@@ -415,7 +423,7 @@ class ParserModifyLayoutView extends ModuleBuilderParser
 //          $GLOBALS['log']->debug($origdefs);
             // Fix for a flexibility in the format of the panel sections - if only one panel, then we don't have a panel level defined, it goes straight into rows
             // See EditView2 for similar treatment
-            if (! empty($origdefs) && count($origdefs) > 0) {
+            if (! empty($origdefs) && (is_countable($origdefs) ? count($origdefs) : 0) > 0) {
                 $keys = array_keys($origdefs);
                 if (is_numeric($keys [0])) {
                     $defaultPanel = $origdefs;

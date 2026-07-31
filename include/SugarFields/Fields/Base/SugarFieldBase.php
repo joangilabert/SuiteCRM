@@ -48,6 +48,7 @@ if (!defined('sugarEntry') || !sugarEntry) {
  * to handle searching
  *
  */
+#[\AllowDynamicProperties]
 class SugarFieldBase
 {
     /**
@@ -68,21 +69,6 @@ class SugarFieldBase
     {
         $this->type = $type;
         $this->ss = new Sugar_Smarty();
-    }
-
-    /**
-     * @deprecated deprecated since version 7.6, PHP4 Style Constructors are deprecated and will be remove in 7.8, please update your code, use __construct instead
-     * @param $type
-     */
-    public function SugarFieldBase($type)
-    {
-        $deprecatedMessage = 'PHP4 Style Constructors are deprecated and will be remove in 7.8, please update your code';
-        if (isset($GLOBALS['log'])) {
-            $GLOBALS['log']->deprecated($deprecatedMessage);
-        } else {
-            trigger_error($deprecatedMessage, E_USER_DEPRECATED);
-        }
-        self::__construct($type);
     }
 
     /**
@@ -186,7 +172,7 @@ class SugarFieldBase
      */
     public function getSmartyView($parentFieldArray, $vardef, $displayParams, $tabindex, $view)
     {
-        if (!is_numeric($tabindex)) {
+        if (is_null($tabindex) || !is_numeric($tabindex)) {
             $tabindex = 0;
         }
 
@@ -377,30 +363,33 @@ class SugarFieldBase
                 return $funcName(
                     $parentFieldArray,
                     $vardef['name'],
-                    $parentFieldArray[strtoupper($vardef['name'])],
+                    is_array($parentFieldArray) ? ($parentFieldArray[strtoupper($vardef['name'] ?? '')] ?? null) : null,
                     $displayType
                 );
-            }
-            $displayTypeFunc = 'get' . $displayType . 'Smarty';
+            } else {
+                $displayTypeFunc = 'get' . $displayType . 'Smarty';
 
-            return $this->$displayTypeFunc($parentFieldArray, $vardef, $displayParams, $tabindex);
-        }
-        if (!empty($displayParams['idName'])) {
-            $fieldName = $displayParams['idName'];
+                return $this->$displayTypeFunc($parentFieldArray, $vardef, $displayParams, $tabindex);
+            }
         } else {
-            $fieldName = $vardef['name'];
-        }
-        if ($returnsHtml) {
-            $this->setup($parentFieldArray, $vardef, $displayParams, $tabindex);
-            $tpl = $this->findTemplate($displayType . 'Function');
-            if ($tpl === '') {
-                // Can't find a function template, just use the base
-                $tpl = $this->findTemplate('DetailViewFunction');
+            if (!empty($displayParams['idName'])) {
+                $fieldName = $displayParams['idName'];
+            } else {
+                $fieldName = $vardef['name'];
             }
+            if ($returnsHtml) {
+                $this->setup($parentFieldArray, $vardef, $displayParams, $tabindex);
+                $tpl = $this->findTemplate($displayType . 'Function');
+                if ($tpl === '') {
+                    // Can't find a function template, just use the base
+                    $tpl = $this->findTemplate('DetailViewFunction');
+                }
 
-            return "<span id='{$vardef['name']}_span'>" . $this->fetch($tpl) . '</span>';
+                return "<span id='{$vardef['name']}_span'>" . $this->fetch($tpl) . '</span>';
+            } else {
+                return '{sugar_run_helper include="' . $includeFile . '" func="' . $funcName . '" bean=$bean field="' . $fieldName . '" value=$fields.' . $fieldName . '.value displayType="' . $displayType . '"}';
+            }
         }
-        return '{sugar_run_helper include="' . $includeFile . '" func="' . $funcName . '" bean=$bean field="' . $fieldName . '" value=$fields.' . $fieldName . '.value displayType="' . $displayType . '"}';
     }
 
     public function getEditView()

@@ -41,6 +41,7 @@
 
 require_once('include/SugarObjects/templates/person/Person.php');
 require_once('include/MVC/SugarModule.php');
+require_once('include/utils.php');
 
 /**
  * quicksearchQuery class, handles AJAX calls from quicksearch.js
@@ -49,15 +50,16 @@ require_once('include/MVC/SugarModule.php');
  * @license    http://www.sugarcrm.com/crm/products/sugar-professional-eula.html  SugarCRM Professional End User License
  * @since      Class available since Release 4.5.1
  */
+#[\AllowDynamicProperties]
 class quicksearchQuery
 {
     /**
      * Condition operators
      * @var string
      */
-    const CONDITION_CONTAINS    = 'contains';
-    const CONDITION_LIKE_CUSTOM = 'like_custom';
-    const CONDITION_EQUAL       = 'equal';
+    public const CONDITION_CONTAINS    = 'contains';
+    public const CONDITION_LIKE_CUSTOM = 'like_custom';
+    public const CONDITION_EQUAL       = 'equal';
 
     protected $extra_where;
 
@@ -132,7 +134,7 @@ class quicksearchQuery
         try {
             $api = ExternalAPIFactory::loadAPI($args['api']);
             $data['fields']     = $api->searchDoc($_REQUEST['query']);
-            $data['totalCount'] = count($data['fields']);
+            $data['totalCount'] = is_countable($data['fields']) ? count($data['fields']) : 0;
         } catch (Exception $ex) {
             $GLOBALS['log']->error($ex->getMessage());
         }
@@ -200,7 +202,7 @@ class quicksearchQuery
                     if ($focus instanceof Person) {
                         $nameFormat = $locale->getLocaleFormatMacro($current_user);
 
-                        if (strpos($nameFormat, 'l') > strpos($nameFormat, 'f')) {
+                        if (strpos((string) $nameFormat, 'l') > strpos((string) $nameFormat, 'f')) {
                             array_push(
                                 $conditionArray,
                                 $db->concat($table, array('first_name','last_name')) . " like '$like'"
@@ -263,10 +265,12 @@ class quicksearchQuery
         global $sugar_config;
 
         $app_list_strings = null;
+        $data = [];
         $data['totalCount'] = count($results);
         $data['fields']     = array();
+        $resultsCount = count($results);
 
-        for ($i = 0; $i < count($results); $i++) {
+        for ($i = 0; $i < $resultsCount; $i++) {
             $data['fields'][$i] = array();
             $data['fields'][$i]['module'] = $results[$i]->object_name;
 
@@ -286,11 +290,7 @@ class quicksearchQuery
 
                     // get fields to match enum vals
                     if (empty($app_list_strings)) {
-                        if (isset($_SESSION['authenticated_user_language']) && $_SESSION['authenticated_user_language'] != '') {
-                            $current_language = $_SESSION['authenticated_user_language'];
-                        } else {
-                            $current_language = $sugar_config['default_language'];
-                        }
+                        $current_language = get_current_language();
                         $app_list_strings = return_app_list_strings_language($current_language);
                     }
 
@@ -303,10 +303,12 @@ class quicksearchQuery
 
                 if (isset($listData[$field])) {
                     $data['fields'][$i][$field] = $listData[$field];
-                } elseif (isset($results[$i]->$field)) {
-                    $data['fields'][$i][$field] = $results[$i]->$field;
                 } else {
-                    $data['fields'][$i][$field] = '';
+                    if (isset($results[$i]->$field)) {
+                        $data['fields'][$i][$field] = $results[$i]->$field;
+                    } else {
+                        $data['fields'][$i][$field] = '';
+                    }
                 }
             }
         }
@@ -369,7 +371,7 @@ class quicksearchQuery
     protected function getRawResults($args, $singleSelect = false)
     {
         $orderBy = !empty($args['order']) ? $args['order'] : '';
-        $limit   = !empty($args['limit']) ? intval($args['limit']) : '';
+        $limit   = !empty($args['limit']) ? (int)$args['limit'] : '';
         $data    = array();
 
         foreach ($args['modules'] as $module) {
@@ -396,6 +398,7 @@ class quicksearchQuery
      */
     protected function prepareResults($data, $args)
     {
+        $results = [];
         $results['totalCount'] = $count = count($data);
         $results['fields']     = array();
 
@@ -489,8 +492,8 @@ class quicksearchQuery
     protected function overrideContactId($result, $data, $args)
     {
         foreach ($args['field_list'] as $field) {
-            $result[$field] = (preg_match('/reports_to_id$/s', $field)
-                               || preg_match('/contact_id$/s', $field))
+            $result[$field] = (preg_match('/reports_to_id$/s', (string) $field)
+                               || preg_match('/contact_id$/s', (string) $field))
                 ? $data->id // "reports_to_id" to "id"
                 : $data->$field;
         }

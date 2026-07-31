@@ -1,24 +1,31 @@
 <?php
 /**
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU AFFERO GENERAL PUBLIC LICENSE as published by
- * the Free Software Foundation; either version 3 of the License, or
- * (at your option) any later version.
+ * SuiteCRM is a customer relationship management program developed by SuiteCRM Ltd.
+ * Copyright (C) 2014 - 2026 SuiteCRM Ltd.
  *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * This program is free software; you can redistribute it and/or modify it under
+ * the terms of the GNU Affero General Public License version 3 as published by the
+ * Free Software Foundation with the addition of the following permission added
+ * to Section 15 as permitted in Section 7(a): FOR ANY PART OF THE COVERED WORK
+ * IN WHICH THE COPYRIGHT IS OWNED BY SUITECRM, SUITECRM DISCLAIMS THE
+ * WARRANTY OF NON INFRINGEMENT OF THIRD PARTY RIGHTS.
  *
- * You should have received a copy of the GNU AFFERO GENERAL PUBLIC LICENSE
- * along with this program; if not, see http://www.gnu.org/licenses
- * or write to the Free Software Foundation,Inc., 51 Franklin Street,
- * Fifth Floor, Boston, MA 02110-1301  USA
- * @Package Gantt chart
- * @copyright Andrew Mclaughlan 2014
- * @author Andrew Mclaughlan <andrew@mclaughlan.info>
+ * This program is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+ * FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License for more
+ * details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ * In accordance with Section 7(b) of the GNU Affero General Public License
+ * version 3, these Appropriate Legal Notices must retain the display of the
+ * "Supercharged by SuiteCRM" logo. If the display of the logos is not reasonably
+ * feasible for technical reasons, the Appropriate Legal Notices must display
+ * the words "Supercharged by SuiteCRM".
  */
 
+#[\AllowDynamicProperties]
 class Gantt
 {
     private $start_date;
@@ -31,7 +38,9 @@ class Gantt
         $this->end_date = $end_date;
         $this->tasks = $tasks;
         //draw the grid
-        $this->draw($this->start_date, $this->end_date, $this->tasks);
+        if (!empty($this->tasks)){
+            $this->draw($this->start_date, $this->end_date, $this->tasks);
+        }
     }
 
     public function draw($start_date, $end_date, $tasks)
@@ -61,13 +70,13 @@ class Gantt
                 //Generate a table containing the days in each month
                 echo '<table class="table_inner"><tr>';
 
-                
+
                 foreach ($days as $day => $d) {
                     echo '<td class="inner_td"><div class="cell_width">'.'&nbsp;'.'</div></td>';//day number shown $day
                 }
                 echo '</tr><tr>';
 
-                
+
                 foreach ($days as $d) {
                     $day_num ++;
                     echo '<td class="inner_td"><div class="cell_width">'.$day_num.'</div></td>';//First letter of the days name shown //$this->substr_unicode($d,0,1)
@@ -94,89 +103,105 @@ class Gantt
                 for ($x=1; $x<= $day_count; $x++) {
                     if ($x==1 && $x != $task_start_day) {
                         echo '<td class="inner_td"><div class="cell_width day_block"></div></td>';
-                    } elseif ($x==1 && $x == $task_start_day) {
-                        if ($task->milestone_flag == '1' && ($task_duration == 0 || $task_duration == 1)) {
-                            echo '<td class="task_td2"><div class="cell_width task_block1">
+                    } else {
+                        if ($x==1 && $x == $task_start_day) {
+                            if ($task->milestone_flag == '1' && ($task_duration == 0 || $task_duration == 1)) {
+                                echo '<td class="task_td2"><div class="cell_width task_block1">
                                     <div class="task_block_inner">
                                         <div class="milestone link" id="'.$task->id.'" pre="'.$task->predecessors.'" link="'.$task->relationship_type.'" rel="'.$task->name.'">
-                                           <img src="custom/modules/Project/images/add_milestone.png" />
+                                           <img src="modules/Project/images/add_milestone.png" />
                                         </div>
                                     </div>
                                   </div></td><td class="inner_td"><div class="cell_width day_block"></div></td>';
-                        } elseif ($task_duration == 0 || $task_duration == 1) {
-                            echo '<td class="task_td2"><div class="cell_width task_block1">
+                            } else {
+                                if ($task_duration == 0 || $task_duration == 1) {
+                                    echo '<td class="task_td2"><div class="cell_width task_block1">
                                     <div class="task_block_inner">
                                         <div class="task1 link" id="'.$task->id.'" pre="'.$task->predecessors.'" link="'.$task->relationship_type.'" rel="'.$task->name.'">
                                             <div class="task_percent" rel="'.$task->percent_complete.'"></div>
                                         </div>
                                     </div>
                                   </div></td><td class="inner_td"><div class="cell_width day_block"></div></td>';
-                        } else {
-                            echo '<td class="task_td" colspan="'.$task_duration.'"><div class="cell_width task_block">
+                                } else {
+                                    echo '<td class="task_td" colspan="'.$task_duration.'"><div class="cell_width task_block">
                                     <div class="task_block_inner">
                                         <div class="task link" id="'.$task->id.'" pre="'.$task->predecessors.'" link="'.$task->relationship_type.'" rel="'.$task->name.'">
                                             <div class="task_percent" rel="'.$task->percent_complete.'">'.$task->name.'</div>
                                         </div>
                                     </div>
                                   </div></td>';
-                        }
-                    } elseif ($x == $task_start_day && $x == $day_count) {
-                        if ($task->milestone_flag == '1' && ($task_duration == 0 || $task_duration == 1)) {
-                            echo '<td class="task_td2"><div class="cell_width task_block1">
+                                }
+                            }
+                        } else {
+                            if ($x == $task_start_day && $x == $day_count) {
+                                if ($task->milestone_flag == '1' && ($task_duration == 0 || $task_duration == 1)) {
+                                    echo '<td class="task_td2"><div class="cell_width task_block1">
                                     <div class="task_block_inner">
                                         <div class="milestone link" id="'.$task->project_task_id.'" pre="'.$task->predecessors.'" link="'.$task->relationship_type.'" rel="'.$task->name.'">
-                                            <img src="custom/modules/Project/images/add_milestone.png" />
+                                            <img src="modules/Project/images/add_milestone.png" />
                                         </div>
                                     </div>
                                   </div></td>';
-                        } elseif ($task_duration == 0 || $task_duration == 1) {
-                            echo '<td class="task_td2"><div class="cell_width task_block1">
+                                } else {
+                                    if ($task_duration == 0 || $task_duration == 1) {
+                                        echo '<td class="task_td2"><div class="cell_width task_block1">
                                 <div class="task_block_inner">
                                      <div class="task1 link" id="'.$task->project_task_id.'" pre="'.$task->predecessors.'" link="'.$task->relationship_type.'" rel="'.$task->name.'">
                                         <div class="task_percent" rel="'.$task->percent_complete.'"></div>
                                     </div>
                                 </div>
                               </div></td>';
-                        } else {
-                            echo '<td class="task_td" colspan="'.$task_duration.'"><div class="cell_width task_block">
+                                    } else {
+                                        echo '<td class="task_td" colspan="'.$task_duration.'"><div class="cell_width task_block">
                                     <div class="task_block_inner">
                                         <div class="task link" id="'.$task->project_task_id.'" pre="'.$task->predecessors.'" link="'.$task->relationship_type.'" rel="'.$task->name.'">
                                             <div class="task_percent" rel="'.$task->percent_complete.'">'.$task->name.'</div>
                                         </div>
                                     </div>
                                   </div></td>';
-                        }
-                    } elseif ($x == $task_start_day) {
-                        if ($task->milestone_flag == '1' && ($task_duration == 0 || $task_duration == 1)) {
-                            echo '<td class="task_td2"><div class="cell_width task_block1">
+                                    }
+                                }
+                            } else {
+                                if ($x == $task_start_day) {
+                                    if ($task->milestone_flag == '1' && ($task_duration == 0 || $task_duration == 1)) {
+                                        echo '<td class="task_td2"><div class="cell_width task_block1">
                                     <div class="task_block_inner">
                                         <div class="milestone link" id="'.$task->project_task_id.'" pre="'.$task->predecessors.'" link="'.$task->relationship_type.'" rel="'.$task->name.'">
-                                            <img src="custom/modules/Project/images/add_milestone.png" />
+                                            <img src="modules/Project/images/add_milestone.png" />
                                         </div>
                                     </div>
                                   </div></td><td class="inner_td"><div class="cell_width day_block"></div></td>';
-                        } elseif ($task_duration == 0 || $task_duration == 1) {
-                            echo '<td class="task_td2"><div class="cell_width task_block1">
+                                    } else {
+                                        if ($task_duration == 0 || $task_duration == 1) {
+                                            echo '<td class="task_td2"><div class="cell_width task_block1">
                                 <div class="task_block_inner">
                                      <div class="task1 link" id="'.$task->project_task_id.'" pre="'.$task->predecessors.'" link="'.$task->relationship_type.'" rel="'.$task->name.'">
                                         <div class="task_percent" rel="'.$task->percent_complete.'"></div>
                                     </div>
                                 </div>
                               </div></td><td class="inner_td"><div class="cell_width day_block"></div></td>';
-                        } else {
-                            echo '<td class="task_td" colspan="'.$task_duration.'"><div class="cell_width task_block">
+                                        } else {
+                                            echo '<td class="task_td" colspan="'.$task_duration.'"><div class="cell_width task_block">
                                 <div class="task_block_inner">
                                      <div class="task link" id="'.$task->project_task_id.'" pre="'.$task->predecessors.'" link="'.$task->relationship_type.'" rel="'.$task->name.'">
                                         <div class="task_percent" rel="'.$task->percent_complete.'"></div>
                                     </div>
                                 </div>
                               </div></td>';
+                                        }
+                                    }
+                                } else {
+                                    if ($x == $day_count) {
+                                    } else {
+                                        if ($x > $task_start_day && $x < $task_end_day) {
+                                            //leave blank
+                                        } else {
+                                            echo '<td class="inner_td"><div class="cell_width day_block"></div></td>';
+                                        }
+                                    }
+                                }
+                            }
                         }
-                    } elseif ($x == $day_count) {
-                    } elseif ($x > $task_start_day && $x < $task_end_day) {
-                        //leave blank
-                    } else {
-                        echo '<td class="inner_td"><div class="cell_width day_block"></div></td>';
                     }
                 }
 
@@ -199,7 +224,7 @@ class Gantt
         $aResult = array();
 
         foreach ($period as $dt) {
-            $aResult[$dt->format('Y')][strftime("%B", $dt->getTimestamp())][$dt->format('j')] = strftime("%a", $dt->getTimestamp());
+            $aResult[$dt->format('Y')][date("%B", $dt->getTimestamp())][$dt->format('j')] = date("%a", $dt->getTimestamp());
         }
 
         return $aResult;
@@ -232,8 +257,8 @@ class Gantt
 
     public function substr_unicode($str, $s, $l = null)
     {
-        return join("", array_slice(
-            preg_split("//u", $str, -1, PREG_SPLIT_NO_EMPTY),
+        return implode("", array_slice(
+            preg_split("//u", (string) $str, -1, PREG_SPLIT_NO_EMPTY),
             $s,
             $l
         ));

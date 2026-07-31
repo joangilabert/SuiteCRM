@@ -37,9 +37,9 @@
  * reasonably feasible for technical reasons, the Appropriate Legal Notices must
  * display the words "Powered by SugarCRM" and "Supercharged by SuiteCRM".
  */
-require_once('include/MVC/View/views/view.edit.php');
 require_once('include/SugarTinyMCE.php');
 
+#[\AllowDynamicProperties]
 class CasesViewEdit extends ViewEdit
 {
     public function __construct()
@@ -47,19 +47,7 @@ class CasesViewEdit extends ViewEdit
         parent::__construct();
     }
 
-    /**
-     * @deprecated deprecated since version 7.6, PHP4 Style Constructors are deprecated and will be remove in 7.8, please update your code, use __construct instead
-     */
-    public function CasesViewEdit()
-    {
-        $deprecatedMessage = 'PHP4 Style Constructors are deprecated and will be remove in 7.8, please update your code';
-        if (isset($GLOBALS['log'])) {
-            $GLOBALS['log']->deprecated($deprecatedMessage);
-        } else {
-            trigger_error($deprecatedMessage, E_USER_DEPRECATED);
-        }
-        self::__construct();
-    }
+
 
     public function display()
     {
@@ -75,9 +63,8 @@ class CasesViewEdit extends ViewEdit
                     $('#internal_label').closest('.edit-view-row-item').hide();
                     $('#addFileButton').closest('.edit-view-row-item').hide();
                     $('#case_update_form_label').closest('.edit-view-row-item').hide();";
-            $script .= "tinyMCE.execCommand('mceAddControl', false, document.getElementById('description'));";
+         }
 
-            echo '<script>$(document).ready(function(){' . $script . '})</script>';
-        }
+         echo '<script>$(document).ready(function(){' . $newScript . '})</script>';
     }
 }

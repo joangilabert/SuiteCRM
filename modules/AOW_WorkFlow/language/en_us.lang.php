@@ -5,7 +5,7 @@
  * SugarCRM, Inc. Copyright (C) 2004-2013 SugarCRM Inc.
  *
  * SuiteCRM is an extension to SugarCRM Community Edition developed by SalesAgility Ltd.
- * Copyright (C) 2011 - 2018 SalesAgility Ltd.
+ * Copyright (C) 2011 - 2019 SalesAgility Ltd.
  *
  * This program is free software; you can redistribute it and/or modify it under
  * the terms of the GNU Affero General Public License version 3 as published by the
@@ -76,5 +76,7 @@ $mod_strings = array(
     'LBL_ACTION_LINES' => 'Actions',
     'LBL_ADD_ACTION' => 'Add Action',
     'LBL_MULTIPLE_RUNS' => 'Repeated Runs',
-    'LBL_RUN_WHEN' => 'Run'
+    'LBL_RUN_WHEN' => 'Run',
+    'LBL_RUN_ON_IMPORT' => 'Run on Import',
+    'LBL_ACTION_NAME_NOT_ALLOWED' => 'Action name not allowed.',
 );

@@ -42,7 +42,7 @@ if (!defined('sugarEntry') || !sugarEntry) {
     die('Not A Valid Entry Point');
 }
 
-global $current_user;
+global $current_user, $log;
 require_once('modules/Campaigns/utils.php');
 
 //if campaign_id is passed then we assume this is being invoked from the campaign module and in a popup.
@@ -54,7 +54,7 @@ if (!isset($_REQUEST['campaign_id']) || empty($_REQUEST['campaign_id'])) {
 if (!isset($_REQUEST['inboundEmail']) || empty($_REQUEST['inboundEmail'])) {
     $inboundEmail = false;
 }
-$focus = new EmailTemplate();
+$focus = BeanFactory::newBean('EmailTemplates');
 
 if (isset($_REQUEST['record'])) {
     $focus->retrieve($_REQUEST['record']);
@@ -74,24 +74,24 @@ if (!isset($focus->id)) {
 
 //needed when creating a new case with default values passed in
 if (isset($_REQUEST['contact_name']) && is_null($focus->contact_name)) {
-    $focus->contact_name = htmlspecialchars($_REQUEST['contact_name'], ENT_QUOTES);
+    $focus->contact_name = htmlspecialchars((string) $_REQUEST['contact_name'], ENT_QUOTES);
 }
 if (isset($_REQUEST['contact_id']) && is_null($focus->contact_id)) {
-    $focus->contact_id = htmlspecialchars($_REQUEST['contact_id'], ENT_QUOTES);
+    $focus->contact_id = htmlspecialchars((string) $_REQUEST['contact_id'], ENT_QUOTES);
 }
 if (isset($_REQUEST['parent_name']) && is_null($focus->parent_name)) {
-    $focus->parent_name = htmlspecialchars($_REQUEST['parent_name'], ENT_QUOTES);
+    $focus->parent_name = htmlspecialchars((string) $_REQUEST['parent_name'], ENT_QUOTES);
 }
 if (isset($_REQUEST['parent_id']) && is_null($focus->parent_id)) {
-    $focus->parent_id = htmlspecialchars($_REQUEST['parent_id'], ENT_QUOTES);
+    $focus->parent_id = htmlspecialchars((string) $_REQUEST['parent_id'], ENT_QUOTES);
 }
 if (isset($_REQUEST['parent_type'])) {
-    $focus->parent_type = htmlspecialchars($_REQUEST['parent_type'], ENT_QUOTES);
+    $focus->parent_type = htmlspecialchars((string) $_REQUEST['parent_type'], ENT_QUOTES);
 } elseif (!isset($focus->parent_type)) {
     $focus->parent_type = $app_list_strings['record_type_default_key'];
 }
 if (isset($_REQUEST['filename']) && $_REQUEST['isDuplicate'] != 'true') {
-    $focus->filename = htmlspecialchars($_REQUEST['filename'], ENT_QUOTES);
+    $focus->filename = htmlspecialchars((string) $_REQUEST['filename'], ENT_QUOTES);
 }
 
 if ($has_campaign || $inboundEmail) {
@@ -110,10 +110,7 @@ if (empty($focus->id)) {
 
 echo getClassicModuleTitle($focus->module_dir, $params, true);
 
-if (!$focus->ACLAccess('EditView')) {
-    ACLController::displayNoAccess(true);
-    sugar_cleanup(true);
-} elseif (!is_admin($current_user) && $focus->type === 'system') {
+if (!$focus->ACLAccess('EditView') || (!is_admin($current_user) && isset($focus->type) && $focus->type === 'system')) {
     ACLController::displayNoAccess(true);
     sugar_cleanup(true);
 }
@@ -207,11 +204,13 @@ if (isset($focus->name)) {
  */
 if (isset($focus->assigned_user_id)) {
     $xtpl->assign("ASSIGNED_USER_ID", $focus->assigned_user_id);
-} elseif (empty($focus->id) && empty($focus->assigned_user_id)) {
-    $xtpl->assign("ASSIGNED_USER_ID", $current_user->id);
-    $xtpl->assign("ASSIGNED_USER_NAME", get_assigned_user_name($current_user->id));
 } else {
-    $xtpl->assign("ASSIGNED_USER_ID", "");
+    if (empty($focus->id) && empty($focus->assigned_user_id)) {
+        $xtpl->assign("ASSIGNED_USER_ID", $current_user->id);
+        $xtpl->assign("ASSIGNED_USER_NAME", get_assigned_user_name($current_user->id));
+    } else {
+        $xtpl->assign("ASSIGNED_USER_ID", "");
+    }
 }
 /* END - SECURITY GROUPS */
 //Bug45632
@@ -285,7 +284,7 @@ if (isset($focus->body_html)) {
 require_once 'include/SuiteEditor/SuiteEditorConnector.php';
 $templateWidth = 600;
 $xtpl->assign('template_width', $templateWidth);
-$xtpl->assign('BODY_EDITOR', SuiteEditorConnector::getHtml(SuiteEditorConnector::getSuiteSettings(isset($focus->body_html) ? html_entity_decode($focus->body_html) : '', $templateWidth)));
+$xtpl->assign('BODY_EDITOR', SuiteEditorConnector::getHtml(SuiteEditorConnector::getSuiteSettings(isset($focus->body_html) ? html_entity_decode((string) $focus->body_html) : '', $templateWidth)));
 $xtpl->assign('width_style', 'style="display:'.($current_user->getEditorType() != 'mozaik' ? 'none' : 'table-row').';"');
 
 // ---------------------------------
@@ -294,15 +293,6 @@ $xtpl->assign('width_style', 'style="display:'.($current_user->getEditorType() !
 
 
 if (true) {
-    if (!isTouchScreen()) {
-        require_once("include/SugarTinyMCE.php");
-        $tiny = new SugarTinyMCE();
-        $tiny->defaultConfig['cleanup_on_startup'] = true;
-        $tiny->defaultConfig['height'] = 600;
-        $tiny->defaultConfig['plugins'] .= ",fullpage";
-        $tinyHtml = $tiny->getInstance();
-        $xtpl->assign("tiny", $tinyHtml);
-    }
     ///////////////////////////////////////
     ////	MACRO VARS
     $xtpl->assign("INSERT_VARIABLE_ONCLICK", "insert_variable(document.EditView.variable_text.value, \"email_template_editor\")");
@@ -361,14 +351,15 @@ if (true) {
         $etid = $old_id;
     }
     if (!empty($etid)) {
-        $note = new Note();
+        $note = BeanFactory::newBean('Notes');
         $where = "notes.parent_id='{$etid}' AND notes.filename IS NOT NULL";
         $notes_list = $note->get_full_list("", $where, true);
 
         if (!isset($notes_list)) {
             $notes_list = array();
         }
-        for ($i = 0; $i < count($notes_list); $i++) {
+        $notes_listCount = count($notes_list);
+        for ($i = 0; $i < $notes_listCount; $i++) {
             $the_note = $notes_list[$i];
             if (empty($the_note->filename)) {
                 continue;

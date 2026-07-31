@@ -51,6 +51,7 @@ if (!defined('sugarEntry') || !sugarEntry) {
 
 require_once('include/SugarObjects/forms/FormBase.php');
 
+#[\AllowDynamicProperties]
 class MeetingFormBase extends FormBase
 {
     public function getFormBody($prefix, $mod='', $formname='')
@@ -81,6 +82,7 @@ class MeetingFormBase extends FormBase
         $lbl_required_symbol = $app_strings['LBL_REQUIRED_SYMBOL'];
         $lbl_date = $mod_strings['LBL_DATE'];
         $lbl_time = $mod_strings['LBL_TIME'];
+        $lbl_subject = $mod_strings['LBL_SUBJECT'];
         $ntc_date_format = $timedate->get_user_date_format();
         $ntc_time_format = '('.$timedate->get_user_time_format().')';
 
@@ -93,18 +95,18 @@ class MeetingFormBase extends FormBase
         // Unimplemented until jscalendar language files are fixed
         // $cal_lang =(empty($cal_codes[$current_language])) ? $cal_codes[$default_language] : $cal_codes[$current_language];
         $form = <<<EOF
-					<input type="hidden" name="${prefix}record" value="">
-					<input type="hidden" name="${prefix}status" value="${default_status}">
-					<input type="hidden" name="${prefix}parent_type" value="${default_parent_type}">
-					<input type="hidden" name="${prefix}assigned_user_id" value='${user_id}'>
-					<input type="hidden" name="${prefix}duration_hours" value="1">
-					<input type="hidden" name="${prefix}duration_minutes" value="00">
+					<input type="hidden" name="{$prefix}record" value="">
+					<input type="hidden" name="{$prefix}status" value="{$default_status}">
+					<input type="hidden" name="{$prefix}parent_type" value="{$default_parent_type}">
+					<input type="hidden" name="{$prefix}assigned_user_id" value='{$user_id}'>
+					<input type="hidden" name="{$prefix}duration_hours" value="1">
+					<input type="hidden" name="{$prefix}duration_minutes" value="00">
 					<p>$lbl_subject<span class="required">$lbl_required_symbol</span><br>
-					<input name='${prefix}name' size='25' maxlength='255' type="text"><br>
+					<input name='{$prefix}name' size='25' maxlength='255' type="text"><br>
 					$lbl_date&nbsp;<span class="required">$lbl_required_symbol</span>&nbsp;<span class="dateFormat">$ntc_date_format</span><br>
-					<input name='${prefix}date_start' id='jscal_field' onblur="parseDate(this, '$cal_dateformat');" type="text" maxlength="10" value="${default_date_start}"> <!--not_in_theme!--><span class="suitepicon suitepicon-module-calendar"></span><br>
+					<input name='{$prefix}date_start' id='jscal_field' onblur="parseDate(this, '$cal_dateformat');" type="text" maxlength="10" value="{$default_date_start}"> <!--not_in_theme!--><span class="suitepicon suitepicon-module-calendar"></span><br>
 					$lbl_time&nbsp;<span class="required">$lbl_required_symbol</span>&nbsp;<span class="dateFormat">$ntc_time_format</span><br>
-					<input name='${prefix}time_start' type="text" maxlength='5' value="${default_time_start}">{$time_ampm}</p>
+					<input name='{$prefix}time_start' type="text" maxlength='5' value="{$default_time_start}">{$time_ampm}</p>
 					<script type="text/javascript">
 					Calendar.setup({
 						inputField : "jscal_field", daFormat : "$cal_dateformat", ifFormat : "$cal_dateformat", showsTime : false, button : "jscal_trigger", singleClick : true, step : 1, weekNumbers:false
@@ -115,7 +117,7 @@ EOF;
 
         $javascript = new javascript();
         $javascript->setFormName($formname);
-        $javascript->setSugarBean(new Meeting());
+        $javascript->setSugarBean(BeanFactory::newBean('Meetings'));
         $javascript->addRequiredFields($prefix);
         $form .=$javascript->getScript();
         $mod_strings = $temp_strings;
@@ -149,10 +151,10 @@ EOF;
         $the_form .= <<<EOQ
 
 
-		<form name="${prefix}MeetingSave" onSubmit="return check_form('${prefix}MeetingSave')" method="POST" action="index.php">
-			<input type="hidden" name="${prefix}module" value="Meetings">
+		<form name="{$prefix}MeetingSave" onSubmit="return check_form('{$prefix}MeetingSave')" method="POST" action="index.php">
+			<input type="hidden" name="{$prefix}module" value="Meetings">
 
-			<input type="hidden" name="${prefix}action" value="Save">
+			<input type="hidden" name="{$prefix}action" value="Save">
 
 EOQ;
         $the_form	.= $this->getFormBody($prefix, 'Meetings', "{$prefix}MeetingSave");
@@ -181,20 +183,20 @@ EOQ;
         global $current_user;
         global $timedate;
 
-        $focus = new Meeting();
+        $focus = BeanFactory::newBean('Meetings');
 
         if ($useRequired && !checkRequired($prefix, array_keys($focus->required_fields))) {
             return null;
         }
 
-        if (!isset($_POST['reminder_checked']) or (isset($_POST['reminder_checked']) && $_POST['reminder_checked'] == '0')) {
+        if (!isset($_POST['reminder_checked']) || isset($_POST['reminder_checked']) && $_POST['reminder_checked'] == '0') {
             $_POST['reminder_time'] = -1;
         }
         if (!isset($_POST['reminder_time'])) {
             $_POST['reminder_time'] = $current_user->getPreference('reminder_time');
             $_POST['reminder_checked']=1;
         }
-    
+
         if (!isset($_POST['email_reminder_checked']) || (isset($_POST['email_reminder_checked']) && $_POST['email_reminder_checked'] == '0')) {
             $_POST['email_reminder_time'] = -1;
         }
@@ -202,13 +204,13 @@ EOQ;
             $_POST['email_reminder_time'] = $current_user->getPreference('email_reminder_time');
             $_POST['email_reminder_checked'] = 1;
         }
-    
+
         // don't allow to set recurring_source from a form
         unset($_POST['recurring_source']);
-    
+
         $time_format = $timedate->get_user_time_format();
         $time_separator = ":";
-        if (preg_match('/\d+([^\d])\d+([^\d]*)/s', $time_format, $match)) {
+        if (preg_match('/\d+([^\d])\d+([^\d]*)/s', (string) $time_format, $match)) {
             $time_separator = $match[1];
         }
 
@@ -220,7 +222,7 @@ EOQ;
             $_POST[$prefix.'time_start'] = $timedate->merge_time_meridiem($_POST[$prefix.'time_start'], $timedate->get_time_format(), $_POST[$prefix.'meridiem']);
         }
 
-        if (isset($_POST[$prefix.'time_start']) && strlen($_POST[$prefix.'date_start']) == 10) {
+        if (isset($_POST[$prefix.'time_start']) && strlen((string) $_POST[$prefix.'date_start']) == 10) {
             $_POST[$prefix.'date_start'] = $_POST[$prefix.'date_start'] . ' ' . $_POST[$prefix.'time_start'];
         }
 
@@ -233,7 +235,7 @@ EOQ;
 
         // if dates changed
         if (!empty($focus->id)) {
-            $oldBean = new Meeting();
+            $oldBean = BeanFactory::newBean('Meetings');
             $oldBean->retrieve($focus->id);
             if (($focus->date_start != $oldBean->date_start) || ($focus->date_end != $oldBean->date_end)) {
                 $focus->date_changed = true;
@@ -416,12 +418,14 @@ EOQ;
 
                     if (!isset($acceptStatusUsers[$user_id])) {
                         $focus->users->add($user_id);
-                    } elseif (!$focus->date_changed) {
-                        // update query to preserve accept_status
-                        $qU  = 'UPDATE meetings_users SET deleted = 0, accept_status = \''.$acceptStatusUsers[$user_id].'\' ';
-                        $qU .= 'WHERE meeting_id = \''.$focus->id.'\' ';
-                        $qU .= 'AND user_id = \''.$user_id.'\'';
-                        $focus->db->query($qU);
+                    } else {
+                        if (!$focus->date_changed) {
+                            // update query to preserve accept_status
+                            $qU  = 'UPDATE meetings_users SET deleted = 0, accept_status = \''.$acceptStatusUsers[$user_id].'\' ';
+                            $qU .= 'WHERE meeting_id = \''.$focus->id.'\' ';
+                            $qU .= 'AND user_id = \''.$user_id.'\'';
+                            $focus->db->query($qU);
+                        }
                     }
                 }
 
@@ -438,12 +442,14 @@ EOQ;
 
                     if (!isset($acceptStatusContacts[$contact_id])) {
                         $focus->contacts->add($contact_id);
-                    } elseif (!$focus->date_changed) {
-                        // update query to preserve accept_status
-                        $qU  = 'UPDATE meetings_contacts SET deleted = 0, accept_status = \''.$acceptStatusContacts[$contact_id].'\' ';
-                        $qU .= 'WHERE meeting_id = \''.$focus->id.'\' ';
-                        $qU .= 'AND contact_id = \''.$contact_id.'\'';
-                        $focus->db->query($qU);
+                    } else {
+                        if (!$focus->date_changed) {
+                            // update query to preserve accept_status
+                            $qU  = 'UPDATE meetings_contacts SET deleted = 0, accept_status = \''.$acceptStatusContacts[$contact_id].'\' ';
+                            $qU .= 'WHERE meeting_id = \''.$focus->id.'\' ';
+                            $qU .= 'AND contact_id = \''.$contact_id.'\'';
+                            $focus->db->query($qU);
+                        }
                     }
                 }
                 // Process leads
@@ -459,18 +465,20 @@ EOQ;
 
                     if (!isset($acceptStatusLeads[$lead_id])) {
                         $focus->leads->add($lead_id);
-                    } elseif (!$focus->date_changed) {
-                        // update query to preserve accept_status
-                        $qU  = 'UPDATE meetings_leads SET deleted = 0, accept_status = \''.$acceptStatusLeads[$lead_id].'\' ';
-                        $qU .= 'WHERE meeting_id = \''.$focus->id.'\' ';
-                        $qU .= 'AND lead_id = \''.$lead_id.'\'';
-                        $focus->db->query($qU);
+                    } else {
+                        if (!$focus->date_changed) {
+                            // update query to preserve accept_status
+                            $qU  = 'UPDATE meetings_leads SET deleted = 0, accept_status = \''.$acceptStatusLeads[$lead_id].'\' ';
+                            $qU .= 'WHERE meeting_id = \''.$focus->id.'\' ';
+                            $qU .= 'AND lead_id = \''.$lead_id.'\'';
+                            $focus->db->query($qU);
+                        }
                     }
                 }
 
                 // Bug #49195 : update vcal
                 vCal::cache_sugar_vcal($current_user);
-            
+
                 // CCL - Comment out call to set $current_user as invitee
                 // set organizer to auto-accept
                 if ($focus->assigned_user_id == $current_user->id && $newBean) {
@@ -490,10 +498,12 @@ EOQ;
 
         if (isset($_REQUEST['return_module']) && $_REQUEST['return_module'] == 'Home') {
             header("Location: index.php?module=Home&action=index");
-        } elseif ($redirect) {
-            handleRedirect($return_id, 'Meetings');
         } else {
-            return $focus;
+            if ($redirect) {
+                handleRedirect($return_id, 'Meetings');
+            } else {
+                return $focus;
+            }
         }
     } // end handleSave();
 } // end Class def

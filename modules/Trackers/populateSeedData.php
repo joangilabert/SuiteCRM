@@ -52,6 +52,7 @@ require_once('modules/Trackers/TrackerUtility.php');
 
 require_once('install/UserDemoData.php');
 
+#[\AllowDynamicProperties]
 class populateSeedData
 {
     public $monitorIds = 500;
@@ -113,7 +114,7 @@ class populateSeedData
     {
         global $timedate;
         // 1201852800 is 1 Feb 2008
-        return $timedate->fromTimestamp(rand(1201852800, $timedate->getNow()->ts))->asDb();
+        return $timedate->fromTimestamp(mt_rand(1201852800, $timedate->getNow()->ts))->asDb();
     }
 
     public function getSessionId()

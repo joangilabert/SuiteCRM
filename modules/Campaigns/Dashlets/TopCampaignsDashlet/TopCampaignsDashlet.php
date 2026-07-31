@@ -46,6 +46,7 @@ if (!defined('sugarEntry') || !sugarEntry) {
 
 require_once('include/Dashlets/Dashlet.php');
 
+#[\AllowDynamicProperties]
 class TopCampaignsDashlet extends Dashlet
 {
     protected $top_campaigns = array();
@@ -72,7 +73,7 @@ class TopCampaignsDashlet extends Dashlet
             $this->autoRefresh = $def['autoRefresh'];
         }
         
-        $this->seedBean = new Opportunity();
+        $this->seedBean = BeanFactory::newBean('Opportunities');
 
         $qry = "SELECT C.name AS campaign_name, SUM(O.amount) AS revenue, C.id as campaign_id " .
                "FROM campaigns C, opportunities O " .

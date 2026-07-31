@@ -38,10 +38,10 @@
  * display the words "Powered by SugarCRM" and "Supercharged by SuiteCRM".
  */
 
-require_once('include/MVC/View/views/view.ajax.php');
 require_once('include/EditView/EditView2.php');
 
 
+#[\AllowDynamicProperties]
 class CalendarViewCreateInvitee extends SugarView
 {
     public function preDisplay()
@@ -56,7 +56,7 @@ class CalendarViewCreateInvitee extends SugarView
 
         require_once($beanFiles[$beanList[$module]]);
         $this->bean = new $beanList[$module]();
-       
+
         if ($this->bean->ACLAccess('save')) {
             require_once('include/formbase.php');
             $this->bean = populateFromPost("", $this->bean);
@@ -65,7 +65,7 @@ class CalendarViewCreateInvitee extends SugarView
             $this->returnNoAccess($this->bean->object_name);
         }
     }
-    
+
     public function display()
     {
         $sendbackArr = array(
@@ -75,7 +75,7 @@ class CalendarViewCreateInvitee extends SugarView
         foreach ($_REQUEST['fieldList'] as $field) {
             $sendbackArr['fields'][$field] = $this->bean->$field;
         }
-            
+
         ob_clean();
         echo json_encode($sendbackArr);
     }

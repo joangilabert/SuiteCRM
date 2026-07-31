@@ -43,8 +43,10 @@ function loadParentView($type)
 {
     if (file_exists('custom/include/MVC/View/views/view.'.$type.'.php')) {
         require_once('custom/include/MVC/View/views/view.'.$type.'.php');
-    } elseif (file_exists('include/MVC/View/views/view.'.$type.'.php')) {
-        require_once('include/MVC/View/views/view.'.$type.'.php');
+    } else {
+        if (file_exists('include/MVC/View/views/view.'.$type.'.php')) {
+            require_once('include/MVC/View/views/view.'.$type.'.php');
+        }
     }
 }
 
@@ -127,17 +129,22 @@ function ajaxLink($url)
     $match = array();
     $javascriptMatch = array();
 
-    preg_match('/module=([^&]*)/i', $url, $match);
-    preg_match('/^javascript/i', $url, $javascriptMatch);
+    preg_match('/module=([^&]*)/i', (string) $url, $match);
+    preg_match('/^javascript/i', (string) $url, $javascriptMatch);
 
     if (!empty($sugar_config['disableAjaxUI'])) {
         return $url;
-    } elseif (isset($match[1]) && in_array($match[1], ajaxBannedModules())) {
-        return $url;
+    } else {
+        if (isset($match[1]) && in_array($match[1], ajaxBannedModules())) {
+            return $url;
+        }
+        //Don't modify javascript calls.
+        else {
+            if (isset($javascriptMatch[0])) {
+                return $url;
+            } else {
+                return "?action=ajaxui#ajaxUILoc=" . urlencode($url);
+            }
+        }
     }
-    //Don't modify javascript calls.
-    elseif (isset($javascriptMatch[0])) {
-        return $url;
-    }
-    return "?action=ajaxui#ajaxUILoc=" . urlencode($url);
 }

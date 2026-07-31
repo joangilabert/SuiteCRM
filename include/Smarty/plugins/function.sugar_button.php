@@ -291,8 +291,12 @@ function smarty_function_sugar_button($params, &$smarty)
 
     $js_form = (empty($params['form_id'])) ? "var _form = (this.form) ? this.form : document.forms[0];" : "var _form = document.getElementById('{$params['form_id']}');";
 
-    $type = $params['id'];
+    $type = $params['id'] ?? '';
     $location = (empty($params['location'])) ? "" : "_".$params['location'];
+
+    $formName = $params['form_id'] ?? '';
+
+    $output = '';
 
     if (!is_array($type)) {
         $module = $params['module'];
@@ -356,7 +360,7 @@ function smarty_function_sugar_button($params, &$smarty)
 
             case "SAVE":
                 $view = ($_REQUEST['action'] == 'EditView') ? 'EditView' : (($view == 'EditView') ? 'EditView' : $view);
-                $output = '{if $bean->aclAccess("save")}<input title="{$APP.LBL_SAVE_BUTTON_TITLE}" accessKey="{$APP.LBL_SAVE_BUTTON_KEY}" class="button primary" onclick="'.$js_form.' {if $isDuplicate}_form.return_id.value=\'\'; {/if}_form.action.value=\'Save\'; if(check_form(\'' . $view . '\'))SUGAR.ajaxUI.submitForm(_form);return false;" type="submit" name="button" value="{$APP.LBL_SAVE_BUTTON_LABEL}" id="'.$type.$location.'">{/if} ';
+                $output = '{if $bean->aclAccess("save")}<input title="{$APP.LBL_SAVE_BUTTON_TITLE}" accessKey="{$APP.LBL_SAVE_BUTTON_KEY}" class="button primary" onclick="'.$js_form.' {if $isDuplicate}_form.return_id.value=\'\'; {/if}_form.action.value=\'Save\'; if(check_form(\'' . $formName . '\'))SUGAR.ajaxUI.submitForm(_form);return false;" type="submit" name="button" value="{$APP.LBL_SAVE_BUTTON_LABEL}" id="'.$type.$location.'">{/if} ';
             break;
 
             case "SUBPANELSAVE":
@@ -369,7 +373,7 @@ function smarty_function_sugar_button($params, &$smarty)
                 global $current_user, $sugar_config;
                 if(isset($sugar_config['securitysuite_popup_select']) && $sugar_config['securitysuite_popup_select'] == true) {
                     require_once('modules/SecurityGroups/SecurityGroup.php');
-                    $groupFocus = new SecurityGroup();
+                    $groupFocus = BeanFactory::newBean('SecurityGroups');
 
                     if($groupFocus->getMembershipCount($current_user->id) > 1) {
                         $output = '{if $bean->aclAccess("save")}<input title="{$APP.LBL_SAVE_BUTTON_TITLE}" class="button" onclick="'.$js_form.' disableOnUnloadEditView(); _form.action.value=\'Save\';_form.module.value=\'{$module}\';_form.return_module.value=\'{$module}\';_form.return_action.value=\'DetailView\';_form.return_id.value=\'\';" type="submit" name="' . $params['module'] . '_subpanel_save_button" id="' . $params['module'] . '_subpanel_save_button" value="{$APP.LBL_SAVE_BUTTON_LABEL}">{/if} ';

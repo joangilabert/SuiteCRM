@@ -50,6 +50,7 @@ if (!defined('sugarEntry') || !sugarEntry) {
  ********************************************************************************/
 
 
+#[\AllowDynamicProperties]
 class EmailTemplateFormBase
 {
     public function __construct()
@@ -75,28 +76,28 @@ class EmailTemplateFormBase
         $default_parent_type= $app_list_strings['record_type_default_key'];
 
         $form = <<<EOF
-				<input type="hidden" name="${prefix}record" value="">
-				<input type="hidden" name="${prefix}parent_type" value="${default_parent_type}">
+				<input type="hidden" name="{$prefix}record" value="">
+				<input type="hidden" name="{$prefix}parent_type" value="{$default_parent_type}">
 				<p>
 				<table cellspacing="0" cellpadding="0" border="0">
 				<tr>
 				    <td scope="row">$lbl_subject <span class="required">$lbl_required_symbol</span></td>
 				</tr>
 				<tr>
-				    <td ><input name='${prefix}name' size='${size}' maxlength='255' type="text" value=""></td>
+				    <td ><input name='{$prefix}name' size='{$size}' maxlength='255' type="text" value=""></td>
 				</tr>
 				<tr>
 				    <td scope="row">$lbl_description</td>
 				</tr>
 				<tr>
-				    <td ><textarea name='${prefix}description' cols='${size}' rows='4' ></textarea></td>
+				    <td ><textarea name='{$prefix}description' cols='{$size}' rows='4' ></textarea></td>
 				</tr>
 				</table></p>
 EOF;
 
         $javascript = new javascript();
         $javascript->setFormName($formname);
-        $javascript->setSugarBean(new EmailTemplate());
+        $javascript->setSugarBean(BeanFactory::newBean('EmailTemplates'));
         $javascript->addRequiredFields($prefix);
         $form .=$javascript->getScript();
         $mod_strings = $temp_strings;
@@ -122,11 +123,11 @@ EOF;
         $the_form = get_left_form_header($mod_strings['LBL_NEW_FORM_TITLE']);
         $the_form .= <<<EOQ
 
-				<form name="${prefix}EmailTemplateSave" onSubmit="return check_form('${prefix}EmailTemplateSave')" method="POST" action="index.php">
-					<input type="hidden" name="${prefix}module" value="EmailTemplates">
-					<input type="hidden" name="${prefix}action" value="Save">
+				<form name="{$prefix}EmailTemplateSave" onSubmit="return check_form('{$prefix}EmailTemplateSave')" method="POST" action="index.php">
+					<input type="hidden" name="{$prefix}module" value="EmailTemplates">
+					<input type="hidden" name="{$prefix}action" value="Save">
 EOQ;
-        $the_form .= $this->getFormBody($prefix, $mod, "${prefix}EmailTemplateSave", "20");
+        $the_form .= $this->getFormBody($prefix, $mod, "{$prefix}EmailTemplateSave", "20");
         $the_form .= <<<EOQ
 				<p><input title="$lbl_save_button_title" accessKey="$lbl_save_button_key" class="button" type="submit" name="button" value="  $lbl_save_button_label  " ></p>
 				</form>
@@ -149,7 +150,7 @@ EOQ;
         global $mod_strings;
         global $sugar_config;
 
-        $focus = new EmailTemplate();
+        $focus = BeanFactory::newBean('EmailTemplates');
         if ($useRequired && !checkRequired($prefix, array_keys($focus->required_fields))) {
             return null;
         }
@@ -160,10 +161,9 @@ EOQ;
         } else {
             $focus->text_only = 0;
         }
-        if (!$focus->ACLAccess('Save')) {
-            ACLController::displayNoAccess(true);
-            sugar_cleanup(true);
-        }
+
+        $this->checkAccess($focus);
+
         if (!isset($_REQUEST['published'])) {
             $focus->published = 'off';
         }
@@ -183,14 +183,14 @@ EOQ;
         global $sugar_config;
         $preProcessedImages = array();
         $emailTemplateBodyHtml = from_html($focus->body_html);
-        if (strpos($emailTemplateBodyHtml, '"cache/images/')) {
+        if (strpos((string) $emailTemplateBodyHtml, '"cache/images/')) {
             $matches = array();
-            preg_match_all('#<img[^>]*[\s]+src[^=]*=[\s]*["\']cache/images/(.+?)["\']#si', $emailTemplateBodyHtml, $matches);
+            preg_match_all('#<img[^>]*[\s]+src[^=]*=[\s]*["\']cache/images/(.+?)["\']#si', (string) $emailTemplateBodyHtml, $matches);
             foreach ($matches[1] as $match) {
                 $filename = urldecode($match);
-                if ($filename != pathinfo($filename, PATHINFO_BASENAME)) {
+                if ($filename !== pathinfo($filename, PATHINFO_BASENAME)) {
                     // don't allow paths there
-                    $emailTemplateBodyHtml = str_replace("cache/images/$match", "", $emailTemplateBodyHtml);
+                    $emailTemplateBodyHtml = str_replace("cache/images/$match", "", (string) $emailTemplateBodyHtml);
                     continue;
                 }
                 $file_location = sugar_cached("images/{$filename}");
@@ -199,7 +199,7 @@ EOQ;
                 if (file_exists($file_location)) {
                     //$id = create_guid();
 
-                    $note = new Note();
+                    $note = BeanFactory::newBean('Notes');
                     $note->save();
                     $id = $note->id;
 
@@ -220,7 +220,7 @@ EOQ;
                             $secureLink = ($useSiteURL ? $sugar_config['site_url'] . '/' : '') . "index.php?entryPoint=" . $entryPoint . "&type=Notes&id={$id}&filename=" . $match;
                         }
 
-                        $emailTemplateBodyHtml = str_replace("cache/images/$match", $secureLink, $emailTemplateBodyHtml);
+                        $emailTemplateBodyHtml = str_replace("cache/images/$match", $secureLink, (string) $emailTemplateBodyHtml);
                         //unlink($file_location);
                         $preProcessedImages[$filename] = $id;
                     }
@@ -252,10 +252,10 @@ EOQ;
         $max_files_upload = count($_FILES);
 
         if (!empty($focus->id)) {
-            $note = new Note();
+            $note = BeanFactory::newBean('Notes');
             $where = "notes.parent_id='{$focus->id}'";
             if (!empty($_REQUEST['old_id'])) { // to support duplication of email templates
-                $where .= " OR notes.parent_id='".htmlspecialchars($_REQUEST['old_id'], ENT_QUOTES)."'";
+                $where .= " OR notes.parent_id='".htmlspecialchars((string) $_REQUEST['old_id'], ENT_QUOTES)."'";
             }
             $notes_list = $note->get_full_list("", $where, true);
         }
@@ -274,7 +274,7 @@ EOQ;
         //for($i = 0; $i < $max_files_upload; $i++) {
 
         foreach ($_FILES as $key => $file) {
-            $note = new Note();
+            $note = BeanFactory::newBean('Notes');
 
             //Images are presaved above so we need to prevent duplicate files from being created.
             if (isset($preProcessedImages[$file['name']])) {
@@ -311,7 +311,7 @@ EOQ;
                 else {
                     // we're duplicating a template with attachments
                     // dupe the file, create a new note, assign the note to the new template
-                    $newNote = new Note();
+                    $newNote = BeanFactory::newBean('Notes');
                     $newNote->retrieve($note->id);
                     $newNote->id = create_guid();
                     $newNote->parent_id = $focus->id;
@@ -353,20 +353,18 @@ EOQ;
 
         ///////////////////////////////////////////////////////////////////////////
         ////	ATTACHMENTS FROM DOCUMENTS
-        $count='';
-        //_pp($_REQUEST);
-        //_ppd(count($_REQUEST['document']));
+        $count = '';
         if (!empty($_REQUEST['document'])) {
-            $count = count($_REQUEST['document']);
+            $count = is_countable($_REQUEST['document']) ? count($_REQUEST['document']) : 0;
         } else {
-            $count=10;
+            $count = 10;
         }
 
         for ($i=0; $i<$count; $i++) {
             if (isset($_REQUEST['documentId'.$i]) && !empty($_REQUEST['documentId'.$i])) {
-                $doc = new Document();
-                $docRev = new DocumentRevision();
-                $docNote = new Note();
+                $doc = BeanFactory::newBean('Documents');
+                $docRev = BeanFactory::newBean('DocumentRevisions');
+                $docNote = BeanFactory::newBean('Notes');
 
                 $doc->retrieve($_REQUEST['documentId'.$i]);
                 $docRev->retrieve($doc->document_revision_id);
@@ -393,7 +391,7 @@ EOQ;
 
         if (isset($_REQUEST['remove_attachment']) && !empty($_REQUEST['remove_attachment'])) {
             foreach ($_REQUEST['remove_attachment'] as $noteId) {
-                $q = 'UPDATE notes SET deleted = 1 WHERE id = \''.$noteId.'\'';
+                $q = 'UPDATE notes SET deleted = 1 WHERE id = \''.$focus->db->quote($noteId).'\'';
                 $focus->db->query($q);
             }
         }
@@ -410,6 +408,34 @@ EOQ;
             handleRedirect($return_id, "EmailTemplates");
         } else {
             return $focus;
+        }
+    }
+
+    /**
+     * @param SugarBean $focus
+     * @return void
+     */
+    protected function checkAccess(SugarBean $focus): void
+    {
+        global $current_user;
+
+        if (!$focus->ACLAccess('Save')) {
+            ACLController::displayNoAccess(true);
+            sugar_cleanup(true);
+        }
+
+        $type = !empty($focus->type) ? $focus->type : '';
+        if (!empty($focus->id)) {
+            $template = BeanFactory::getBean('EmailTemplates', $focus->id);
+
+            if (!empty($template) && !empty($template->type)) {
+                $type = $template->type;
+            }
+        }
+
+        if ($type === 'system' && !is_admin($current_user)) {
+            ACLController::displayNoAccess(true);
+            sugar_cleanup(true);
         }
     }
 }

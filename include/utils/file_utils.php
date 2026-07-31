@@ -64,6 +64,44 @@ function clean_path($path)
     return($appendpath.$path);
 }
 
+/**
+ * Check if a path is safe from traversal sequences, stream wrappers, and absolute references.
+ *
+ * @param string $path The path to validate (directory or filename)
+ * @return bool true if the path is safe, false otherwise
+ */
+function validate_safe_path(string $path): bool
+{
+    if (preg_match('#(^|[/\\\\])\.\.([/\\\\]|$)#', $path) ||
+        strpos($path, '://') !== false ||
+        (strlen($path) > 0 && ($path[0] === '/' || $path[0] === '\\'))
+    ) {
+        return false;
+    }
+
+    return true;
+}
+
+/**
+ * Check whether a resolved path is within an allowed base directory.
+ *
+ * @param string $path      The path to check (its parent directory must exist)
+ * @param string $base_dir  The allowed base directory
+ * @return bool true if $path is inside $base_dir, false otherwise
+ */
+function is_path_within_dir(string $path, string $base_dir): bool
+{
+    $resolved_path = realpath(dirname($path));
+    $resolved_base = realpath($base_dir);
+
+    if ($resolved_path === false || $resolved_base === false) {
+        return false;
+    }
+
+    return $resolved_path === $resolved_base
+        || strpos($resolved_path, $resolved_base . '/') === 0;
+}
+
 function create_cache_directory($file)
 {
     $paths = explode('/', $file);
@@ -71,13 +109,14 @@ function create_cache_directory($file)
     if (!file_exists($dir)) {
         sugar_mkdir($dir, 0775);
     }
-    for ($i = 0; $i < sizeof($paths) - 1; $i++) {
+    $pathsCount = count($paths);
+    for ($i = 0; $i < $pathsCount - 1; $i++) {
         $dir .= '/' . $paths[$i];
         if (!file_exists($dir)) {
             sugar_mkdir($dir, 0775);
         }
     }
-    return $dir . '/'. $paths[sizeof($paths) - 1];
+    return $dir . '/'. $paths[count($paths) - 1];
 }
 
 function get_module_dir_list()
@@ -111,12 +150,12 @@ function mk_temp_dir($base_dir, $prefix="")
 
 function remove_file_extension($filename)
 {
-    return(substr($filename, 0, strrpos($filename, ".")));
+    return(substr((string) $filename, 0, strrpos((string) $filename, ".")));
 }
 
 function write_array_to_file($the_name, $the_array, $the_file, $mode="w", $header='')
 {
-    if (!empty($header) && ($mode != 'a' || !file_exists($the_file))) {
+    if (!empty($header) && ($mode !== 'a' || $mode !== 'ab' || !file_exists($the_file))) {
         $the_string = $header;
     } else {
         $the_string =   "<?php\n" .
@@ -126,13 +165,23 @@ function write_array_to_file($the_name, $the_array, $the_file, $mode="w", $heade
                     var_export_helper($the_array) .
                     ";";
 
-    $result = sugar_file_put_contents($the_file, $the_string, LOCK_EX) !== false;
+    return sugar_file_put_contents($the_file, $the_string, LOCK_EX) !== false;
+}
 
-    if (function_exists('opcache_invalidate')) {
-        opcache_invalidate($the_file, true);
+function write_override_label_to_file($the_name, $the_array, $the_file, $mode = 'w', $header = '')
+{
+    if (!empty($header) && ($mode !== 'a' || $mode !== 'ab' || !file_exists($the_file))) {
+        $the_string = $header;
+    } else {
+        $the_string = "<?php\n" .
+            '// created: ' . date('Y-m-d H:i:s') . "\n";
     }
 
-    return $result;
+    foreach ($the_array as $labelName => $labelValue) {
+        $the_string .= '$' . "{$the_name}['" . addslashes($labelName) . "'] = '" . addslashes($labelValue) ."';\n";
+    }
+
+    return sugar_file_put_contents($the_file, $the_string, LOCK_EX) !== false;
 }
 
 function write_encoded_file($soap_result, $write_to_dir, $write_to_file="")
@@ -147,7 +196,7 @@ function write_encoded_file($soap_result, $write_to_dir, $write_to_file="")
     }
 
     $file = $soap_result['data'];
-    $write_to_file = str_replace("\\", "/", $write_to_file);
+    $write_to_file = str_replace("\\", "/", (string) $write_to_file);
 
     $dir_to_make = dirname($write_to_file);
     if (!is_dir($dir_to_make)) {
@@ -170,27 +219,28 @@ function create_custom_directory($file)
     if (!file_exists($dir)) {
         sugar_mkdir($dir, 0755);
     }
-    for ($i = 0; $i < sizeof($paths) - 1; $i++) {
+    $pathsCount = count($paths);
+    for ($i = 0; $i < $pathsCount - 1; $i++) {
         $dir .= '/' . $paths[$i];
         if (!file_exists($dir)) {
             sugar_mkdir($dir, 0755);
         }
     }
-    return $dir . '/'. $paths[sizeof($paths) - 1];
+    return $dir . '/'. $paths[count($paths) - 1];
 }
 
 /**
  * This function will recursively generates md5s of files and returns an array of all md5s.
- *
- * @param	$path The path of the root directory to scan - must end with '/'
- * @param	$ignore_dirs array of filenames/directory names to ignore running md5 on - default 'cache' and 'upload'
- * @result	$md5_array an array containing path as key and md5 as value
+ * @param string $path The path of the root directory to scan - must end with '/'
+ * @param array $ignore_dirs array of filenames/directory names to ignore running md5 on - default 'cache' and 'upload'
+ * @return array
  */
-function generateMD5array($path, $ignore_dirs = array('cache', 'upload'))
+function generateMD5array($path, $ignore_dirs = ['cache', 'upload', '.git', 'vendor', '.idea'])
 {
-    $dh  = opendir($path);
+    $current_dir_content = [];
+    $dh = opendir($path);
     if (!$dh) {
-        return array();
+        return [];
     }
     while (false !== ($filename = readdir($dh))) {
         $current_dir_content[] = $filename;
@@ -200,23 +250,23 @@ function generateMD5array($path, $ignore_dirs = array('cache', 'upload'))
     $current_dir_content = array_diff($current_dir_content, $ignore_dirs);
 
     sort($current_dir_content);
-    $md5_array = array();
+    $md5_array = [];
 
     foreach ($current_dir_content as $file) {
         // make sure that it's not dir '.' or '..'
-        if (strcmp($file, ".") && strcmp($file, "..")) {
-            if (is_dir($path.$file)) {
+        if (strcmp($file, '.') && strcmp($file, '..')) {
+            if (is_dir($path . $file)) {
                 // For testing purposes - uncomment to see all files and md5s
                 //echo "<BR>Dir:  ".$path.$file."<br>";
                 //generateMD5array($path.$file."/");
 
-                $md5_array += generateMD5array($path.$file."/", $ignore_dirs);
+                $md5_array += generateMD5array($path . $file . '/', $ignore_dirs);
             } else {
                 // For testing purposes - uncomment to see all files and md5s
                 //echo "   File: ".$path.$file."<br>";
                 //echo md5_file($path.$file)."<BR>";
 
-                $md5_array[$path.$file] = md5_file($path.$file);
+                $md5_array[$path . $file] = md5_file($path . $file);
             }
         }
     }
@@ -265,8 +315,10 @@ function getFiles(&$arr, $dir, $pattern = null)
         } else {
             if (empty($pattern)) {
                 $arr[] = $file;
-            } elseif (preg_match($pattern, $file)) {
-                $arr[] = $file;
+            } else {
+                if (preg_match($pattern, $file)) {
+                    $arr[] = $file;
+                }
             }
         }
     }
@@ -353,7 +405,7 @@ function get_file_extension($filename, $string_to_lower=true)
 {
     $ret = '';
 
-    if (strpos($filename, '.') !== false) {
+    if (strpos((string) $filename, '.') !== false) {
         if ($string_to_lower) {
             $exp = explode('.', $filename);
             $pop = array_pop($exp);
@@ -380,7 +432,7 @@ function get_file_extension($filename, $string_to_lower=true)
  */
 function get_mime_content_type_from_filename($filename)
 {
-    if (strpos($filename, '.') !== false) {
+    if (strpos((string) $filename, '.') !== false) {
         $mime_types = array(
             'txt' => 'text/plain',
             'htm' => 'text/html',
@@ -471,7 +523,7 @@ CIA;
 */
 function cleanFileName($name)
 {
-    return preg_replace('/[^\w-._]+/i', '', $name);
+    return preg_replace('/[^\w\-._]+/i', '', (string) $name);
 }
 
 /**
@@ -482,4 +534,26 @@ function cleanFileName($name)
 function cleanDirName($name)
 {
     return str_replace(array("\\", "/", "."), "", $name);
+}
+
+/**
+ * Check if has valid file name
+ * @param string $fieldName
+ * @param string $value
+ * @return bool
+ */
+function hasValidFileName($fieldName, $value) {
+
+    if (empty($value)){
+        LoggerManager::getLogger()->error("Invalid filename for $fieldName : '$value'.");
+        return false;
+    }
+
+    $isValid = preg_match('/^[\w\-.]+(\.\w+)?$/', $value);
+    if ($isValid === false || $isValid < 1) {
+        LoggerManager::getLogger()->error("Invalid filename for $fieldName : '$value'.");
+        return false;
+    }
+
+    return true;
 }

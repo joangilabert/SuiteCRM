@@ -57,7 +57,7 @@ if ((!is_admin($GLOBALS['current_user']) && (!is_admin_for_module($GLOBALS['curr
     sugar_die("Unauthorized access to administration.");
 }
 
-$focus = new Release();
+$focus = BeanFactory::newBean('Releases');
 echo getClassicModuleTitle($mod_strings['LBL_MODULE_NAME'], array($mod_strings['LBL_MODULE_TITLE']), true);
 $is_edit = false;
 if (!empty($_REQUEST['record'])) {
@@ -144,7 +144,7 @@ if ($is_edit) {
 
 
     if (empty($focus->list_order)) {
-        $xtpl->assign('LIST_ORDER', count($focus->get_releases(false, 'All'))+1);
+        $xtpl->assign('LIST_ORDER', (is_countable($focus->get_releases(false, 'All')) ? count($focus->get_releases(false, 'All')) : 0)+1);
     } else {
         $xtpl->assign('LIST_ORDER', $focus->list_order);
     }

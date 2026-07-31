@@ -57,21 +57,20 @@ ARGS:
   2) $_REQUEST['return_module']; :
   3) $_REQUEST['return_action']; :
 */
-//_ppd($_REQUEST);
 
 
 require_once('include/formbase.php');
 
- global $beanFiles,$beanList;
+ global $beanFiles,$beanList, $db;
  $bean_name = $beanList[$_REQUEST['module']];
  require_once($beanFiles[$bean_name]);
  $focus = new $bean_name();
  if (empty($_REQUEST['linked_id']) || empty($_REQUEST['linked_field'])  || empty($_REQUEST['record'])) {
      die("need linked_field, linked_id and record fields");
  }
- $linked_field = $_REQUEST['linked_field'];
- $record = $_REQUEST['record'];
- $linked_id = $_REQUEST['linked_id'];
+ $linked_field = $db->quote($_REQUEST['linked_field']);
+ $record = $db->quote($_REQUEST['record']);
+ $linked_id = $db->quote($_REQUEST['linked_id']);
  if ($linked_field === 'aclroles') {
      if (!ACLController::checkAccess($bean_name, 'edit', true)) {
          ACLController::displayNoAccess();
@@ -84,8 +83,8 @@ require_once('include/formbase.php');
      }
  }
 
+$focus->retrieve($record);
 if ($bean_name === 'Team') {
-    $focus->retrieve($record);
     $focus->remove_user_from_team($linked_id);
 } else {
 
@@ -96,7 +95,7 @@ if ($bean_name === 'Team') {
     }
     $focus->$linked_field->delete($record, $linked_id);
 }
- if ($bean_name === 'Campaign' and $linked_field==='prospectlists') {
+ if ($bean_name === 'Campaign' && $linked_field==='prospectlists') {
      $query = "SELECT email_marketing_prospect_lists.id from email_marketing_prospect_lists ";
      $query .= " left join email_marketing on email_marketing.id=email_marketing_prospect_lists.email_marketing_id";
      $query .= " where email_marketing.campaign_id='$record'";
@@ -106,16 +105,28 @@ if ($bean_name === 'Team') {
      while (($row = $focus->db->fetchByAssoc($result)) != null) {
          $del_query = " update email_marketing_prospect_lists set email_marketing_prospect_lists.deleted=1, email_marketing_prospect_lists.date_modified=" . $focus->db->convert(
              "'" . TimeDate::getInstance()->nowDb() . "'",
-                'datetime'
+             'datetime'
          );
          $del_query .= " WHERE  email_marketing_prospect_lists.id='{$row['id']}'";
          $focus->db->query($del_query);
      }
      $focus->db->query($query);
  }
+if ($bean_name === "Account" && $linked_field === 'leads') {
+    // for Accounts-Leads non-standard relationship, after clearing account_id form Lead's bean, clear also account_name
+    $focus->retrieve($record);
+    $lead = BeanFactory::newBean('Leads');
+    $lead->retrieve($linked_id);
+    if ($focus->name === $lead->account_name) {
+        $lead->account_name = '';
+    }
+    $lead->save();
+    unset($lead);
+}
+
 if ($bean_name === "Meeting") {
     $focus->retrieve($record);
-    $user = new User();
+    $user = BeanFactory::newBean('Users');
     $user->retrieve($linked_id);
     if (!empty($user->id)) {  //make sure that record exists. we may have a contact on our hands.
 
@@ -125,7 +136,7 @@ if ($bean_name === "Meeting") {
     }
 }
 if ($bean_name === "User" && $linked_field === 'eapm') {
-    $eapm = new EAPM();
+    $eapm = BeanFactory::newBean('EAPM');
     $eapm->mark_deleted($linked_id);
 }
 

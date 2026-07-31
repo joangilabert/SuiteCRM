@@ -40,6 +40,7 @@
 
 require_once 'modules/AOP_Case_Updates/util.php';
 
+#[\AllowDynamicProperties]
 class SurveyResponses extends Basic
 {
     public $new_schema = true;
@@ -65,6 +66,8 @@ class SurveyResponses extends Basic
     public $assigned_user_name;
     public $assigned_user_link;
     public $SecurityGroups;
+    public $email_response_sent;
+    public $contact_id;
 
     public function __construct()
     {
@@ -104,6 +107,8 @@ class SurveyResponses extends Basic
             return $res;
         }
 
+        $case = null;
+
         if ($this->happiness > 7 || $this->happiness == -1) {
             $templateId = $sugar_config['survey_positive_confirmation_email'];
         } else {
@@ -141,13 +146,13 @@ class SurveyResponses extends Basic
     {
         require_once("include/SugarPHPMailer.php");
         $mailer = new SugarPHPMailer();
-        $admin = new Administration();
+        $admin = BeanFactory::newBean('Administration');
         $admin->retrieveSettings();
 
         $mailer->prepForOutbound();
         $mailer->setMailerForSystem();
 
-        $email_template = new EmailTemplate();
+        $email_template = BeanFactory::newBean('EmailTemplates');
         $email_template = $email_template->retrieve($emailTemplateId);
 
         if (!$email_template) {
@@ -170,10 +175,11 @@ class SurveyResponses extends Basic
             $GLOBALS['log']->info("SurveyResponse: Could not send email:  " . $mailer->ErrorInfo);
 
             return false;
-        }
-        $this->logEmail($email, $mailer, $contact->id);
+        } else {
+            $this->logEmail($email, $mailer, $contact->id);
 
-        return true;
+            return true;
+        }
     }
 
     private function populateTemplate(EmailTemplate $template, $contact, $case)
@@ -189,12 +195,12 @@ class SurveyResponses extends Basic
         $ret['subject'] = from_html(aop_parse_template($template->subject, $beans));
         $ret['body'] =
             from_html(
-                aop_parse_template(str_replace("\$sugarurl", $sugar_config['site_url'], $template->body_html), $beans)
+                aop_parse_template(str_replace("\$sugarurl", $sugar_config['site_url'], (string) $template->body_html), $beans)
             );
         $ret['body_alt'] =
             strip_tags(
                 from_html(
-                    aop_parse_template(str_replace("\$sugarurl", $sugar_config['site_url'], $template->body), $beans)
+                    aop_parse_template(str_replace("\$sugarurl", $sugar_config['site_url'], (string) $template->body), $beans)
                 )
             );
 
@@ -204,7 +210,7 @@ class SurveyResponses extends Basic
     private function logEmail($email, $mailer, $contactId = null)
     {
         require_once('modules/Emails/Email.php');
-        $emailObj = new Email();
+        $emailObj = BeanFactory::newBean('Emails');
         $emailObj->to_addrs = $email;
         $emailObj->type = 'out';
         $emailObj->deleted = '0';
@@ -217,7 +223,7 @@ class SurveyResponses extends Basic
             $emailObj->parent_type = "Contacts";
             $emailObj->parent_id = $contactId;
         }
-        $emailObj->date_sent = TimeDate::getInstance()->nowDb();
+        $emailObj->date_sent_received = TimeDate::getInstance()->nowDb();
         $emailObj->modified_user_id = '1';
         $emailObj->created_by = '1';
         $emailObj->status = 'sent';

@@ -2,17 +2,9 @@
 
 namespace Step\Acceptance;
 
+#[\AllowDynamicProperties]
 class Locations extends \AcceptanceTester
 {
-    /**
-     * Navigate to locations module
-     */
-    public function gotoLocations()
-    {
-        $I = new NavigationBar($this->getScenario());
-        $I->clickAllMenuItem('Locations');
-    }
-
     /**
      * Create an event location
      *

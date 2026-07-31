@@ -42,11 +42,16 @@ if (!defined('sugarEntry') || !sugarEntry) {
  */
 
 
+require_once 'include/SugarCache/SugarCache.php';
 
 function copy_recursive($source, $dest)
 {
     if (is_file($source)) {
-        return(copy($source, $dest));
+        $result = copy($source, $dest);
+        if ((new SplFileInfo($dest))->getExtension() == 'php') {
+            SugarCache::cleanFile($dest);
+        }
+        return $result;
     }
     if (!is_dir($dest)) {
         sugar_mkdir($dest);
@@ -89,7 +94,7 @@ function mkdir_recursive($path, $check_is_parent_dir = false)
         $basecmp = strtolower($base);
     }
 
-    if ($basecmp == $pathcmp) {
+    if ($basecmp === $pathcmp) {
         return true;
     }
     $base .= "/";
@@ -132,7 +137,7 @@ function rmdir_recursive($path)
         return(unlink($path));
     }
     if (!is_dir($path)) {
-        if (!empty($GLOBALS['log'])) {
+        if (file_exists($path) && !empty($GLOBALS['log'])) {
             $GLOBALS['log']->fatal("ERROR: rmdir_recursive(): argument $path is not a file or a dir.");
         }
         return false;

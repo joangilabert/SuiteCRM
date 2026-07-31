@@ -2,17 +2,9 @@
 
 namespace Step\Acceptance;
 
+#[\AllowDynamicProperties]
 class KnowledgeBase extends \AcceptanceTester
 {
-    /**
-     * Navigate to knowledge base module
-     */
-    public function gotoKnowledgeBase()
-    {
-        $I = new NavigationBar($this->getScenario());
-        $I->clickAllMenuItem('Knowledge Base');
-    }
-
     /**
      * Create a knowledge base
      *
@@ -32,7 +24,7 @@ class KnowledgeBase extends \AcceptanceTester
         $I->fillField('#additional_info', $faker->text());
         $I->fillField('#revision', $faker->randomDigit());
 
-        $I->executeJS('tinyMCE.activeEditor.setContent("TinyMCE Content Test");');
+        $I->executeJS('tinymce.activeEditor.setContent("TinyMCE Content Test");');
 
         $I->seeElement('#author');
         $I->seeElement('#approver');

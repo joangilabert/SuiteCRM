@@ -41,13 +41,7 @@ if (!defined('sugarEntry') || !sugarEntry) {
  * display the words "Powered by SugarCRM" and "Supercharged by SuiteCRM".
  */
 
-/*********************************************************************************
 
- * Description:  TODO: To be written.
- * Portions created by SugarCRM are Copyright (C) SugarCRM, Inc.
- * All Rights Reserved.
- * Contributor(s): ______________________________________..
- ********************************************************************************/
 
 if (isset($_REQUEST['uid'])) {
     $merge_ids = explode(',', $_REQUEST['uid']);
@@ -78,7 +72,7 @@ if (isset($_REQUEST['uid'])) {
     if (isset($_SESSION['export_where']) && !empty($_SESSION['export_where'])) { // bug 4679
         $where = $_SESSION['export_where'];
         $whereArr = explode(" ", trim($where));
-        if ($whereArr[0] == trim('where')) {
+        if ($whereArr[0] === trim('where')) {
             $whereClean = array_shift($whereArr);
         }
         $where = implode(" ", $whereArr);

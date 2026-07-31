@@ -5,7 +5,7 @@
  * SugarCRM, Inc. Copyright (C) 2004-2013 SugarCRM Inc.
  *
  * SuiteCRM is an extension to SugarCRM Community Edition developed by SalesAgility Ltd.
- * Copyright (C) 2011 - 2018 SalesAgility Ltd.
+ * Copyright (C) 2011 - 2019 SalesAgility Ltd.
  *
  * This program is free software; you can redistribute it and/or modify it under
  * the terms of the GNU Affero General Public License version 3 as published by the
@@ -79,9 +79,11 @@ $mod_strings = array(
     'LBL_ACTUAL_EFFORT' => 'Actual Effort (hrs):',
     'LBL_UTILIZATION' => 'Utilization (%):',
     'LBL_DELETED' => 'Deleted:',
+    'LBL_IMPORT_PROJECT_TASKS' => 'Import Project Tasks',
 
     'LBL_LIST_NAME' => 'Name',
     'LBL_LIST_PARENT_NAME' => 'Project',
+    'LBL_SEARCH_FORM_TITLE' => 'Project Task Search',
     'LBL_LIST_PERCENT_COMPLETE' => '% Complete',
     'LBL_LIST_STATUS' => 'Status',
     'LBL_LIST_ASSIGNED_USER_ID' => 'Assigned To',
@@ -89,6 +91,7 @@ $mod_strings = array(
     'LBL_LIST_PRIORITY' => 'Priority',
     'LBL_LIST_CLOSE' => 'Close',
     'LBL_PROJECT_NAME' => 'Project Name',
+    'LBL_LIST_FORM_TITLE' => 'Project Task List',
 
     'LNK_NEW_PROJECT' => 'Create Project',
     'LNK_PROJECT_LIST' => 'Project List',
@@ -113,4 +116,7 @@ $mod_strings = array(
     'LBL_DAYS' => 'Days',
     'LBL_HOURS' => 'Hours',
     'LBL_RELATIONSHIP_TYPE' => 'Relationship Type',
+
+    'LBL_ASCENDING' => 'Ascending',
+    'LBL_DESCENDING' => 'Descending',
 );

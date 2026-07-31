@@ -1,17 +1,18 @@
 <?php
 namespace Api\V8\BeanDecorator;
 
+#[\AllowDynamicProperties]
 class BeanListResponse
 {
     /**
      * @var \SugarBean[]|[]
      */
-    private $beans;
+    protected $beans;
 
     /**
      * @var int
      */
-    private $rowCount;
+    protected $rowCount;
 
     /**
      * @param array $result
@@ -19,7 +20,7 @@ class BeanListResponse
     public function __construct(array $result = [])
     {
         $this->beans = isset($result['list']) ? $result['list'] : [];
-        $this->rowCount = isset($result['row_count']) ? intval($result['row_count']) : 0;
+        $this->rowCount = isset($result['row_count']) ? (int)$result['row_count'] : 0;
     }
 
     /**

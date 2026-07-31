@@ -55,21 +55,6 @@ class MySugar
         $this->type = $type;
     }
 
-    /**
-     * @deprecated deprecated since version 7.6, PHP4 Style Constructors are deprecated and will be remove in 7.8, please update your code, use __construct instead
-     */
-    public function MySugar($type)
-    {
-        $deprecatedMessage = 'PHP4 Style Constructors are deprecated and will be remove in 7.8, please update your code';
-        if (isset($GLOBALS['log'])) {
-            $GLOBALS['log']->deprecated($deprecatedMessage);
-        } else {
-            trigger_error($deprecatedMessage, E_USER_DEPRECATED);
-        }
-        self::__construct($type);
-    }
-
-
     public function checkDashletDisplay()
     {
         if ((!in_array($this->type, $GLOBALS['moduleList'])
@@ -109,6 +94,11 @@ class MySugar
             $pages = $current_user->getPreference('pages', $this->type);
 
             $dashlets = $current_user->getPreference('dashlets', $this->type);
+
+            if (!empty($_POST['type_module']) && stripos($_POST['type_module'], 'phar://') !== false) {
+                LoggerManager::getLogger()->security('MySugar:addDashlet unsecure type_module received: ' . $_POST['type_module']);
+                throw new RuntimeException('Invalid type_module');
+            }
 
             $guid = create_guid();
             $options = array();
@@ -160,8 +150,10 @@ class MySugar
             foreach ($_REQUEST as $k => $v) {
                 if ($k == 'lvso') {
                     $sortOrder = $v;
-                } elseif (preg_match('/Home2_.+_ORDER_BY/', $k)) {
-                    $orderBy = $v;
+                } else {
+                    if (preg_match('/Home2_.+_ORDER_BY/', $k)) {
+                        $orderBy = $v;
+                    }
                 }
             }
             if (!empty($sortOrder) && !empty($orderBy)) {
@@ -169,6 +161,9 @@ class MySugar
                 $current_user->setPreference('dashlets', $dashlets, 0, $this->type);
             }
 
+            if (!file_exists($dashlets[$id]['fileLocation'])) {
+                return;
+            }
             require_once($dashlets[$id]['fileLocation']);
             $dashlet = new $dashlets[$id]['className']($id, (isset($dashlets[$id]['options']) ? $dashlets[$id]['options'] : array()));
             if (!empty($_REQUEST['configure']) && $_REQUEST['configure']) { // save settings
@@ -376,8 +371,10 @@ EOJS;
 
         if ($category == 'module' || $category == 'tools') {
             $html = $this->searchModuleToolsDashlets($searchStr, $category);
-        } elseif ($category == 'chart') {
-            $html = $this->searchChartsDashlets($searchStr);
+        } else {
+            if ($category == 'chart') {
+                $html = $this->searchChartsDashlets($searchStr);
+            }
         }
 
         $json = getJSONobj();
@@ -433,7 +430,8 @@ EOJS;
             $current_user->setPreference('pages', $pages, 0, $this->type);
 
             return '1';
+        } else {
+            return '0';
         }
-        return '0';
     }
 }

@@ -44,11 +44,15 @@ if (!defined('sugarEntry') || !sugarEntry) {
 require_once('include/Dashlets/DashletGeneric.php');
 require_once('modules/SurveyResponses/SurveyResponses.php');
 
+#[\AllowDynamicProperties]
 class SurveyResponsesDashlet extends DashletGeneric
 {
     public function __construct($id, $def = null)
     {
-        global $current_user, $app_strings;
+        global $current_user, $app_strings, $dashletData;
+
+        $dashletData = $dashletData ?? [];
+
         require('modules/SurveyResponses/metadata/dashletviewdefs.php');
 
         parent::__construct($id, $def);
@@ -60,6 +64,6 @@ class SurveyResponsesDashlet extends DashletGeneric
         $this->searchFields = $dashletData['SurveyResponsesDashlet']['searchFields'];
         $this->columns = $dashletData['SurveyResponsesDashlet']['columns'];
 
-        $this->seedBean = new SurveyResponses();
+        $this->seedBean = BeanFactory::newBean('SurveyResponses');
     }
 }

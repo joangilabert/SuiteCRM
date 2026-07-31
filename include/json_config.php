@@ -53,6 +53,7 @@ if (!defined('sugarEntry') || !sugarEntry) {
 global $app_strings, $json;
 $json = getJSONobj();
 
+#[\AllowDynamicProperties]
 class json_config
 {
     public $global_registry_var_name = 'GLOBAL_REGISTRY';
@@ -133,8 +134,10 @@ class json_config
         global $json;
         if (empty($module)) {
             return '';
-        } elseif (empty($record)) {
-            return "\n".$this->global_registry_var_name.'["focus"] = {"module":"'.$module.'",users_arr:[],fields:{"id":"-1"}}'."\n";
+        } else {
+            if (empty($record)) {
+                return "\n".$this->global_registry_var_name.'["focus"] = {"module":"'.$module.'",users_arr:[],fields:{"id":"-1"}}'."\n";
+            }
         }
 
         $module_arr = $this->meeting_retrieve($module, $record);
@@ -158,17 +161,23 @@ class json_config
 
         if ($module == 'Meetings') {
             $users = $focus->get_meeting_users();
-        } elseif ($module == 'Calls') {
-            $users = $focus->get_call_users();
-        } elseif ($module == 'Project') {
-            $focus->load_relationships('users');
-            $users=$focus->get_linked_beans('project_users_1', 'User');
-        } elseif ($module == 'AM_ProjectTemplates') {
-            $focus->load_relationships('users');
-            $users=$focus->get_linked_beans('am_projecttemplates_users_1', 'User');
+        } else {
+            if ($module == 'Calls') {
+                $users = $focus->get_call_users();
+            } else {
+                if ($module == 'Project') {
+                    $focus->load_relationships('users');
+                    $users=$focus->get_linked_beans('project_users_1', 'User');
+                } else {
+                    if ($module == 'AM_ProjectTemplates') {
+                        $focus->load_relationships('users');
+                        $users=$focus->get_linked_beans('am_projecttemplates_users_1', 'User');
+                    }
+                }
+            }
         }
-        
-        
+
+
         $module_arr['users_arr'] = array();
 
         foreach ($users as $user) {
@@ -187,10 +196,12 @@ class json_config
 
         if ($module == 'Project') {
             $contacts=$focus->get_linked_beans('project_contacts_1', 'Contact');
-        } elseif ($module == 'AM_ProjectTemplates') {
-            $contacts=$focus->get_linked_beans('am_projecttemplates_contacts_1', 'Contact');
         } else {
-            $contacts=$focus->get_linked_beans('contacts', 'Contact');
+            if ($module == 'AM_ProjectTemplates') {
+                $contacts=$focus->get_linked_beans('am_projecttemplates_contacts_1', 'Contact');
+            } else {
+                $contacts=$focus->get_linked_beans('contacts', 'Contact');
+            }
         }
 
         foreach ($contacts as $contact) {
@@ -244,7 +255,7 @@ class json_config
         foreach ($all_fields as $field) {
             if (isset($focus->$field) && !is_object($focus->$field)) {
                 $focus->$field =  from_html($focus->$field);
-                $focus->$field =  preg_replace("/\r\n/", "<BR>", $focus->$field);
+                $focus->$field =  preg_replace("/\r\n/", "<BR>", (string) $focus->$field);
                 $focus->$field =  preg_replace("/\n/", "<BR>", $focus->$field);
                 $module_arr['fields'][$field] = $focus->$field;
             }

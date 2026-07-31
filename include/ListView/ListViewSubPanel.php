@@ -46,6 +46,7 @@ if (!defined('sugarEntry') || !sugarEntry) {
      * ListView for the subpanel- list of many objects
      * @api
      */
+    #[\AllowDynamicProperties]
     class ListViewSubPanel extends ListView
     {
         protected $smartyTemplate;
@@ -140,7 +141,7 @@ if (!defined('sugarEntry') || !sugarEntry) {
             $html_var = $this->subpanel_module . "_CELL";
 
             $list_data = $this->processUnionBeans($sugarbean, $subpanel_def, $html_var, $countOnly);
-            
+
             if ($countOnly) {
                 return $list_data;
             }
@@ -308,9 +309,9 @@ if (!defined('sugarEntry') || !sugarEntry) {
                 $fields = $aItem->get_list_view_data();
                 if (isset($processed_ids[$aItem->id])) {
                     continue;
+                } else {
+                    $processed_ids[$aItem->id] = 1;
                 }
-                $processed_ids[$aItem->id] = 1;
-                
 
 
                 //ADD OFFSET TO ARRAY
@@ -380,13 +381,11 @@ if (!defined('sugarEntry') || !sugarEntry) {
                  * $field_acl['DetailView'] = $aItem->ACLAccess('DetailView');
                  * $field_acl['ListView'] = $aItem->ACLAccess('ListView');
                  * $field_acl['EditView'] = $aItem->ACLAccess('EditView');
-                 * $field_acl['Delete'] = $aItem->ACLAccess('Delete');
                  */
                 //pass is_owner, in_group...vars defined above
                 $field_acl['DetailView'] = $aItem->ACLAccess('DetailView', $aclaccess_is_owner, $aclaccess_in_group);
                 $field_acl['ListView'] = $aItem->ACLAccess('ListView', $aclaccess_is_owner, $aclaccess_in_group);
                 $field_acl['EditView'] = $aItem->ACLAccess('EditView', $aclaccess_is_owner, $aclaccess_in_group);
-                $field_acl['Delete'] = $aItem->ACLAccess('Delete', $aclaccess_is_owner, $aclaccess_in_group);
                 /* END - SECURITY GROUPS */
                 foreach ($thepanel->get_list_fields() as $field_name => $list_field) {
                     //add linked field attribute to the array.
@@ -490,7 +489,7 @@ if (!defined('sugarEntry') || !sugarEntry) {
                                         $widget_contents[$aVal][$field_name] = '&nbsp;';
                                     }
                                 } elseif (preg_match("/button/i", $list_field['name'])) {
-                                    if ((($list_field['name'] === 'edit_button' && $field_acl['EditView']) || ($list_field['name'] === 'close_button' && $field_acl['EditView']) || ($list_field['name'] === 'remove_button' && $field_acl['Delete'])) && '' != ($_content = $layout_manager->widgetDisplay($list_field))) {
+                                    if ((($list_field['name'] === 'edit_button' && $field_acl['EditView']) || ($list_field['name'] === 'close_button' && $field_acl['EditView']) || ($list_field['name'] === 'remove_button' && $field_acl['EditView'])) && '' != ($_content = $layout_manager->widgetDisplay($list_field))) {
                                         $button_contents[$aVal][] = $_content;
                                         unset($_content);
                                     } else {
@@ -536,7 +535,7 @@ if (!defined('sugarEntry') || !sugarEntry) {
             if (!isset($current_offset) || empty($current_offset)) {
                 $current_offset=0;
             }
-            $start_record = $current_offset + 1;
+            $start_record = (int)$current_offset + 1;
 
             if (!is_numeric($col_count)) {
                 $col_count = 20;
@@ -547,7 +546,7 @@ if (!defined('sugarEntry') || !sugarEntry) {
             }
 
             $end_record = $start_record + $this->records_per_page;
-            // back up the the last page.
+            // back up the last page.
             if ($end_record > $row_count + 1) {
                 $end_record = $row_count + 1;
             }
@@ -716,7 +715,7 @@ if (!defined('sugarEntry') || !sugarEntry) {
                     $delete_link = '&nbsp;';
                 }
 
-                $admin = new Administration();
+                $admin = BeanFactory::newBean('Administration');
                 $admin->retrieveSettings('system');
 
                 $user_merge = $current_user->getPreference('mailmerge_on');
@@ -773,6 +772,8 @@ if (!defined('sugarEntry') || !sugarEntry) {
                         include_once('include/SubPanel/SubPanelTiles.php');
                         $subpanelTiles = new SubPanelTiles($sugarbean);
                         $html_text .= "<table border=\"0\" cellpadding=\"0\" cellspacing=\"0\" width=\"100%\"><tr><td align=\"left\"  >";
+
+                        $html_text = $subpanelTiles->getCheckbox($html_text, $subpanel_def);
 
                         //attempt to get the query to recreate this subpanel
                         if (!empty($this->response)) {
@@ -839,7 +840,7 @@ if (!defined('sugarEntry') || !sugarEntry) {
                     if ($this->base_URL == "/index.php") {
                         $this->base_URL .= "?";
                     } else {
-                        if ($fullRequestString == substr($this->baseURL, '-' . strlen($fullRequestString))) {
+                        if ($fullRequestString == substr($this->base_URL, '-' . strlen($fullRequestString ?? ''))) {
                             $this->base_URL = preg_replace("/&" . $key . "\=.*/", "", $this->base_URL);
                         } else {
                             $this->base_URL = preg_replace("/&" . $key . "\=.*?&/", "&", $this->base_URL);
@@ -859,7 +860,8 @@ if (!defined('sugarEntry') || !sugarEntry) {
                 $this->smartyTemplate->assign("ORDER_BY", $sort_URL_base);
 
                 return $sort_URL_base;
+            } else {
+                return '';
             }
-            return '';
         }
     }

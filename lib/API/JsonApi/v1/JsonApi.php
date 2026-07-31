@@ -39,20 +39,19 @@
  */
 namespace SuiteCRM\API\JsonApi\v1;
 
-use Psr\Container\ContainerInterface;
 use Psr\Log\LoggerAwareInterface;
 use Psr\Log\LoggerInterface;
 use SuiteCRM\API\JsonApi\v1\Interfaces\JsonApiResponseInterface;
-use SuiteCRM\Utility\SuiteLogger as Logger;
 
 /**
  * Class JsonApi
  * @package SuiteCRM\API\JsonApi\v1
  * @see http://jsonapi.org/format/1.0/#document-jsonapi-object
  */
+#[\AllowDynamicProperties]
 class JsonApi implements LoggerAwareInterface, JsonApiResponseInterface
 {
-    const VERSION = '1.0';
+    public const VERSION = '1.0';
     /**
      * @var LoggerInterface Logger
      */

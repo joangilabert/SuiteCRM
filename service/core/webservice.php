@@ -43,11 +43,11 @@ if (!defined('sugarEntry') || !sugarEntry) {
 
 
 /**
- * This file intialize the service class and does all the setters based on the values provided in soap/rest entry point
+ * This file initializes the service class and does all the setters based on the values provided in soap/rest entry point
  * and calls serve method which takes the request and send response back to the client
  */
 ob_start();
-chdir(dirname(__FILE__).'/../../');
+chdir(__DIR__.'/../../');
 require('include/entryPoint.php');
 require_once('soap/SoapError.php');
 require_once('SoapHelperWebService.php');

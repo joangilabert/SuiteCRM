@@ -6,8 +6,11 @@ use Api\V8\OAuth2\Entity\UserEntity;
 use League\OAuth2\Server\Entities\ClientEntityInterface;
 use League\OAuth2\Server\Repositories\UserRepositoryInterface;
 
+#[\AllowDynamicProperties]
 class UserRepository implements UserRepositoryInterface
 {
+    private const DUMMY_HASH = 'c5673848f2e5767db3f8f0f2f12cd60f';
+
     /**
      * @var BeanManager
      */
@@ -38,14 +41,18 @@ class UserRepository implements UserRepositoryInterface
             ['user_name' => $username]
         );
 
-        if ($user->id === null) {
-            throw new \InvalidArgumentException('No user found with this username: ' . $username);
+        $userFound = $user->id !== null;
+        $passwordHash = $userFound ? $user->user_hash : self::DUMMY_HASH;
+
+        // Always run the password check, even for a nonexistent user, so the
+        // response and its timing are identical whether the username or the
+        // password was wrong - neither should be inferable from the outside.
+        $passwordValid = \User::checkPassword($password, $passwordHash);
+
+        if (!$userFound || !$passwordValid) {
+            throw new \InvalidArgumentException('Invalid username or password.');
         }
 
-        if (!\User::checkPassword($password, $user->user_hash)) {
-            throw new \InvalidArgumentException('The password is invalid: ' . $password);
-        }
-
-        return new UserEntity();
+        return new UserEntity($user->id);
     }
 }

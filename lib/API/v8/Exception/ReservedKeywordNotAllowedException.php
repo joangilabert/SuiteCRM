@@ -40,16 +40,12 @@
 
 namespace SuiteCRM\API\v8\Exception;
 
-use SuiteCRM\API\v8\Controller\ApiController;
-use SuiteCRM\Enumerator\ExceptionCode;
-use SuiteCRM\Exception\Exception;
-
 /**
  * Class ReservedKeywordNotAllowedException
  * @package SuiteCRM\API\v8\Exception
  */
 class ReservedKeywordNotAllowedException extends ConflictException
 {
-    const MSG_PREFIX = '[ReservedKeywordNotAllowed]';
-    const DEFAULT_CODE = 8040;
+    public const MSG_PREFIX = '[ReservedKeywordNotAllowed]';
+    public const DEFAULT_CODE = 8040;
 }

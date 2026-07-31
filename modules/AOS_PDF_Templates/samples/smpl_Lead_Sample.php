@@ -2,6 +2,7 @@
 
 require_once __DIR__ . '/../TemplateSampleService.php';
 
+#[\AllowDynamicProperties]
 class smpl_Lead_Sample
 {
     public function getType()
@@ -12,13 +13,13 @@ class smpl_Lead_Sample
     public function getBody()
     {
         global $locale;
-        return '<table style="width: 100%;" border="0" cellspacing="2" cellpadding="2">
+        return '<table style="width: 100%; font-family: DejaVu Sans;" border="0" cellspacing="2" cellpadding="2">
 <tbody style="text-align: left;">
 <tr>
 <td valign="top">
 <p><img src="'. TemplateSampleService::getAbsoluteLogoUrl() .'" style="float: left;"/>&nbsp;</p>
 </td>
-<td style="font-weight: bold; text-align: right;"><div>'.translate('LBL_BROWSER_TITLE').' Ltd<br />'.translate('LBL_ANY_STREET', 'AOS_PDF_Templates').'<br />'.translate('LBL_ANY_TOWN', 'AOS_PDF_Templates').'</span><br />'.translate('LBL_ANY_WHERE', 'AOS_PDF_Templates').'</div></td>
+<td style="text-align: right;"><div>'.translate('LBL_BROWSER_TITLE').'<br />'.translate('LBL_ANY_STREET', 'AOS_PDF_Templates').'<br />'.translate('LBL_ANY_TOWN', 'AOS_PDF_Templates').'<br />'.translate('LBL_ANY_WHERE', 'AOS_PDF_Templates').'</div></td>
 </tr>
 </tbody>
 </table>
@@ -33,15 +34,13 @@ class smpl_Lead_Sample
 <div>{DATE '.$locale->getPrecedentPreference('default_date_format').'}</div>
 <div><br /></div>
 <p>Dear $leads_first_name</p>
-<p>OpenSales was originally designed and conceived by Rustin Phares. In  2009, when Rustin could no longer devote time to the project, which is  an important one for the Community Edition of SugarCRM, SalesAgility approached him to seek permission to pick up where he had left off.</p>
-<p>In early 2010 we released the first iteration of what was now to be  called "Advanced OpenSales". Since then there have been regular releases  to bring Advanced OpenSales into line with the latest releases of  SugarCRM and to advance the functionality.</p>
-<p>2011 saw a complete rewrite of Advanced OpenSales to bring it into  line with the 5.x and 6.x architectures and the introduction of an  Invoice module. In March 2011, an Invoicing module for SugarCRM  Professional Edition was also released.</p>
-<p>Advanced OpenSales is released under the Affero General Purpose  License meaning it&#39;s Open Source and freely available. That does not  mean that there is no cost involved in making it. Thousands of man hours  have gone in to developing and maintaining these modules. Any  contributions that assist us in keeping the project on an even keel are  gratefully received.</p>
-<p>SalesAgility are SugarCRM experts. With offices in Manchester and Central Scotland,  we&#39;re ideally placed to serve your SugarCRM requirements. As  consultants, we design and implement tailored Sugar CRM instances. As  software developers, we design and deliver customised instances of Sugar  CRM that meet the more specialist needs of our clients. As a support  organisation we deliver training, hosting and help-desk services to  ensure that our clients continue to get best value from their Sugar  investment.</p>
+<p>We believe organisations should have full control over the software they use and the data they hold. Open source is what makes that possible: when the code is open, you can see exactly how your CRM works and adapt it to the way your organisation operates. It&#39;s an approach rooted in transparency, collaboration and innovation, the values that guide everything we do.</p>
+<p>We are passionate about open source and it sits at the heart of our work. We provide software that is free to download and code that is open to everyone, built on years of open collaboration and improved continuously through contributions from the community.</p>
+<p>SuiteCRM started in 2013 as a fork of SugarCRM&#39;s Community Edition and has since grown into one of the most capable open source CRMs available. At SuiteCRM Ltd, we continue to lead its development, so that organisations around the world can run their CRM on their own terms, with genuine ownership of their software and their data.</p>
 <p>Yours sincerely</p>
 <p> </p>
 <p> </p>
-<p>Someone</p>
+<p>The SuiteCRM Team</p>
 </td>
 </tr>
 </tbody>
@@ -55,6 +54,14 @@ class smpl_Lead_Sample
 
     public function getFooter()
     {
-        return '';
+        global $locale;
+        return '<table border="0" style="width: 100%; border: none; border-collapse: collapse; border-spacing: 0pt;">
+<tbody>
+<tr>
+<td style="border: none;">'.translate('LBL_PAGE', 'AOS_PDF_Templates').' {PAGENO}</td>
+<td style="border: none; text-align: right;">{DATE '.$locale->getPrecedentPreference('default_date_format').'}</td>
+</tr>
+</tbody>
+</table>';
     }
 }

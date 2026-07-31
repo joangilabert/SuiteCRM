@@ -41,13 +41,7 @@ if (!defined('sugarEntry') || !sugarEntry) {
  * display the words "Powered by SugarCRM" and "Supercharged by SuiteCRM".
  */
 
-/*********************************************************************************
 
- * Description:  TODO: To be written.
- * Portions created by SugarCRM are Copyright (C) SugarCRM, Inc.
- * All Rights Reserved.
- * Contributor(s): ______________________________________..
- ********************************************************************************/
 require_once('include/formbase.php');
 
 
@@ -55,7 +49,7 @@ global $mod_strings;
 
 
 //get new administration bean for setup
-$focus = new Administration();
+$focus = BeanFactory::newBean('Administration');
 $camp_steps[] = 'wiz_step_';
 $camp_steps[] = 'wiz_step1_';
 $camp_steps[] = 'wiz_step2_';
@@ -122,15 +116,15 @@ if (isset($_REQUEST['wiz_new_mbox']) && ($_REQUEST['wiz_new_mbox']=='1')) {
 function clean_up_post($prefix)
 {
     foreach ($_REQUEST as $key => $val) {
-        if ((strstr($key, $prefix)) && (strpos($key, $prefix)== 0)) {
-            $newkey  =substr($key, strlen($prefix)) ;
+        if ((strstr($key, (string) $prefix)) && (strpos($key, (string) $prefix)== 0)) {
+            $newkey  =substr($key, strlen((string) $prefix)) ;
             $_REQUEST[$newkey] = $val;
         }
     }
 
     foreach ($_POST as $key => $val) {
-        if ((strstr($key, $prefix)) && (strpos($key, $prefix)== 0)) {
-            $newkey  =substr($key, strlen($prefix)) ;
+        if ((strstr($key, (string) $prefix)) && (strpos($key, (string) $prefix)== 0)) {
+            $newkey  =substr($key, strlen((string) $prefix)) ;
             $_POST[$newkey] = $val;
         }
     }

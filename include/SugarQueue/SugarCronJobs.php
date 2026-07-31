@@ -48,6 +48,7 @@ require_once 'modules/Schedulers/Scheduler.php';
  * CRON driver for job queue
  * @api
  */
+#[\AllowDynamicProperties]
 class SugarCronJobs
 {
     /**
@@ -134,15 +135,15 @@ class SugarCronJobs
         if (!file_exists($this->lockfile)) {
             $this->markLastRun();
             return true;
+        } else {
+            $ts = (int) file_get_contents($this->lockfile);
+            $this->markLastRun();
+            $now = time();
+            if ($now - $ts < $this->min_interval) {
+                // run too frequently
+                return false;
+            }
         }
-        $ts = file_get_contents($this->lockfile);
-        $this->markLastRun();
-        $now = time();
-        if ($now - $ts < $this->min_interval) {
-            // run too frequently
-            return false;
-        }
-        
         return true;
     }
 
@@ -211,10 +212,12 @@ class SugarCronJobs
             $GLOBALS['log']->fatal("Job runs too frequently, throttled to protect the system.");
             return;
         }
-        // clean old stale jobs
+        // clean stale jobs
         if (!$this->queue->cleanup()) {
             $this->jobFailed();
         }
+        // delete expired jobs
+        $this->queue->clearHistoricJobs();
         // run schedulers
         if (!$this->disable_schedulers) {
             $this->queue->runSchedulers();

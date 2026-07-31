@@ -48,6 +48,7 @@ if (!defined('sugarEntry') || !sugarEntry) {
 require_once('include/Dashlets/DashletGenericChart.php');
 
 
+#[\AllowDynamicProperties]
 class OutcomeByMonthDashlet extends DashletGenericChart
 {
     public $obm_ids = array();
@@ -64,7 +65,7 @@ class OutcomeByMonthDashlet extends DashletGenericChart
      */
     public function __construct(
         $id,
-        array $options = null
+        ?array $options = null
     ) {
         global $timedate;
 
@@ -98,7 +99,7 @@ class OutcomeByMonthDashlet extends DashletGenericChart
     {
         $currency_symbol = $GLOBALS['sugar_config']['default_currency_symbol'];
         if ($GLOBALS['current_user']->getPreference('currency')) {
-            $currency = new Currency();
+            $currency = BeanFactory::newBean('Currencies');
             $currency->retrieve($GLOBALS['current_user']->getPreference('currency'));
             $currency_symbol = $currency->symbol;
         }
@@ -124,7 +125,7 @@ class OutcomeByMonthDashlet extends DashletGenericChart
         //$chartReadyData['data'] = [[1.1,2.2],[3.3,4.4]];
         $jsonData = json_encode($chartReadyData['data']);
         $jsonLabels = json_encode($chartReadyData['labels']);
-        $jsonLabelsAndValues = json_encode($chartReadyData['labelsAndValues']);
+        $jsonLabelsAndValues = json_encode($chartReadyData['labelsAndValues'] ?? []);
 
 
         $jsonKey = json_encode($chartReadyData['key']);
@@ -222,7 +223,7 @@ class OutcomeByMonthDashlet extends DashletGenericChart
             id: '$canvasId',
             x: 10,
             y: 20,
-            text: 'Opportunity size in ${currency_symbol}1$thousands_symbol',
+            text: 'Opportunity size in {$currency_symbol}1$thousands_symbol',
             options: {
                 font: 'Arial',
                 bold: true,
@@ -244,16 +245,16 @@ EOD;
     protected function constructQuery()
     {
         $query = "SELECT sales_stage,".
-            db_convert('opportunities.date_closed', 'date_format', array("'%Y-%m'"), array("'YYYY-MM'"))." as m, ".
+            DBManagerFactory::getInstance()->convert('opportunities.date_closed', 'date_format', array("'%Y-%m'"), array("'YYYY-MM'"))." as m, ".
             "sum(amount_usdollar/1000) as total, count(*) as opp_count FROM opportunities ";
-        $query .= " WHERE opportunities.date_closed >= ".db_convert("'".$this->obm_date_start."'", 'date') .
-            " AND opportunities.date_closed <= ".db_convert("'".$this->obm_date_end."'", 'date') .
+        $query .= " WHERE opportunities.date_closed >= ".DBManagerFactory::getInstance()->convert("'".$this->obm_date_start."'", 'date') .
+            " AND opportunities.date_closed <= ".DBManagerFactory::getInstance()->convert("'".$this->obm_date_end."'", 'date') .
             " AND opportunities.deleted=0";
-        if (count($this->obm_ids) > 0) {
+        if (isset($this->obm_ids) && count($this->obm_ids) > 0) {
             $query .= " AND opportunities.assigned_user_id IN ('" . implode("','", $this->obm_ids) . "')";
         }
         $query .= " GROUP BY sales_stage,".
-            db_convert('opportunities.date_closed', 'date_format', array("'%Y-%m'"), array("'YYYY-MM'")) .
+            DBManagerFactory::getInstance()->convert('opportunities.date_closed', 'date_format', array("'%Y-%m'"), array("'YYYY-MM'")) .
             " ORDER BY m";
 
         return $query;
@@ -261,12 +262,14 @@ EOD;
 
     protected function prepareChartData($data, $currency_symbol, $thousands_symbol)
     {
+        $chart = [];
         //Use the  lead_source to categorise the data for the charts
         $chart['labels'] = array();
         $chart['data'] = array();
         //Need to add all elements into the key, as they are stacked (even though the category is not present, the value could be)
         $chart['key'] = array();
         $chart['tooltips']= array();
+        $chart['labelsAndValues']=array();
 
         foreach ($data as $i) {
             $key = $i["m"];

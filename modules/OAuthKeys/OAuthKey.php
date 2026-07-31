@@ -43,11 +43,10 @@ if (!defined('sugarEntry') || !sugarEntry) {
  */
 
 
-require_once 'Zend/Oauth/Provider.php';
-
 /**
  * OAuth customer key
  */
+#[\AllowDynamicProperties]
 class OAuthKey extends Basic
 {
     public $module_dir = 'OAuthKeys';

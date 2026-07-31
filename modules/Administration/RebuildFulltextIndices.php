@@ -56,9 +56,15 @@ foreach ($beanFiles as $beanname=>$beanpath) {
     //skips beans based on same tables. user, employee and group are an example.
     if (empty($focus->table_name) || isset($processed_tables[$focus->table_name])) {
         continue;
+    } else {
+        $processed_tables[$focus->table_name]=$focus->table_name;
+    }
+
+    //skips beans based on same tables. user, employee and group are an example.
+    if (empty($focus->table_name) || isset($processed_tables[$focus->table_name])) {
+        continue;
     }
     $processed_tables[$focus->table_name]=$focus->table_name;
-
 
     if (!empty($dictionary[$focus->object_name]['indices'])) {
         $indices=$dictionary[$focus->object_name]['indices'];
@@ -72,7 +78,7 @@ foreach ($beanFiles as $beanname=>$beanpath) {
     foreach ($indices as $definition) {
         //database helpers do not know how to handle full text indices
         if ($definition['type']=='fulltext') {
-            if (isset($definition['db']) and $definition['db'] != DBManagerFactory::getInstance()->dbType) {
+            if (isset($definition['db']) && $definition['db'] != DBManagerFactory::getInstance()->dbType) {
                 continue;
             }
 

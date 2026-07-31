@@ -40,16 +40,15 @@
 
 namespace SuiteCRM\API\v8\Exception;
 
-use SuiteCRM\Enumerator\ExceptionCode;
-
 /**
  * Class ModuleNotFoundException
  * @package SuiteCRM\API\v8\Exception
  */
+#[\AllowDynamicProperties]
 class ModuleNotFoundException extends ApiException
 {
-    const MSG_PREFIX = '[Module Not Found]';
-    const DEFAULT_CODE = 8015;
-    const HTTP_STATUS = 406;
-    const DETAIL_TEXT_LABEL = 'LBL_MODULE_NOT_FOUND_EXCEPTION_DETAIL';
+    public const MSG_PREFIX = '[Module Not Found]';
+    public const DEFAULT_CODE = 8015;
+    public const HTTP_STATUS = 406;
+    public const DETAIL_TEXT_LABEL = 'LBL_MODULE_NOT_FOUND_EXCEPTION_DETAIL';
 }

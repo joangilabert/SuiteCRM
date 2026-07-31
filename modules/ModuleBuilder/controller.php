@@ -47,6 +47,7 @@ require_once('modules/ModuleBuilder/parsers/ParserFactory.php') ;
 require_once('modules/ModuleBuilder/Module/StudioModuleFactory.php');
 require_once 'modules/ModuleBuilder/parsers/constants.php' ;
 
+#[\AllowDynamicProperties]
 class ModuleBuilderController extends SugarController
 {
     public $action_remap = array( ) ;
@@ -72,10 +73,12 @@ class ModuleBuilderController extends SugarController
                 return $mod_strings['LBL_DROPDOWNEDITOR'];
             } elseif ($_REQUEST['type'] == 'home') {
                 return $mod_strings['LBL_HOME'];
+            } else {
+                return $mod_strings['LBL_DEVELOPER_TOOLS'];
             }
+        } else {
             return $mod_strings['LBL_DEVELOPER_TOOLS'];
         }
-        return $mod_strings['LBL_DEVELOPER_TOOLS'];
     }
 
     public function fromModuleBuilder()
@@ -144,6 +147,7 @@ class ModuleBuilderController extends SugarController
 
     public function action_ViewTree()
     {
+        $mbt = null;
         require_once('modules/ModuleBuilder/MB/AjaxCompose.php') ;
         switch ($_REQUEST [ 'tree' ]) {
             case 'ModuleBuilder':
@@ -238,7 +242,7 @@ class ModuleBuilderController extends SugarController
             UnifiedSearchAdvanced::unlinkUnifiedSearchModulesFile();
 
             //bug 44269 - start
-            
+
             //clear workflow admin modules cache
             if (isset($_SESSION['get_workflow_admin_modules_for_user'])) {
                 unset($_SESSION['get_workflow_admin_modules_for_user']);
@@ -286,8 +290,15 @@ class ModuleBuilderController extends SugarController
 
     public function action_SaveModule()
     {
+        global $log;
         $mb = new ModuleBuilder() ;
         $load = (! empty($_REQUEST [ 'original_name' ])) ? $_REQUEST [ 'original_name' ] : $_REQUEST [ 'name' ] ;
+
+        if (!isAllowedModuleName($_REQUEST[ 'name' ])) {
+            $log->security(  'Attempt to use invalid module name '. $_REQUEST[ 'name' ] );
+            throw new InvalidArgumentException('Invalid name');
+        }
+
         if (! empty($load)) {
             $mb->getPackage($_REQUEST [ 'package' ]) ;
             $mb->packages [ $_REQUEST [ 'package' ] ]->getModule($load) ;
@@ -296,10 +307,12 @@ class ModuleBuilderController extends SugarController
             $mb->save() ;
             if (! empty($_REQUEST [ 'duplicate' ])) {
                 $module->copy($_REQUEST [ 'name' ]) ;
-            } elseif (! empty($_REQUEST [ 'original_name' ]) && $_REQUEST [ 'original_name' ] != $_REQUEST [ 'name' ]) {
-                if (! $module->rename($_REQUEST [ 'name' ])) {
-                    $module->name = $_REQUEST [ 'original_name' ] ;
-                    $_REQUEST [ 'name' ] = $_REQUEST [ 'original_name' ] ;
+            } else {
+                if (! empty($_REQUEST [ 'original_name' ]) && $_REQUEST [ 'original_name' ] != $_REQUEST [ 'name' ]) {
+                    if (! $module->rename($_REQUEST [ 'name' ])) {
+                        $module->name = $_REQUEST [ 'original_name' ] ;
+                        $_REQUEST [ 'name' ] = $_REQUEST [ 'original_name' ] ;
+                    }
                 }
             }
 
@@ -516,9 +529,9 @@ class ModuleBuilderController extends SugarController
                     $parser->handleSaveRelationshipLabels($metadata, $selected_lang) ;
                 }
             }
+        } else {
+            //TODO FOR MB
         }
-        //TODO FOR MB
-        
         $this->view = 'relationships' ;
     }
 
@@ -583,6 +596,7 @@ class ModuleBuilderController extends SugarController
 
     public function action_DeleteField()
     {
+        $module = null;
         require_once('modules/DynamicFields/FieldCases.php') ;
         $field = get_widget($_REQUEST [ 'type' ]) ;
         $field->name = $_REQUEST [ 'name' ] ;
@@ -603,7 +617,7 @@ class ModuleBuilderController extends SugarController
                 $df->setup($seed) ;
                 //Need to load the entire field_meta_data for some field types
                 $field = $df->getFieldWidget($moduleName, $field->name);
-                $field->delete($df) ;
+                $field?->delete($df);
 
                 $GLOBALS [ 'mod_strings' ]['LBL_ALL_MODULES'] = 'all_modules';
                 $_REQUEST['execute_sql'] = true;
@@ -617,7 +631,7 @@ class ModuleBuilderController extends SugarController
             $mb = new ModuleBuilder() ;
             $module = & $mb->getPackageModule($_REQUEST [ 'view_package' ], $_REQUEST [ 'view_module' ]) ;
             $field = $module->getField($field->name);
-            $field->delete($module) ;
+            $field?->delete($module);
             $mb->save() ;
         }
         $module->removeFieldFromLayouts($field->name);

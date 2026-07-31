@@ -41,12 +41,7 @@ if (!defined('sugarEntry') || !sugarEntry) {
  * display the words "Powered by SugarCRM" and "Supercharged by SuiteCRM".
  */
 
-/*********************************************************************************
 
- * Description:
- * Portions created by SugarCRM are Copyright (C) SugarCRM, Inc. All Rights
- * Reserved. Contributor(s): ______________________________________..
- * *******************************************************************************/
 
 
 ////	COMMON
@@ -56,7 +51,7 @@ function ajaxSqlProgress($persistence, $sql, $type)
     global $mod_strings;
 
     // $type is sql_to_check or sql_to_run
-    $whatsLeft = count($persistence[$type]);
+    $whatsLeft = is_countable($persistence[$type]) ? count($persistence[$type]) : 0;
 
     ob_start();
     $out  = "<b>{$mod_strings['LBL_UW_PREFLIGHT_QUERY']}</b><br />";
@@ -111,7 +106,7 @@ function commitAjaxFinalTouches($persistence)
     // reminders if needed
     ///////////////////////////////////////////////////////////////////////////////
     ////	HANDLE REMINDERS
-    if (count($persistence['skipped_files']) > 0) {
+    if ((is_countable($persistence['skipped_files']) ? count($persistence['skipped_files']) : 0) > 0) {
         $desc  = $mod_strings['LBL_UW_COMMIT_ADD_TASK_OVERVIEW']."\n\n";
         $desc .= $mod_strings['LBL_UW_COMMIT_ADD_TASK_DESC_1'];
         $desc .= $persistence['uw_restore_dir']."\n\n";
@@ -129,7 +124,7 @@ function commitAjaxFinalTouches($persistence)
         if ($_REQUEST['addTaskReminder'] == 'remind') {
             logThis('Adding Task for admin for manual merge.');
 
-            $task = new Task();
+            $task = BeanFactory::newBean('Tasks');
             $task->name = $mod_strings['LBL_UW_COMMIT_ADD_TASK_NAME'];
             $task->description = $desc;
             $task->date_due = $nowDate;
@@ -146,7 +141,7 @@ function commitAjaxFinalTouches($persistence)
         if ($_REQUEST['addEmailReminder'] == 'remind') {
             logThis('Sending Reminder for admin for manual merge.');
 
-            $email = new Email();
+            $email = BeanFactory::newBean('Emails');
             $email->assigned_user_id = $current_user->id;
             $email->name = $mod_strings['LBL_UW_COMMIT_ADD_TASK_NAME'];
             $email->description = $desc;
@@ -192,7 +187,7 @@ function commitAjaxRunSql($persistence)
     // This flag is determined by the preflight check in the installer
     if ($persistence['schema_change'] == 'sugar') {
         if (isset($persistence['sql_to_run'])
-            && count($persistence['sql_to_run']) > 0
+            && (is_countable($persistence['sql_to_run']) ? count($persistence['sql_to_run']) : 0) > 0
             && !empty($persistence['sql_to_run'])) {
             $sql = array_shift($persistence['sql_to_run']);
             $sql = trim($sql);
@@ -268,6 +263,7 @@ function commitAjaxPrepSql($persistence)
  */
 function commitAjaxPostInstall($persistence)
 {
+    $errors = [];
     global $mod_strings;
     global $sugar_config;
     global $sugar_version;
@@ -319,6 +315,7 @@ function commitAjaxPostInstall($persistence)
 
 function preflightCheckJsonFindUpgradeFiles($persistence)
 {
+    $manifest = [];
     global $sugar_config;
     global $mod_strings;
 
@@ -402,7 +399,7 @@ function preflightCheckJsonDiffFiles($persistence)
     $cache_html_files = findAllFilesRelative(sugar_cached("layout"), array());
 
     foreach ($persistence['upgrade_files'] as $file) {
-        if (strpos($file, '.md5')) {
+        if (strpos((string) $file, '.md5')) {
             continue;
         } // skip md5 file
 
@@ -414,7 +411,7 @@ function preflightCheckJsonDiffFiles($persistence)
             $errors[] = $mod_strings['ERR_UW_FILE_NOT_WRITABLE'].": ".$file;
         }
         // check that destination files are writable
-        $destFile = getcwd().str_replace($finalZipDir, '', $file);
+        $destFile = getcwd().str_replace($finalZipDir, '', (string) $file);
 
         if (is_file($destFile)) { // of course it needs to exist first...
             if (!is_writable($destFile)) {
@@ -428,7 +425,7 @@ function preflightCheckJsonDiffFiles($persistence)
         $targetFile = clean_path(".".str_replace(getcwd(), '', $destFile));
         $targetMd5 = '0';
         if (is_file($destFile)) {
-            if (strpos($targetFile, '.php')) {
+            if (strpos((string) $targetFile, '.php')) {
                 // handle PHP files that were hit with the security regex
                 $filesize = filesize($destFile);
                 if ($filesize > 0) {
@@ -467,7 +464,7 @@ function preflightCheckJsonGetDiff($persistence)
 
     $disableEmail = (empty($current_user->email1)) ? 'DISABLED' : 'CHECKED';
 
-    if (count($persistence['manual']) > 0) {
+    if ((is_countable($persistence['manual']) ? count($persistence['manual']) : 0) > 0) {
         $preserveFiles = array();
 
         $diffs =<<<eoq
@@ -538,7 +535,7 @@ eoq;
             $diffs .= "<tr><td valign='top'>";
             $diffs .= "<input type='checkbox' name='diff_files[]' value='{$diff}' $checked>";
             $diffs .= "</td><td valign='top'>";
-            $diffs .= str_replace(getcwd(), '.', $diff);
+            $diffs .= str_replace(getcwd(), '.', (string) $diff);
             $diffs .= "</td></tr>";
         }
         $diffs .= "</table>";
@@ -553,7 +550,7 @@ eoq;
                 $preserve .= $mod_strings['LBL_UW_PREFLIGHT_PRESERVE_FILES'];
                 $preserve .= "</b></td></tr>";
             }
-            $preserve .= "<tr><td valign='top'><i>".str_replace(getcwd(), '.', $pf)."</i></td></tr>";
+            $preserve .= "<tr><td valign='top'><i>".str_replace(getcwd(), '.', (string) $pf)."</i></td></tr>";
         }
         if (!empty($preserve)) {
             $preserve .= '</table><br>';
@@ -633,7 +630,7 @@ function preflightCheckJsonPrepSchemaCheck($persistence, $preflight=true)
                 }
             }
 
-            $persistence['sql_total'] = count($persistence['sql_to_check']);
+            $persistence['sql_total'] = is_countable($persistence['sql_to_check']) ? count($persistence['sql_to_check']) : 0;
         } else {
             logThis('*** ERROR: could not read schema script: '.$sqlScript);
             $persistence['sql_errors'][] = $mod_strings['ERR_UW_FILE_NOT_READABLE'].'::'.$sqlScript;
@@ -665,7 +662,7 @@ function preflightCheckJsonSchemaCheck($persistence)
 
         // populate newTables array to prevent "getting sample data" from non-existent tables
         $newTables = array();
-        if (strtoupper(substr($completeLine, 1, 5)) == 'CREAT') {
+        if (strtoupper(substr((string) $completeLine, 1, 5)) == 'CREAT') {
             $newTables[] = getTableFromQuery($completeLine);
         }
 
@@ -692,7 +689,7 @@ function preflightCheckJsonGetSchemaErrors($persistence)
 {
     global $mod_strings;
 
-    if (isset($persistence['sql_errors']) && count($persistence['sql_errors'] > 0)) {
+    if (isset($persistence['sql_errors']) && (is_countable($persistence['sql_errors'] > 0) ? count($persistence['sql_errors'] > 0) : 0)) {
         $out = "<b class='error'>{$mod_strings['ERR_UW_PREFLIGHT_ERRORS']}:</b> ";
         $out .= "<a href='javascript:void(0);toggleNwFiles(\"sqlErrors\");'>{$mod_strings['LBL_UW_SHOW_SQL_ERRORS']}</a><div id='sqlErrors' style='display:none'>";
         foreach ($persistence['sql_errors'] as $sqlError) {
@@ -821,7 +818,7 @@ function systemCheckJsonGetFiles($persistence)
 
         $persistence['files_to_check'] = array_merge($persistence['files_to_check'], $files);
 
-        $whatsLeft = count($persistence['dirs_to_check']);
+        $whatsLeft = is_countable($persistence['dirs_to_check']) ? count($persistence['dirs_to_check']) : 0;
 
         if (!isset($persistence['dirs_to_check']) || $whatsLeft < 1) {
             $whatsLeft = 0;
@@ -866,42 +863,33 @@ function systemCheckJsonCheckFiles($persistence)
 
     $isWindows = is_windows();
     foreach ($persistence['files_to_check'] as $file) {
-        //	while($file = array_pop($persistence['files_to_check'])) {
 
         // admin deletes a bad file mid-check:
         if (!file_exists($file)) {
             continue;
         }
-
-        if ($isWindows) {
-            if (!is_writable_windows($file)) {
-                logThis('WINDOWS: File ['.$file.'] not readable - saving for display');
-                // don't warn yet - we're going to use this to check against replacement files
-                $filesNotWritable[$i] = $file;
-                $filesNWPerms[$i] = substr(sprintf('%o', fileperms($file)), -4);
-                $filesOut .= "<tr>".
-                                "<td valign='top'><span class='error'>{$file}</span></td>".
-                                "<td valign='top'>{$filesNWPerms[$i]}</td>".
-                                "<td valign='top'>".$mod_strings['ERR_UW_CANNOT_DETERMINE_USER']."</td>".
-                                "<td valign='top'>".$mod_strings['ERR_UW_CANNOT_DETERMINE_GROUP']."</td>".
-                              "</tr>";
+        if (!is_writable($file)) {
+            logThis('File ['.$file.'] not writable - saving for display');
+            $filesNotWritable[$i] = $file;
+            $perms = substr(sprintf('%o', fileperms($file)), -4);
+            $owner = fileowner($file);
+            $group = filegroup($file);
+            if (!$isWindows && function_exists('posix_getpwuid')) {
+                $ownerData = posix_getpwuid($owner);
+                $owner = !empty($ownerData) ? $ownerData['name'] : $owner;
             }
-        } else {
-            if (!is_writable($file)) {
-                logThis('File ['.$file.'] not writable - saving for display');
-                // don't warn yet - we're going to use this to check against replacement files
-                $filesNotWritable[$i] = $file;
-                $filesNWPerms[$i] = substr(sprintf('%o', fileperms($file)), -4);
-                $owner = posix_getpwuid(fileowner($file));
-                $group = posix_getgrgid(filegroup($file));
-                $filesOut .= "<tr>".
-                                "<td valign='top'><span class='error'>{$file}</span></td>".
-                                "<td valign='top'>{$filesNWPerms[$i]}</td>".
-                                "<td valign='top'>".$owner['name']."</td>".
-                                "<td valign='top'>".$group['name']."</td>".
-                              "</tr>";
+            if (!$isWindows && function_exists('posix_getgrgid')) {
+                $groupData = posix_getgrgid($group);
+                $group = !empty($groupData) ? $groupData['name'] : $group;
             }
+            $filesOut .= "<tr>" .
+                "<td><span class='error'>{$file}</span></td>" .
+                "<td>{$perms}</td>" .
+                "<td>{$owner}</td>" .
+                "<td>{$group}</td>" .
+                "</tr>";
         }
+
         $i++;
     }
 
@@ -910,7 +898,7 @@ function systemCheckJsonCheckFiles($persistence)
     $persistence['filesNotWritable'] = (count($filesNotWritable) > 0) ? true : false;
 
     if (count($filesNotWritable) < 1) {
-        $filesOut = "{$mod_strings['LBL_UW_FILE_NO_ERRORS']}";
+        $filesOut = (string)($mod_strings['LBL_UW_FILE_NO_ERRORS']);
         $persistence['step']['systemCheck'] = 'success';
     }
 

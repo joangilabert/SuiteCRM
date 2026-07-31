@@ -56,6 +56,7 @@ require_once('modules/Trackers/store/Store.php');
  * the configured database instance as defined in DBManagerFactory::getInstance() method
  *
  */
+#[\AllowDynamicProperties]
 class DatabaseStore implements Store
 {
     public function flush($monitor)
@@ -67,9 +68,9 @@ class DatabaseStore implements Store
             if (!empty($monitor->$name)) {
                 $columns[] = $name;
                 if ($metrics[$name]->_type == 'int') {
-                    $values[] = intval($monitor->$name);
+                    $values[] = (int)$monitor->$name;
                 } elseif ($metrics[$name]->_type == 'double') {
-                    $values[] = floatval($monitor->$name);
+                    $values[] = (float)$monitor->$name;
                 } elseif ($metrics[$name]->_type == 'datetime') {
                     $values[] = DBManagerFactory::getInstance()->convert(DBManagerFactory::getInstance()->quoted($monitor->$name), "datetime");
                 } else {

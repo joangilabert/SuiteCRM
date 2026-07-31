@@ -2,17 +2,9 @@
 
 namespace Step\Acceptance;
 
+#[\AllowDynamicProperties]
 class Meetings extends \AcceptanceTester
 {
-    /**
-     * Navigate to meetings module
-     */
-    public function gotoMeetings()
-    {
-        $I = new NavigationBar($this->getScenario());
-        $I->clickAllMenuItem('Meetings');
-    }
-
     /**
      * Create a meeting
      *
@@ -33,9 +25,10 @@ class Meetings extends \AcceptanceTester
         $I->fillField('#description', $faker->text());
         $I->fillField('#location', $faker->city());
 
-        $I->waitForElementVisible('#date_start_hours', 120);
+        $I->waitForElementVisible('#date_start_hours');
 
-        $I->selectOption('#duration', '15 minutes');
+        $I->waitForElementVisible('#reminder_view');
+        $I->selectOption('#reminder_view select[class=timer_sel_popup]', '15 minutes prior');
         $I->selectOption('#status', 'Held');
         $I->selectOption('#parent_type', 'Account');
 

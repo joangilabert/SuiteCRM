@@ -2,17 +2,9 @@
 
 namespace Step\Acceptance;
 
+#[\AllowDynamicProperties]
 class ProductCategories extends \AcceptanceTester
 {
-    /**
-     * Navigate to product categories module
-     */
-    public function gotoProductCategories()
-    {
-        $I = new NavigationBar($this->getScenario());
-        $I->clickAllMenuItem('Products - Categories');
-    }
-
     /**
      * Create product category
      *

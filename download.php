@@ -75,24 +75,39 @@ if ((!isset($_REQUEST['isProfile']) && empty($_REQUEST['id'])) || empty($_REQUES
         if ($bean_name == 'aCase') {
             $bean_name = 'Case';
         }
-        if (!file_exists('modules/' . $module . '/' . $bean_name . '.php')) {
+        global $beanFiles;
+        if (!file_exists($beanFiles[$bean_name])){
+            die($app_strings['ERROR_TYPE_NOT_VALID']);
+        }
+
+        // Downloads must go through the parent module, not DocumentRevisions directly
+        if ($module === 'DocumentRevisions') {
             die($app_strings['ERROR_TYPE_NOT_VALID']);
         }
 
         $focus = BeanFactory::newBean($module);
         $focus->retrieve($_REQUEST['id']);
-        if (!$focus->ACLAccess('view')) {
+        $isDocument = isset($focus->object_name) && $focus->object_name == 'Document';
+
+        if (empty($focus->id) && $isDocument) {
+            $focusRevision = BeanFactory::newBean('DocumentRevisions');
+            $focusRevision->retrieve($_REQUEST['id']);
+            if (!empty($focusRevision->id) && !empty($focusRevision->document_id)) {
+                $focus->retrieve($focusRevision->document_id);
+                $_REQUEST['id'] = $focusRevision->id;
+            }
+        }
+
+        if (empty($focus->id) || !$focus->ACLAccess('view')) {
             die($mod_strings['LBL_NO_ACCESS']);
-        } // if
-        // Pull up the document revision, if it's of type Document
-        if (isset($focus->object_name) && $focus->object_name == 'Document') {
-            // It's a document, get the revision that really stores this file
-            $focusRevision = new DocumentRevision();
+        }
+
+        if ($isDocument && empty($focusRevision)) {
+            $focusRevision = BeanFactory::newBean('DocumentRevisions');
             $focusRevision->retrieve($_REQUEST['id']);
 
             if (empty($focusRevision->id)) {
-                // This wasn't a document revision id, it's probably actually a document id,
-                // we need to grab the latest revision and use that
+                // ID was a document id, not a revision — grab the latest revision
                 $focusRevision->retrieve($focus->document_revision_id);
 
                 if (!empty($focusRevision->id)) {
@@ -112,11 +127,26 @@ if ((!isset($_REQUEST['isProfile']) && empty($_REQUEST['id'])) || empty($_REQUES
             sugar_die("Remote file detected, location header sent.");
         }
     } // if
-    $temp = explode("_", $_REQUEST['id'], 2);
-    if (is_array($temp)) {
-        $image_field = isset($temp[1]) ? $temp[1] : null;
-        $image_id = $temp[0];
+
+    // id here is really id_field. But since both "id" and "field" can also have underscores in them,
+    // we'll try out parts starting from the end, checking if we get a valid field name.
+    // Some edge cases might be impossible to untangle (ids that contain field names,
+    // and field names that partially contain others, e.g. name and first_name).
+    // TODO: drop this ugly scheme of passing ids together with field names - just pass them in separately...
+    $image_field = null;
+    $image_id = $_REQUEST['id'];
+    $parts = explode('_', $image_id);
+    $index = count($parts) - 1;
+    while ($index) {
+        $possible_field = implode('_', array_slice($parts, $index)); // final parts, from index to end
+        if (isset($focus->field_defs[$possible_field])) {
+            $image_field = $possible_field;
+            $image_id = implode('_', array_slice($parts, 0, $index)); // initial parts, up to index
+            break;
+        }
+        $index--;
     }
+
     if (isset($_REQUEST['ieId']) && isset($_REQUEST['isTempFile'])) {
         $local_location = sugar_cached("modules/Emails/{$_REQUEST['ieId']}/attachments/{$_REQUEST['id']}");
     } elseif (isset($_REQUEST['isTempFile']) && $file_type == "import") {
@@ -133,7 +163,7 @@ if ((!isset($_REQUEST['isProfile']) && empty($_REQUEST['id'])) || empty($_REQUES
         $local_location = "include/images/default-profile.png";
     }
 
-    if (!file_exists($local_location) || strpos($local_location, "..")) {
+    if (!file_exists($local_location) || strpos((string) $local_location, "..")) {
         if (isset($image_field)) {
             header("Content-Type: image/png");
             header("Content-Disposition: attachment; filename=\"No-Image.png\"");
@@ -148,7 +178,7 @@ if ((!isset($_REQUEST['isProfile']) && empty($_REQUEST['id'])) || empty($_REQUES
     }
         $doQuery = true;
 
-        if ($file_type == 'documents') {
+        if ($file_type == 'documents' && !isset($image_field)) {
             // cn: bug 9674 document_revisions table has no 'name' column.
             $query = "SELECT filename name FROM document_revisions INNER JOIN documents ON documents.id = document_revisions.document_id ";
             $query .= "WHERE document_revisions.id = '" . $db->quote($_REQUEST['id']) . "' ";
@@ -164,7 +194,8 @@ if ((!isset($_REQUEST['isProfile']) && empty($_REQUEST['id'])) || empty($_REQUES
 
             // Fix for issue #1195: because the module was created using Module Builder and it does not create any _cstm table,
             // there is a need to check whether the field has _c extension.
-            $query = "SELECT " . $image_field . " FROM " . $file_type . " ";
+            $file_type = $db->quote($file_type);
+            $query = "SELECT " . $db->quote($image_field) . " FROM " . $file_type . " ";
             if (substr($image_field, -2) == "_c") {
                 $query .= "LEFT JOIN " . $file_type . "_cstm cstm ON cstm.id_c = " . $file_type . ".id ";
             }
@@ -180,8 +211,15 @@ if ((!isset($_REQUEST['isProfile']) && empty($_REQUEST['id'])) || empty($_REQUES
 
         // Fix for issue 1506 and issue 1304 : IE11 and Microsoft Edge cannot display generic 'application/octet-stream' (which is defined as "arbitrary binary data" in RFC 2046).
         $mime_type = mime_content_type($local_location);
-        if ($mime_type == null || $mime_type == '') {
-            $mime_type = 'application/octet-stream';
+
+        switch ($mime_type) {
+            case 'text/html':
+                $mime_type = 'text/plain';
+            break;
+            case null:
+            case '':
+                $mime_type = 'application/octet-stream';
+            break;
         }
 
         if ($doQuery && isset($query)) {
@@ -199,7 +237,7 @@ if ((!isset($_REQUEST['isProfile']) && empty($_REQUEST['id'])) || empty($_REQUES
             }
             // expose original mime type only for images, otherwise the content of arbitrary type
             // may be interpreted/executed by browser
-            if (isset($row['file_mime_type']) && strpos($row['file_mime_type'], 'image/') === 0) {
+            if (isset($row['file_mime_type']) && strpos((string) $row['file_mime_type'], 'image/') === 0) {
                 $mime_type = $row['file_mime_type'];
             }
             if (isset($_REQUEST['field'])) {
@@ -221,13 +259,14 @@ if ((!isset($_REQUEST['isProfile']) && empty($_REQUEST['id'])) || empty($_REQUES
             }
         }
 
-        if (isset($_SERVER['HTTP_USER_AGENT']) && preg_match("/MSIE/", $_SERVER['HTTP_USER_AGENT'])) {
+        if (isset($_SERVER['HTTP_USER_AGENT']) && preg_match("/MSIE/", (string) $_SERVER['HTTP_USER_AGENT'])) {
             $name = urlencode($name);
             $name = str_replace("+", "_", $name);
         }
 
-        header("Pragma: public");
-        header("Cache-Control: maxage=1, post-check=0, pre-check=0");
+        header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
+        header('Cache-Control: post-check=0, pre-check=0', false);
+        header('Pragma: no-cache');
         if (isset($_REQUEST['isTempFile']) && ($_REQUEST['type'] == "SugarFieldImage")) {
             $mime = getimagesize($download_location);
             if (!empty($mime)) {
@@ -237,11 +276,27 @@ if ((!isset($_REQUEST['isProfile']) && empty($_REQUEST['id'])) || empty($_REQUES
             }
         } else {
             header('Content-type: ' . $mime_type);
-            if ($_REQUEST['preview'] === "yes") {
-                header("Content-Disposition: inline; filename=\"".$name."\";");
-            } else {
-                header("Content-Disposition: attachment; filename=\"" . $name . "\";");
+
+            $showPreview = false;
+
+            global $sugar_config;
+
+            $allowedPreview = $sugar_config['allowed_preview'] ?? [];
+
+            if (empty($row['file_ext'])) {
+                $row['file_ext'] = pathinfo((string) $name, PATHINFO_EXTENSION);
             }
+
+            if (!empty($row['file_ext']) && in_array($row['file_ext'], $allowedPreview, true)) {
+                $showPreview = isset($_REQUEST['preview']) && $_REQUEST['preview'] === 'yes' && $mime_type !== 'text/html';
+            }
+
+            if ($showPreview === true) {
+                header('Content-Disposition: inline; filename="' . $name . '";');
+            } else {
+                header('Content-Disposition: attachment; filename="' . $name . '";');
+            }
+
         }
         // disable content type sniffing in MSIE
         header("X-Content-Type-Options: nosniff");
@@ -255,4 +310,10 @@ if ((!isset($_REQUEST['isProfile']) && empty($_REQUEST['id'])) || empty($_REQUES
             ;
         }
 
-        readfile($download_location);
+        ob_start();
+        echo clean_file_output(file_get_contents($download_location), $mime_type);
+
+        $output = ob_get_contents();
+        ob_end_clean();
+
+        echo $output;

@@ -52,7 +52,7 @@ if (!defined('sugarEntry') || !sugarEntry) {
 
 
 
-$focus = new Task();
+$focus = BeanFactory::newBean('Tasks');
 if (!isset($prefix)) {
     $prefix='';
 }
@@ -60,7 +60,7 @@ if (!isset($prefix)) {
 global $timedate;
 $time_format = $timedate->get_user_time_format();
 $time_separator = ":";
-if (preg_match('/\d+([^\d])\d+([^\d]*)/s', $time_format, $match)) {
+if (preg_match('/\d+([^\d])\d+([^\d]*)/s', (string) $time_format, $match)) {
     $time_separator = $match[1];
 }
 
@@ -91,13 +91,13 @@ if (!$focus->ACLAccess('Save')) {
 if (isCloseAndCreateNewPressed()) {
     $focus->status = 'Completed';
 }
-if (!isset($_POST['date_due_flag'])) {
-    $focus->date_due_flag = 0;
+if (isset($_POST['date_due'])) {
+    $focus->date_due_flag = 1;
 }
-if (!isset($_POST['date_start_flag'])) {
-    $focus->date_start_flag = 0;
+if (isset($_POST['date_start'])) {
+    $focus->date_start_flag = 1;
 }
-if ($focus->date_due_flag != 'off' && $focus->date_due_flag != 1) {
+if ($focus->date_due_flag !== 'off' && $focus->date_due_flag !== 1) {
     $focus->date_due = '';
     $focus->time_due = '';
 }
@@ -125,7 +125,7 @@ if (isset($_REQUEST['inbound_email_id']) && !empty($_REQUEST['inbound_email_id']
     // fake this case like it's already saved.
     $focus->save();
     
-    $email = new Email();
+    $email = BeanFactory::newBean('Emails');
     $email->retrieve($_REQUEST['inbound_email_id']);
     $email->parent_type = 'Tasks';
     $email->parent_id = $focus->id;

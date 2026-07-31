@@ -27,6 +27,7 @@
  * @author Hartmut Holzgraefe <hholzgra@php.net>
  * @version 0.99.1dev
  */
+#[\AllowDynamicProperties]
 class _parse_lockinfo
 {
     /**
@@ -84,7 +85,7 @@ class _parse_lockinfo
         $had_input = false;
 
         // open stream
-        $f_in = fopen($path, "r");
+        $f_in = fopen($path, 'rb');
         if (!$f_in) {
             $this->success = false;
             return;
@@ -96,18 +97,18 @@ class _parse_lockinfo
         // set tag and data handlers
         xml_set_element_handler(
             $xml_parser,
-                                array(&$this, "_startElement"),
-                                array(&$this, "_endElement")
+            array(&$this, "_startElement"),
+            array(&$this, "_endElement")
         );
         xml_set_character_data_handler(
             $xml_parser,
-                                       array(&$this, "_data")
+            array(&$this, "_data")
         );
 
         // we want a case sensitive parser
         xml_parser_set_option(
             $xml_parser,
-                              XML_OPTION_CASE_FOLDING,
+            XML_OPTION_CASE_FOLDING,
             false
         );
 
@@ -149,7 +150,7 @@ class _parse_lockinfo
     public function _startElement($parser, $name, $attrs)
     {
         // namespace handling
-        if (strstr($name, " ")) {
+        if (strstr((string) $name, " ")) {
             list($ns, $tag) = explode(" ", $name);
         } else {
             $ns = "";
@@ -213,7 +214,7 @@ class _parse_lockinfo
     public function _endElement($parser, $name)
     {
         // namespace handling
-        if (strstr($name, " ")) {
+        if (strstr((string) $name, " ")) {
             list($ns, $tag) = explode(" ", $name);
         } else {
             $ns = "";

@@ -2,23 +2,13 @@
 
 namespace Step\Acceptance;
 
+#[\AllowDynamicProperties]
 class Calls extends \AcceptanceTester
 {
     /**
-     * Navigate to calls module
-     */
-    public function gotoCalls()
-    {
-        $I = new NavigationBar($this->getScenario());
-        $I->clickAllMenuItem('Calls');
-    }
-
-
-    /**
      * Create a call
      *
-     * @param $name
-     *
+     * @param string $name
      */
     public function createCall($name)
     {
@@ -28,6 +18,7 @@ class Calls extends \AcceptanceTester
         $Sidebar = new SideBar($this->getScenario());
         $faker = $this->getFaker();
 
+        $I->waitForText('Log Call', null, '.actionmenulink');
         $I->see('Log Call', '.actionmenulink');
         $Sidebar->clickSideBarAction('Log');
         $I->waitForEditViewVisible();
@@ -35,7 +26,7 @@ class Calls extends \AcceptanceTester
         $I->fillField('#date_start_date', '01/19/2038');
         $I->fillField('#description', $faker->text());
 
-        $I->waitForElementVisible('#date_start_hours', 120);
+        $I->waitForElementVisible('#date_start_hours');
 
         $I->clickSaveButton();
         $DetailView->waitForDetailViewVisible();
@@ -54,6 +45,7 @@ class Calls extends \AcceptanceTester
         $Sidebar = new SideBar($this->getScenario());
         $faker = $this->getFaker();
 
+        $I->waitForText('Log Call', null, '.actionmenulink');
         $I->see('Log Call', '.actionmenulink');
         $Sidebar->clickSideBarAction('Log');
         $I->waitForEditViewVisible();
@@ -67,15 +59,12 @@ class Calls extends \AcceptanceTester
             }
         }
 
-
-        $I->waitForElementVisible('#date_start_hours', 120);
-
+        $I->waitForElementVisible('#date_start_hours');
 
         $I->selectOption('#parent_type', $module);
         $I->fillField('#parent_name', $module_name);
 
         $I->wait(2);
-
         $I->clickSaveButton();
         $DetailView->waitForDetailViewVisible();
     }

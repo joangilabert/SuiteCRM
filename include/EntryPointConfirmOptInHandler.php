@@ -1,4 +1,5 @@
 <?php
+
 /**
  *
  * SugarCRM Community Edition is a customer relationship management program developed by
@@ -45,6 +46,7 @@ if (!defined('sugarEntry') || !sugarEntry) {
 /**
  * Class EntryPointConfirmOptInHandler
  */
+#[\AllowDynamicProperties]
 class EntryPointConfirmOptInHandler
 {
 
@@ -111,14 +113,14 @@ class EntryPointConfirmOptInHandler
         }
 
         $module = $post['module'];
-        $uids = explode(',', $post['uid']);
+        $uids = explode(',', $post['uid'] ?? '');
         $confirmedOptInEmailsSent = 0;
         $errors = 0;
         $warnings = 0;
         $msg = '';
 
         foreach ($uids as $uid) {
-            $emailMan = new EmailMan();
+            $emailMan = BeanFactory::newBean('EmailMan');
             if (!$emailMan->addOptInEmailToEmailQueue($module, $uid)) {
                 $errors++;
             } elseif ($emailMan->getLastOptInWarn()) {
@@ -177,7 +179,6 @@ class EntryPointConfirmOptInHandler
         }
         $template = new Sugar_Smarty();
         $template->assign('FOCUS', $this->emailAddress);
-        $template->assign('APP', $GLOBALS['app_strings']);
 
         return $template->fetch('include/EntryPointConfirmOptIn.tpl');
     }

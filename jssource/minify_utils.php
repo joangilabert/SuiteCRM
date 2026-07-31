@@ -60,7 +60,7 @@ if (!defined('sugarEntry') || !sugarEntry) {
         //add prefix to key if it was passed in
         $compress_exempt_files = array(
             rtrim($prefix.sugar_cached(''), '/')  => true,
-            $prefix.'include/javascript/tiny_mce'   => true,
+            $prefix.'vendor'                        => true,
             $prefix.'include/javascript/yui'        => true,
             $prefix.'modules/Emails'                => true,
             $prefix.'jssource'                      => true,
@@ -127,14 +127,14 @@ if (!defined('sugarEntry') || !sugarEntry) {
                             if (function_exists('sugar_fopen')) {
                                 $trgt_handle = sugar_fopen($trgt, 'a');
                             } else {
-                                $trgt_handle = fopen($trgt, 'a');
+                                $trgt_handle = fopen($trgt, 'ab');
                             }
                         } else {
                             //open target file
                             if (function_exists('sugar_fopen')) {
                                 $trgt_handle = sugar_fopen($trgt, 'w');
                             } else {
-                                $trgt_handle = fopen($trgt, 'w');
+                                $trgt_handle = fopen($trgt, 'wb');
                             }
                         }
                     } else {
@@ -142,21 +142,21 @@ if (!defined('sugarEntry') || !sugarEntry) {
                             require_once('include/dir_inc.php');
                         }
 
-                        mkdir_recursive(dirname($trgt));
+                        mkdir_recursive(dirname((string) $trgt));
                         //create and open target file
                         if (function_exists('sugar_fopen')) {
                             $trgt_handle = @sugar_fopen($trgt, 'w');
                         } else {
-                            $trgt_handle = @fopen($trgt, 'w');
+                            $trgt_handle = @fopen($trgt, 'wb');
                         }
 
                         // todo: make this failure more friendly.  Ideally, it will display a
                         //       warning to admin users and revert back to displaying all of the
                         //       Javascript files insted of displaying the minified versions.
                         if ($trgt_handle === false) {
-                            $target_directory = dirname($trgt);
+                            $target_directory = dirname((string) $trgt);
                             $base = dirname($target_directory);
-                            while (!is_dir($base) && !empty($base) && $base != dirname($base)) {
+                            while (!is_dir($base) && !empty($base) && $base !== dirname($base)) {
                                 $base = dirname($base);
                             }
                             sugar_die("Creating $target_directory failed: please make sure {$base} is writable\n");
@@ -166,7 +166,7 @@ if (!defined('sugarEntry') || !sugarEntry) {
 
                     //make sure we have handles to both source and target file
                     if ($trgt_handle) {
-                        if ($already_minified || isset($excludedFiles[dirname($loc)])) {
+                        if ($already_minified || isset($excludedFiles[dirname((string) $loc)])) {
                             $buffer = file_get_contents($loc);
                         } else {
                             $buffer = SugarMin::minify(file_get_contents($loc));
@@ -207,7 +207,7 @@ if (!defined('sugarEntry') || !sugarEntry) {
 
     function create_backup_folder($bu_path)
     {
-        $bu_path = str_replace('\\', '/', $bu_path);
+        $bu_path = str_replace('\\', '/', (string) $bu_path);
         //get path after root
         $jpos = strpos($bu_path, 'jssource');
         if ($jpos===false) {
@@ -222,14 +222,14 @@ if (!defined('sugarEntry') || !sugarEntry) {
         //iterate through each directory and create if needed
 
         foreach ($bu_dir_arr as $bu_dir) {
-            if (!file_exists($prefix_process_path.'/'.$bu_dir)) {
+            if (!file_exists($prefix_process_path . '/' . $bu_dir)) {
                 if (function_exists('sugar_mkdir')) {
-                    sugar_mkdir($prefix_process_path.'/'.$bu_dir);
-                } else {
-                    mkdir($prefix_process_path.'/'.$bu_dir);
+                    sugar_mkdir($prefix_process_path . '/' . $bu_dir);
+                } elseif (!mkdir($concurrentDirectory = $prefix_process_path . '/' . $bu_dir) && !is_dir($concurrentDirectory)) {
+                    throw new \RuntimeException(sprintf('Directory "%s" was not created', $concurrentDirectory));
                 }
             }
-            $prefix_process_path = $prefix_process_path.'/'.$bu_dir;
+            $prefix_process_path = $prefix_process_path . '/' . $bu_dir;
         }
     }
 
@@ -249,11 +249,11 @@ if (!defined('sugarEntry') || !sugarEntry) {
         if (!defined('JSMIN_AS_LIB')) {
             define('JSMIN_AS_LIB', true);
         }
-        //assumes jsmin.php is in same directory
+        //assumes SugarMin.php is in same directory
         if (isset($_REQUEST['root_directory']) || defined('INSTANCE_PATH')) {
-            require_once('jssource/jsmin.php');
+            require_once('jssource/SugarMin.php');
         } else {
-            require_once('jsmin.php');
+            require_once('SugarMin.php');
         }
         $nl='
  ';
@@ -266,9 +266,9 @@ if (!defined('sugarEntry') || !sugarEntry) {
             if (file_exists($from_path) && is_file($from_path)) {
                 //read in license script
                 if (function_exists('sugar_fopen')) {
-                    $file_handle = sugar_fopen($from_path, 'r');
+                    $file_handle = sugar_fopen($from_path, 'rb');
                 } else {
-                    $file_handle = fopen($from_path, 'r');
+                    $file_handle = fopen($from_path, 'rb');
                 }
                 if ($file_handle) {
                     $beg = false;
@@ -304,7 +304,7 @@ if (!defined('sugarEntry') || !sugarEntry) {
                             //Check to see that ReadNextLine is true, if so then add the last line collected
                             //make sure the last line is either the end to a comment block, or starts with '//'
                             //else do not add as it is live code.
-                            if (!empty($newLine) && ((strpos($newLine, '*/')!== false) || ($newLine{0}.$newLine{1}== '//'))) {
+                            if (!empty($newLine) && ((strpos($newLine, '*/')!== false) || ($newLine[0].$newLine[1]== '//'))) {
                                 //add new line to license string
                                 $lic_str .=$newLine;
                             }
@@ -323,8 +323,8 @@ if (!defined('sugarEntry') || !sugarEntry) {
 
                 //minify javascript
                 //$jMin = new JSMin($from_path,$to_path,$lic_arr);
-                $min_file = str_replace('.js', '-min.js', $from_path);
-                if (strpos($from_path, '-min.js') !== false) {
+                $min_file = str_replace('.js', '-min.js', (string) $from_path);
+                if (strpos((string) $from_path, '-min.js') !== false) {
                     $min_file = $from_path;
                 }
 
@@ -335,7 +335,7 @@ if (!defined('sugarEntry') || !sugarEntry) {
                 }
 
                 if (function_exists('sugar_fopen') && $fh = @sugar_fopen($to_path, 'w')) {
-                    fputs($fh, $out);
+                    fwrite($fh, $out);
                     fclose($fh);
                 } else {
                     file_put_contents($to_path, $out);
@@ -352,11 +352,11 @@ if (!defined('sugarEntry') || !sugarEntry) {
 
     function reverseScripts($from_path, $to_path='')
     {
-        $from_path = str_replace('\\', '/', $from_path);
+        $from_path = str_replace('\\', '/', (string) $from_path);
         if (empty($to_path)) {
             $to_path = $from_path;
         }
-        $to_path = str_replace('\\', '/', $to_path);
+        $to_path = str_replace('\\', '/', (string) $to_path);
 
         //check to see if provided paths are legit
 
@@ -388,7 +388,7 @@ if (!defined('sugarEntry') || !sugarEntry) {
         //if this is not a directory, then
         //check if this is a javascript file, then process
         $path_parts = pathinfo($from_path);
-        if (is_file("$from_path") && isset($path_parts['extension']) && $path_parts['extension'] =='js') {
+        if (is_file((string)$from_path) && isset($path_parts['extension']) && $path_parts['extension'] =='js') {
 
                     //create backup directory if needed
             $bu_dir = dirname($bu_path);
@@ -423,9 +423,9 @@ if (!defined('sugarEntry') || !sugarEntry) {
             //log error
             echo "The from directory, $from_path Does Not Exist<p>\n";
             return;
+        } else {
+            $from_path = str_replace('\\', '/', (string) $from_path);
         }
-        $from_path = str_replace('\\', '/', $from_path);
-        
 
         if (empty($to_path)) {
             $to_path = $from_path;
@@ -443,12 +443,12 @@ if (!defined('sugarEntry') || !sugarEntry) {
 
                 //get correct path for backup
             $bu_path = $to_path.'/jssource/src_files';
-            $bu_path .= substr($from_path, strlen($to_path));
+            $bu_path .= substr($from_path, strlen((string) $to_path));
 
             //if this is a directory, then read it and process files
-            if (is_dir("$from_path")) {
+            if (is_dir((string)$from_path)) {
                 //grab file / directory and read it.
-                $handle = opendir("$from_path");
+                $handle = opendir((string)$from_path);
                 //loop over the directory and go into each child directory
                 while (false !== ($dir = readdir($handle))) {
 
@@ -465,7 +465,7 @@ if (!defined('sugarEntry') || !sugarEntry) {
             //check if this is a javascript file, then process
             // Also, check if there's a min counterpart, in which case, don't use this file.
             $path_parts = pathinfo($from_path);
-            if (is_file("$from_path") && isset($path_parts['extension']) && $path_parts['extension'] =='js') {
+            if (is_file((string)$from_path) && isset($path_parts['extension']) && $path_parts['extension'] =='js') {
                 /*$min_file_path = $path_parts['dirname'].'/'.$path_parts['filename'].'-min.'.$path_parts['extension'];
                 if(is_file($min_file_path)) {
                     $from_path = $min_file_path;

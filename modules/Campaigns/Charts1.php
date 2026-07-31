@@ -54,6 +54,7 @@ require_once('include/charts/Charts.php');
 
 
 
+#[\AllowDynamicProperties]
 class charts
 {
 
@@ -64,7 +65,7 @@ class charts
      */
     public function campaign_response_chart($targets, $campaign_id)
     {
-        $focus = new Campaign();
+        $focus = BeanFactory::newBean('Campaigns');
         $leadSourceArr = array();
 
         $query = "SELECT activity_type,target_type, count(*) hits ";

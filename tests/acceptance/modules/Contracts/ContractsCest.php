@@ -2,6 +2,7 @@
 
 use Faker\Generator;
 
+#[\AllowDynamicProperties]
 class ContractsCest
 {
     /**
@@ -23,33 +24,25 @@ class ContractsCest
             $this->fakeData = Faker\Factory::create();
         }
 
-        $this->fakeDataSeed = rand(0, 2048);
+        $this->fakeDataSeed = mt_rand(0, 2048);
         $this->fakeData->seed($this->fakeDataSeed);
     }
 
     /**
      * @param \AcceptanceTester $I
      * @param \Step\Acceptance\ListView $listView
-     * @param \Step\Acceptance\Contracts $contracts
-     * @param \Helper\WebDriverHelper $webDriverHelper
      *
      * As an administrator I want to view the contracts module.
      */
     public function testScenarioViewContractsModule(
         \AcceptanceTester $I,
-        \Step\Acceptance\ListView $listView,
-        \Step\Acceptance\Contracts $contracts,
-        \Helper\WebDriverHelper $webDriverHelper
+        \Step\Acceptance\ListView $listView
     ) {
         $I->wantTo('View the contracts module for testing');
 
-        $I->amOnUrl(
-            $webDriverHelper->getInstanceURL()
-        );
-
         // Navigate to contracts list-view
         $I->loginAsAdmin();
-        $contracts->gotoContracts();
+        $I->visitPage('AOS_Contracts', 'index');
         $listView->waitForListViewVisible();
 
         $I->see('Contracts', '.module-title-text');
@@ -60,8 +53,7 @@ class ContractsCest
      * @param \Step\Acceptance\DetailView $detailView
      * @param \Step\Acceptance\ListView $listView
      * @param \Step\Acceptance\Contracts $contract
-     * @param \Step\Acceptance\Accounts $account
-     * @param \Helper\WebDriverHelper $webDriverHelper
+     * @param \Step\Acceptance\AccountsTester $account
      *
      * As administrative user I want to create a contract so that I can test
      * the standard fields.
@@ -71,18 +63,13 @@ class ContractsCest
         \Step\Acceptance\DetailView $detailView,
         \Step\Acceptance\ListView $listView,
         \Step\Acceptance\Contracts $contract,
-        \Step\Acceptance\Accounts $account,
-        \Helper\WebDriverHelper $webDriverHelper
+        \Step\Acceptance\AccountsTester $account
     ) {
         $I->wantTo('Create a Contract');
 
-        $I->amOnUrl(
-            $webDriverHelper->getInstanceURL()
-        );
-
         // Navigate to accounts list-view
         $I->loginAsAdmin();
-        $account->gotoAccounts();
+        $I->visitPage('Accounts', 'index');
         $listView->waitForListViewVisible();
 
         // Create account
@@ -91,7 +78,7 @@ class ContractsCest
         $account->createAccount($account_name);
 
         // Navigate to contracts list-view
-        $contract->gotoContracts();
+        $I->visitPage('AOS_Contracts', 'index');
         $listView->waitForListViewVisible();
 
         // Create contract
@@ -104,7 +91,7 @@ class ContractsCest
         $listView->waitForListViewVisible();
 
         // Delete account
-        $account->gotoAccounts();
+        $I->visitPage('Accounts', 'index');
         $listView->waitForListViewVisible();
         $listView->clickFilterButton();
         $I->fillField('#name_basic', $account_name);

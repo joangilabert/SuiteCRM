@@ -42,12 +42,12 @@ if (!defined('sugarEntry') || !sugarEntry) {
     die('Not A Valid Entry Point');
 }
 
-require_once 'Zend/Oauth/Provider.php';
 require_once 'modules/OAuthKeys/OAuthKey.php';
 
 /**
  * OAuth token
  */
+#[\AllowDynamicProperties]
 class OAuthToken extends SugarBean
 {
     public $module_dir = 'OAuthTokens';
@@ -68,9 +68,9 @@ class OAuthToken extends SugarBean
     // so it's an extension point for the future
     public $authdata;
 
-    const REQUEST = 1;
-    const ACCESS = 2;
-    const INVALID = 3;
+    public const REQUEST = 1;
+    public const ACCESS = 2;
+    public const INVALID = 3;
 
     public function __construct($token='', $secret='')
     {
@@ -120,7 +120,8 @@ class OAuthToken extends SugarBean
      */
     protected static function randomValue()
     {
-        return bin2hex(Zend_Oauth_Provider::generateToken(6));
+        $zop = new SuiteCRM\Zend_Oauth_Provider();
+        return bin2hex($zop->generateToken(6));
     }
 
     /**
@@ -257,17 +258,17 @@ class OAuthToken extends SugarBean
         $res = $db->query(sprintf("SELECT * FROM oauth_nonce WHERE conskey='%s' AND nonce_ts > %d", $db->quote($key), $ts));
         if ($res && $db->fetchByAssoc($res)) {
             // we have later ts
-            return Zend_Oauth_Provider::BAD_TIMESTAMP;
+            return SuiteCRM\Zend_Oauth_Provider::BAD_TIMESTAMP;
         }
 
         $res = $db->query(sprintf("SELECT * FROM oauth_nonce WHERE conskey='%s' AND nonce='%s' AND nonce_ts = %d", $db->quote($key), $db->quote($nonce), $ts));
         if ($res && $db->fetchByAssoc($res)) {
             // Already seen this one
-            return Zend_Oauth_Provider::BAD_NONCE;
+            return SuiteCRM\Zend_Oauth_Provider::BAD_NONCE;
         }
         $db->query(sprintf("DELETE FROM oauth_nonce WHERE conskey='%s' AND nonce_ts < %d", $db->quote($key), $ts));
         $db->query(sprintf("INSERT INTO oauth_nonce(conskey, nonce, nonce_ts) VALUES('%s', '%s', %d)", $db->quote($key), $db->quote($nonce), $ts));
-        return Zend_Oauth_Provider::OK;
+        return SuiteCRM\Zend_Oauth_Provider::OK;
     }
 
     /**
@@ -304,9 +305,9 @@ class OAuthToken extends SugarBean
 function displayDateFromTs($focus, $field, $value, $view='ListView')
 {
     $field = strtoupper($field);
-    if (!isset($focus[$field])) {
+    if (!isset($focus->$field)) {
         return '';
     }
     global $timedate;
-    return $timedate->asUser($timedate->fromTimestamp($focus[$field]));
+    return $timedate->asUser($timedate->fromTimestamp($focus->$field));
 }

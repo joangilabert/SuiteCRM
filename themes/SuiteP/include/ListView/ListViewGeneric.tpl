@@ -66,11 +66,11 @@
 {assign var="moduleName" value = $moduleList.$currentModule}
 {assign var="hideTable" value=false}
 
-{if $form.headerTpl}
+{if $form && $form.headerTpl}
     {sugar_include type="smarty" file=$form.headerTpl}
 {/if}
 
-{if count($data) == 0}
+{if !isset($data) || (count($data) == 0)}
 	{assign var="hideTable" value=true}
 	<div class="list view listViewEmpty">
         {if $showFilterIcon}
@@ -83,9 +83,11 @@
                 {capture assign="createLink"}<a href="?module={$pageData.bean.moduleDir}&action=EditView&return_module={$pageData.bean.moduleDir}&return_action=DetailView">{$APP.LBL_CREATE_BUTTON_LABEL}</a>{/capture}
                 {capture assign="importLink"}<a href="?module=Import&action=Step1&import_module={$pageData.bean.moduleDir}&return_module={$pageData.bean.moduleDir}&return_action=index">{$APP.LBL_IMPORT}</a>{/capture}
                 {capture assign="helpLink"}<a target="_blank" href='?module=Administration&action=SupportPortal&view=documentation&version={$sugar_info.sugar_version}&edition={$sugar_info.sugar_flavor}&lang=&help_module={$currentModule}&help_action=&key='>{$APP.LBL_CLICK_HERE}</a>{/capture}
-                <p class="msg">
-                    {$APP.MSG_EMPTY_LIST_VIEW_NO_RESULTS|replace:"<item2>":$createLink|replace:"<item3>":$importLink}
-                </p>
+
+			{if !(isset($options.hide_edit_link) && $options.hide_edit_link === true) && !empty($quickViewLinks)}
+				<p class="msg"> {$APP.MSG_EMPTY_LIST_VIEW_NO_RESULTS|replace:"<item2>":$createLink|replace:"<item3>":$importLink} </p>
+			{/if}
+
         {elseif $query == "-advanced_search"}
             <p class="msg emptyResults">
                 {$APP.MSG_LIST_VIEW_NO_RESULTS_CHANGE_CRITERIA}
@@ -171,11 +173,11 @@
 								{if $pageData.ordering.sortOrder == 'ASC'}
 									{capture assign="imageName"}arrow_down.{$arrowExt}{/capture}
 									{capture assign="alt_sort"}{sugar_translate label='LBL_ALT_SORT_DESC'}{/capture}
-									<span class="suitepicon suitepicon-action-sorting-descending" title="{$alt_sort}"></span>
+									<span class="suitepicon suitepicon-action-sorting-ascending" title="{$alt_sort}"></span>
 								{else}
 									{capture assign="imageName"}arrow_up.{$arrowExt}{/capture}
 									{capture assign="alt_sort"}{sugar_translate label='LBL_ALT_SORT_ASC'}{/capture}
-									<span class="suitepicon suitepicon-action-sorting-ascending" title="{$alt_sort}"></span>
+									<span class="suitepicon suitepicon-action-sorting-descending" title="{$alt_sort}"></span>
 								{/if}
 							{else}
 								{capture assign="imageName"}arrow.{$arrowExt}{/capture}
@@ -188,7 +190,18 @@
                                 {if isset($params.hide_header_label) && $params.hide_header_label == true}
                                 {else}
                                     {sugar_translate label=$params.label module=$pageData.bean.moduleDir}
-									&nbsp;&nbsp;  {/if}
+									{if $params.orderBy|default:$colHeader|lower == $pageData.ordering.orderBy && $params.force_show_sort_direction}
+										{if $pageData.ordering.sortOrder == 'ASC'}
+											{capture assign="imageName"}arrow_down.{$arrowExt}{/capture}
+											{capture assign="alt_sort"}{sugar_translate label='LBL_ALT_SORT_DESC'}{/capture}
+											<span class="suitepicon suitepicon-action-sorting-ascending" title="{$alt_sort}"></span>
+										{else}
+											{capture assign="imageName"}arrow_up.{$arrowExt}{/capture}
+											{capture assign="alt_sort"}{sugar_translate label='LBL_ALT_SORT_ASC'}{/capture}
+											<span class="suitepicon suitepicon-action-sorting-descending" title="{$alt_sort}"></span>
+										{/if}
+									{/if}
+							&nbsp;&nbsp;  {/if}
 							{/if}
 						{/if}
 						</div>
@@ -196,7 +209,7 @@
 				{counter name="colCounter"}
 			{/foreach}
 			{* add extra column for icons*}
-			<th>{$pageData.additionalDetails.$id}</th>
+			<th>{$pageData.additionalDetails.$id|default:''}</th>
 		</tr>
 		{include file='themes/SuiteP/include/ListView/ListViewPaginationTop.tpl'}
 	</thead>
@@ -267,6 +280,14 @@
 
 						{if $params.customCode}
 							{sugar_evalcolumn_old var=$params.customCode rowData=$rowData}
+						{elseif $params.currency_format}
+							{sugar_currency_format
+							var=$rowData.$col
+							symbol=$params.symbol|default:''
+							currency_id=$params.currency_id
+							convert=$params.convert|default:''
+							currency_symbol=$params.currency_symbol
+							}
 						{else}
 	                       {sugar_field parentFieldArray=$rowData vardef=$params displayType=ListView field=$col}
 
@@ -282,7 +303,7 @@
 					{counter name="colCounter"}
 
 				{/foreach}
-				<td align='right'>{$pageData.additionalDetails.$id}</td>
+					<td align='right'>{$pageData.additionalDetails.$id|default:''}</td>
 		    	</tr>
 		{foreachelse}
 		<tr height='20' class='{$rowColor[0]}S1'>
@@ -334,6 +355,6 @@ function lvg_nav(m,id,act,offset,t){
 {/if}
 
 
-{if $form.footerTpl}
+{if $form && $form.footerTpl}
     {sugar_include type="smarty" file=$form.headerTpl}
 {/if}

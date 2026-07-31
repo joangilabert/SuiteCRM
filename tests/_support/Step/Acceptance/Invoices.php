@@ -2,17 +2,9 @@
 
 namespace Step\Acceptance;
 
+#[\AllowDynamicProperties]
 class Invoices extends \AcceptanceTester
 {
-    /**
-     * Navigate to invoices module
-     */
-    public function gotoInvoices()
-    {
-        $I = new NavigationBar($this->getScenario());
-        $I->clickAllMenuItem('Invoices');
-    }
-
     /**
      * Create an invoice
      *

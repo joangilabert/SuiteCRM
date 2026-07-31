@@ -1,6 +1,6 @@
 <?php
-if (! defined('sugarEntry') || ! sugarEntry) {
-    die('Not A Valid Entry Point') ;
+if (!defined('sugarEntry') || !sugarEntry) {
+    die('Not A Valid Entry Point');
 }
 /**
  *
@@ -45,6 +45,7 @@ if (! defined('sugarEntry') || ! sugarEntry) {
 require_once 'modules/ModuleBuilder/parsers/constants.php' ;
 require_once('include/SubPanel/SubPanel.php') ;
 
+#[\AllowDynamicProperties]
 class ViewListView extends SugarView
 {
     /**
@@ -206,8 +207,8 @@ class ViewListView extends SugarView
         foreach ($groups as $groupKey => $group) {
             foreach ($group as $fieldKey => $field) {
                 if (isset($field [ 'width' ])) {
-                    if (substr($field [ 'width' ], - 1, 1) == '%') {
-                        $groups [ $groupKey ] [ $fieldKey ] [ 'width' ] = substr($field [ 'width' ], 0, strlen($field [ 'width' ]) - 1) ;
+                    if (substr((string) $field [ 'width' ], - 1, 1) == '%') {
+                        $groups [ $groupKey ] [ $fieldKey ] [ 'width' ] = substr((string) $field [ 'width' ], 0, strlen((string) $field [ 'width' ]) - 1) ;
                     }
                 }
             }
@@ -266,7 +267,7 @@ class ViewListView extends SugarView
             }
         } else {
             if ($this->subpanel) {
-                $smarty->assign("subpanel", "$this->subpanel") ;
+                $smarty->assign("subpanel", (string)$this->subpanel) ;
             } else {
                 $smarty->assign('description', $GLOBALS [ 'mod_strings' ] [ 'LBL_LISTVIEW_DESCRIPTION' ]) ;
             }

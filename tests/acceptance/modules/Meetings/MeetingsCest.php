@@ -2,6 +2,7 @@
 
 use Faker\Generator;
 
+#[\AllowDynamicProperties]
 class MeetingsCest
 {
     /**
@@ -23,33 +24,25 @@ class MeetingsCest
             $this->fakeData = Faker\Factory::create();
         }
 
-        $this->fakeDataSeed = rand(0, 2048);
+        $this->fakeDataSeed = mt_rand(0, 2048);
         $this->fakeData->seed($this->fakeDataSeed);
     }
 
     /**
      * @param \AcceptanceTester $I
      * @param \Step\Acceptance\ListView $listView
-     * @param \Step\Acceptance\Meetings $meetings
-     * @param \Helper\WebDriverHelper $webDriverHelper
      *
      * As an administrator I want to view the meetings module.
      */
     public function testScenarioViewMeetingsModule(
         \AcceptanceTester $I,
-        \Step\Acceptance\ListView $listView,
-        \Step\Acceptance\Meetings $meetings,
-        \Helper\WebDriverHelper $webDriverHelper
+        \Step\Acceptance\ListView $listView
     ) {
         $I->wantTo('View the meetings module for testing');
 
-        $I->amOnUrl(
-            $webDriverHelper->getInstanceURL()
-        );
-
         // Navigate to meetings list-view
         $I->loginAsAdmin();
-        $meetings->gotoMeetings();
+        $I->visitPage('Meetings', 'index');
         $listView->waitForListViewVisible();
 
         $I->see('Meetings', '.module-title-text');
@@ -60,7 +53,6 @@ class MeetingsCest
      * @param \Step\Acceptance\DetailView $detailView
      * @param \Step\Acceptance\ListView $listView
      * @param \Step\Acceptance\Meetings $meeting
-     * @param \Helper\WebDriverHelper $webDriverHelper
      *
      * As administrative user I want to create a meeting so that I can test
      * the standard fields.
@@ -69,18 +61,13 @@ class MeetingsCest
         \AcceptanceTester $I,
         \Step\Acceptance\DetailView $detailView,
         \Step\Acceptance\ListView $listView,
-        \Step\Acceptance\Meetings $meeting,
-        \Helper\WebDriverHelper $webDriverHelper
+        \Step\Acceptance\Meetings $meeting
     ) {
         $I->wantTo('Create a meeting');
 
-        $I->amOnUrl(
-            $webDriverHelper->getInstanceURL()
-        );
-
         // Navigate to meetings list-view
         $I->loginAsAdmin();
-        $meeting->gotoMeetings();
+        $I->visitPage('Meetings', 'index');
         $listView->waitForListViewVisible();
 
         // Create meeting
@@ -98,7 +85,6 @@ class MeetingsCest
      * @param \Step\Acceptance\DetailView $detailView
      * @param \Step\Acceptance\ListView $listView
      * @param \Step\Acceptance\Meetings $meeting
-     * @param \Helper\WebDriverHelper $webDriverHelper
      *
      * As administrative user I want to inline edit the start date
      */
@@ -106,18 +92,13 @@ class MeetingsCest
         \AcceptanceTester $I,
         \Step\Acceptance\DetailView $detailView,
         \Step\Acceptance\ListView $listView,
-        \Step\Acceptance\Meetings $meeting,
-        \Helper\WebDriverHelper $webDriverHelper
+        \Step\Acceptance\Meetings $meeting
     ) {
         $I->wantTo('Create a meeting');
 
-        $I->amOnUrl(
-            $webDriverHelper->getInstanceURL()
-        );
-
         // Navigate to meetings list-view
         $I->loginAsAdmin();
-        $meeting->gotoMeetings();
+        $I->visitPage('Meetings', 'index');
         $listView->waitForListViewVisible();
 
         // Create meeting
@@ -126,11 +107,12 @@ class MeetingsCest
 
         // Inline edit
         $I->doubleClick('#date_start');
+        $I->waitForElementVisible('#inline_edit_field');
         $I->fillField('#date_start_date', '01/01/2000');
         $I->selectOption('#date_start_hours', '01');
         $I->selectOption('#date_start_minutes', '00');
-        $I->doubleClick('#inlineEditSaveButton');
-        $I->wait(3);
+        $I->click('#inlineEditSaveButton');
+        $I->waitForText('01/01/2000 01:00', 30);
         $I->see('01/01/2000 01:00');
 
         // Delete meeting

@@ -2,17 +2,9 @@
 
 namespace Step\Acceptance;
 
+#[\AllowDynamicProperties]
 class MapsMarkers extends \AcceptanceTester
 {
-    /**
-     * Navigate to maps markers module
-     */
-    public function gotoMapsMarkers()
-    {
-        $I = new NavigationBar($this->getScenario());
-        $I->clickAllMenuItem('Maps - Markers ');
-    }
-
     /**
      * Create a map marker
      *

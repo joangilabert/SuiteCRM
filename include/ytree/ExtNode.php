@@ -48,6 +48,7 @@ if (!defined('sugarEntry') || !sugarEntry) {
  * predefined properties for a node are  id, label, target and href. label is required property.
  * set the target and href property for cases where target is an iframe.
  */
+#[\AllowDynamicProperties]
 class ExtNode
 {
     // predefined node properties.
@@ -90,21 +91,6 @@ class ExtNode
         $this->set_property('id', $id);
         $this->expanded = $show_expanded;
     }
-
-    /**
-     * @deprecated deprecated since version 7.6, PHP4 Style Constructors are deprecated and will be remove in 7.8, please update your code, use __construct instead
-     */
-    public function ExtNode($id, $label, $show_expanded = true)
-    {
-        $deprecatedMessage = 'PHP4 Style Constructors are deprecated and will be remove in 7.8, please update your code';
-        if (isset($GLOBALS['log'])) {
-            $GLOBALS['log']->deprecated($deprecatedMessage);
-        } else {
-            trigger_error($deprecatedMessage, E_USER_DEPRECATED);
-        }
-        self::__construct($id, $label, $show_expanded);
-    }
-
 
     /**
      * @param $name

@@ -58,7 +58,7 @@ global $timedate;
 global $current_user;
 global $mod_strings;
 
-$campaign = new Campaign();
+$campaign = BeanFactory::newBean('Campaigns');
 $campaign->retrieve($_REQUEST['record']);
 $err_messages=array();
 
@@ -93,7 +93,7 @@ foreach ($_POST['mass'] as $message_id) {
     }
 
 
-    $marketing = new EmailMarketing();
+    $marketing = BeanFactory::newBean('EmailMarketing');
     $marketing->retrieve($message_id);
 
     //make sure that the marketing message has a mailbox.
@@ -180,7 +180,8 @@ if (!$test) {
             ON plp.prospect_list_id = plc.prospect_list_id 
             WHERE plp.deleted = 0 AND plc.deleted = 0
             AND pl.deleted = 0 AND pl.list_type = 'exempt'
-            AND plc.campaign_id = '{$campaign->id}') em
+            AND plc.campaign_id = '{$campaign->id}'
+            AND emailman.campaign_id = '{$campaign->id}') em    
     )";
     $campaign->db->query($delete_query);
 }

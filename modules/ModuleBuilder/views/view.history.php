@@ -43,6 +43,7 @@ require_once('modules/ModuleBuilder/MB/AjaxCompose.php') ;
 require_once('modules/ModuleBuilder/parsers/views/History.php') ;
 require_once('modules/ModuleBuilder/parsers/ParserFactory.php') ;
 
+#[\AllowDynamicProperties]
 class ViewHistory extends SugarView
 {
     public $pageSize = 10 ;
@@ -119,6 +120,7 @@ class ViewHistory extends SugarView
 
     public function preview()
     {
+        $view = null;
         global $mod_strings ;
         if (! isset($_REQUEST [ 'sid' ])) {
             die('SID Required') ;
@@ -137,18 +139,24 @@ class ViewHistory extends SugarView
         if ($this->layout == 'listview') {
             require_once("modules/ModuleBuilder/views/view.listview.php") ;
             $view = new ViewListView() ;
-        } elseif ($this->layout == 'basic_search' || $this->layout == 'advanced_search') {
-            require_once("modules/ModuleBuilder/views/view.searchview.php") ;
-            $view = new ViewSearchView() ;
-        } elseif ($this->layout == 'dashlet' || $this->layout == 'dashletsearch') {
-            require_once("modules/ModuleBuilder/views/view.dashlet.php") ;
-            $view = new ViewDashlet() ;
-        } elseif ($this->layout == 'popuplist' || $this->layout == 'popupsearch') {
-            require_once("modules/ModuleBuilder/views/view.popupview.php") ;
-            $view = new ViewPopupview() ;
         } else {
-            require_once("modules/ModuleBuilder/views/view.layoutview.php") ;
-            $view = new ViewLayoutView() ;
+            if ($this->layout == 'basic_search' || $this->layout == 'advanced_search') {
+                require_once("modules/ModuleBuilder/views/view.searchview.php") ;
+                $view = new ViewSearchView() ;
+            } else {
+                if ($this->layout == 'dashlet' || $this->layout == 'dashletsearch') {
+                    require_once("modules/ModuleBuilder/views/view.dashlet.php") ;
+                    $view = new ViewDashlet() ;
+                } else {
+                    if ($this->layout == 'popuplist' || $this->layout == 'popupsearch') {
+                        require_once("modules/ModuleBuilder/views/view.popupview.php") ;
+                        $view = new ViewPopupview() ;
+                    } else {
+                        require_once("modules/ModuleBuilder/views/view.layoutview.php") ;
+                        $view = new ViewLayoutView() ;
+                    }
+                }
+            }
         }
         
         $view->display(true) ;

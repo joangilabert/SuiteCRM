@@ -1,7 +1,6 @@
 <?php
 namespace Step\Acceptance;
 
-use Helper\WebDriverHelper;
 use SuiteCRM\Enumerator\SugarObjectType;
 
 class ModuleBuilder extends Administration
@@ -12,17 +11,18 @@ class ModuleBuilder extends Administration
      * @param string $moduleType
      * @see SugarObjectType
      */
-    public function createModule($packageName, $moduleName, $moduleType)
+    public function createModule($packageName, $moduleName, $moduleType): void
     {
         $I = $this;
 
-        $I->gotoAdministration();
+        $I->visitPage('Administration', 'index');
 
         // Go To Module Builder
         $I->click('#moduleBuilder');
 
         $packageExists = $I->seePageHas($packageName, '#Buttons');
         if ($packageExists === false) {
+            $I->waitForElementVisible('#newPackageLink');
             // Create new package
             $I->click('#newPackageLink');
 
@@ -33,8 +33,8 @@ class ModuleBuilder extends Administration
             $I->fillField(['name' => 'description'], 'test module');
             $I->click('Save');
 
-            // Close confirmation window
-            $I->closePopupSuccess();
+            // Wait until confirmation window has disappeared
+            $this->waitUntilPopupSuccessDisappeared();
 
             // Create new module
             $I->click('New Module');
@@ -68,65 +68,61 @@ class ModuleBuilder extends Administration
             $I->wait(1);
             $I->click('Save'); // Will this be an issue with languages?
 
-            // Close popup
-            $I->closePopupSuccess();
-
             // Deploy module
 
             $I->waitForElementVisible('[name="name"]');
 
             $I->deployPackage($packageName);
-            // Redeploy @TODO seperate this out to new test
+            // Redeploy @TODO separate this out to new test
             $I->deployPackage($packageName, true);
         } else {
             $I->getScenario()->skip($packageName . ' already exists. Please remove package and module manually.');
         }
     }
 
-
     /**
      * @param string $packageName
      */
-    public function selectPackage($packageName)
+    public function selectPackage($packageName): void
     {
         $I = $this;
 
-        $I->gotoAdministration();
+        $I->visitPage('Administration', 'index');
 
         // Go To Module Builder
         $I->click('#moduleBuilder');
-        $I->waitForElementVisible('.bodywrapper', 30);
+        $I->waitForElementVisible('.bodywrapper');
         $I->click($packageName, '.bodywrapper');
-        $I->waitForElementVisible(['name' => 'author'], 30);
+        $I->waitForElementVisible(['name' => 'author']);
     }
-
 
     /**
      * @param string $packageName
      * @param string $moduleName
      */
-    public function selectModule($packageName, $moduleName)
+    public function selectModule($packageName, $moduleName): void
     {
         $I = $this;
 
-        $I->gotoAdministration();
+        $I->visitPage('Administration', 'index');
 
         // Go To Module Builder
         $I->click('#moduleBuilder');
-        $I->waitForElementVisible('.bodywrapper', 30);
+        $I->waitForElementVisible('.bodywrapper');
         $I->click($packageName, '.bodywrapper');
-        $I->waitForElementVisible(['name' => 'author'], 30);
+        $I->waitForElementVisible(['name' => 'author']);
         $I->click($moduleName, '#package_modules');
-        $I->waitForElementVisible(['name' => 'savebtn'], 30);
+        $I->waitForElementVisible(['name' => 'savebtn']);
     }
 
-
-    public function closePopupSuccess()
+    /**
+     * Wait until confirmation window has disappeared
+     */
+    public function waitUntilPopupSuccessDisappeared()
     {
         $I = $this;
-        $I->waitForElementVisible('#sugarMsgWindow_mask', 30);
-        $I->waitForText('This operation is completed successfully', 30, '#sugarMsgWindow_c');
-        $I->click('.container-close');
+        $I->waitForElementNotVisible('#sugarMsgWindow_c');
+        $I->waitForElementNotVisible('#sugarMsgWindow_mask');
     }
 
     /**
@@ -134,28 +130,24 @@ class ModuleBuilder extends Administration
      * @param boolean $packageExists
      *
      */
-
-    public function deployPackage($packageName, $packageExists = false)
+    public function deployPackage($packageName, $packageExists = false): void
     {
         $I = $this;
 
-        $I->gotoAdministration();
+        $I->visitPage('Administration', 'index');
 
         // Go To Module Builder
         $I->click('#moduleBuilder');
         $I->waitForElementVisible('.bodywrapper', 30);
         $I->click($packageName, '.bodywrapper');
-        $I->waitForElementVisible('[name="name"]');
+        $I->waitForElementVisible('[name="name"]', 30);
         $I->click('Deploy');
 
         if ($packageExists) {
             $I->acceptPopup();
         }
 
-        // Close popup
-        $I->closePopupSuccess();
-
         // Wait for page to refresh and look for new package link
-        $I->waitForElement('#newPackageLink', 360);
+        $I->waitForElement('#newPackageLink', 30);
     }
 }

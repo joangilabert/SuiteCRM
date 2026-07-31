@@ -70,7 +70,7 @@ $xtpl->assign("MOD", $mod_strings);
 $xtpl->assign("APP", $app_strings);
 $xtpl->assign("PRINT_URL", "index.php?".$GLOBALS['request_string']);
 $xtpl->assign("MODULE", $_REQUEST['module']);
-if ($error_msg != '') {
+if ($error_msg !== '') {
     $xtpl->assign("ERROR", $error_msg);
     $xtpl->parse("main.error");
 }
@@ -80,14 +80,14 @@ if ((isset($_REQUEST['popup']) && $_REQUEST['popup'] == 'true') ||(isset($_POST[
 }
 
 
-$account = new Account();
+$account = BeanFactory::newBean('Accounts');
 require_once('modules/Accounts/AccountFormBase.php');
 $accountForm = new AccountFormBase();
 $GLOBALS['check_notify'] = false;
 
 $query = 'select id, name, website, billing_address_city  from accounts where deleted=0 ';
 $duplicates = $_POST['duplicate'];
-$count = count($duplicates);
+$count = is_countable($duplicates) ? count($duplicates) : 0;
 $db = DBManagerFactory::getInstance();
 if ($count > 0) {
     $query .= "and (";

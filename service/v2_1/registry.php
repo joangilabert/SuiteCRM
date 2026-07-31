@@ -44,6 +44,7 @@ if (!defined('sugarEntry')) {
 
 require_once('service/v2/registry.php'); //Extend off of v2 registry
 
+#[\AllowDynamicProperties]
 class registry_v2_1 extends registry
 {
     
@@ -55,9 +56,9 @@ class registry_v2_1 extends registry
     {
         $GLOBALS['log']->info('Begin: registry->registerFunction');
         parent::registerFunction();
-                    
+
         $GLOBALS['log']->info('END: registry->registerFunction');
-            
+
         // END OF REGISTER FUNCTIONS
     }
     
@@ -83,9 +84,9 @@ class registry_v2_1 extends registry
         $this->serviceClass->registerType(
             'link_lists',
             'complexType',
-             'array',
-             '',
-              'SOAP-ENC:Array',
+            'array',
+            '',
+            'SOAP-ENC:Array',
             array(),
             array(
                 array('ref'=>'SOAP-ENC:arrayType', 'wsdl:arrayType'=>'tns:link_list2[]')
@@ -96,9 +97,9 @@ class registry_v2_1 extends registry
         $this->serviceClass->registerType(
             'link_array_list',
             'complexType',
-             'array',
-             '',
-              'SOAP-ENC:Array',
+            'array',
+            '',
+            'SOAP-ENC:Array',
             array(),
             array(
                 array('ref'=>'SOAP-ENC:arrayType', 'wsdl:arrayType'=>'tns:link_value2[]')

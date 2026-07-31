@@ -41,6 +41,7 @@ if (!defined('sugarEntry') || !sugarEntry) {
  * display the words "Powered by SugarCRM" and "Supercharged by SuiteCRM".
  */
 
+#[\AllowDynamicProperties]
 class ViewAdminsettings extends SugarView
 {
     /**
@@ -71,7 +72,7 @@ class ViewAdminsettings extends SugarView
     {
         global $mod_strings, $app_strings;
 
-        $admin = new Administration();
+        $admin = BeanFactory::newBean('Administration');
         $admin->retrieveSettings();
 
         // Handle posts
@@ -123,12 +124,14 @@ class ViewAdminsettings extends SugarView
 
                 $admin->retrieveSettings(false, true);
                 SugarFeed::flushBackendCache();
-            } elseif ($_REQUEST['process'] == 'deleteRecords') {
-                if (!isset($db)) {
-                    $db = DBManagerFactory::getInstance();
+            } else {
+                if ($_REQUEST['process'] == 'deleteRecords') {
+                    if (!isset($db)) {
+                        $db = DBManagerFactory::getInstance();
+                    }
+                    $db->query("UPDATE sugarfeed SET deleted = '1'");
+                    echo(translate('LBL_RECORDS_DELETED', 'SugarFeed'));
                 }
-                $db->query("UPDATE sugarfeed SET deleted = '1'");
-                echo(translate('LBL_RECORDS_DELETED', 'SugarFeed'));
             }
 
 

@@ -48,9 +48,10 @@ require_once('include/externalAPI/ExternalAPIFactory.php');
  * @internal
  * Upload file stream handler
  */
+#[\AllowDynamicProperties]
 class UploadStream
 {
-    const STREAM_NAME = "upload";
+    public const STREAM_NAME = "upload";
     protected static $upload_dir;
 
     /**
@@ -147,7 +148,7 @@ class UploadStream
      */
     public static function register()
     {
-        stream_register_wrapper(self::STREAM_NAME, __CLASS__);
+        stream_wrapper_register(self::STREAM_NAME, self::class);
     }
 
     /**
@@ -258,7 +259,9 @@ class UploadStream
             // if we will be writing, try to transparently create the directory
             $this->fp = @fopen($fullpath, $mode);
             if (!$this->fp && !file_exists(dirname($fullpath))) {
-                mkdir(dirname($fullpath), 0755, true);
+                if (!mkdir($concurrentDirectory = dirname($fullpath), 0755, true) && !is_dir($concurrentDirectory)) {
+                    throw new \RuntimeException(sprintf('Directory "%s" was not created', $concurrentDirectory));
+                }
                 $this->fp = fopen($fullpath, $mode);
             }
         }
@@ -305,7 +308,8 @@ class UploadStream
 
     public function url_stat($path, $flags)
     {
-        return @stat(self::path($path));
+        $realPath = self::path($path);
+        return file_exists($realPath) ? @stat($realPath) : false;
     }
 
     public static function move_uploaded_file($upload, $path)

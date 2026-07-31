@@ -45,6 +45,7 @@ if (!defined('sugarEntry') || !sugarEntry) {
  * Tab representation
  * @api
  */
+#[\AllowDynamicProperties]
 class SugarTab
 {
     public function __construct($type='singletabmenu')
@@ -52,21 +53,6 @@ class SugarTab
         $this->type = $type;
         $this->ss = new Sugar_Smarty();
     }
-
-    /**
-     * @deprecated deprecated since version 7.6, PHP4 Style Constructors are deprecated and will be remove in 7.8, please update your code, use __construct instead
-     */
-    public function SugarTab($type='singletabmenu')
-    {
-        $deprecatedMessage = 'PHP4 Style Constructors are deprecated and will be remove in 7.8, please update your code';
-        if (isset($GLOBALS['log'])) {
-            $GLOBALS['log']->deprecated($deprecatedMessage);
-        } else {
-            trigger_error($deprecatedMessage, E_USER_DEPRECATED);
-        }
-        self::__construct($type);
-    }
-
 
     public function setup($mainTabs, $otherTabs=array(), $subTabs=array(), $selected_group='All')
     {

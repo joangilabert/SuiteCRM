@@ -1,13 +1,13 @@
 <?php
 namespace Api\V8\Controller;
 
-use Api\V8\JsonApi\Response\DocumentResponse;
 use Api\V8\JsonApi\Response\ErrorResponse;
 use Slim\Http\Response as HttpResponse;
 
+#[\AllowDynamicProperties]
 abstract class BaseController
 {
-    const MEDIA_TYPE = 'application/vnd.api+json';
+    public const MEDIA_TYPE = 'application/vnd.api+json';
 
     /**
      * @param HttpResponse $httpResponse

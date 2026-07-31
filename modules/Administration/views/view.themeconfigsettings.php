@@ -45,6 +45,7 @@ require_once('modules/Administration/Forms.php');
 require_once('modules/Configurator/Configurator.php');
 require_once('include/MVC/View/SugarView.php');
         
+#[\AllowDynamicProperties]
 class AdministrationViewThemeConfigSettings extends SugarView
 {
     /**
@@ -71,7 +72,7 @@ class AdministrationViewThemeConfigSettings extends SugarView
         }
 
         // Check if the theme is valid
-        if (!isset($_REQUEST['theme']) || !in_array($_REQUEST['theme'], array_keys(SugarThemeRegistry::allThemes()))) {
+        if (!isset($_REQUEST['theme']) || !array_key_exists($_REQUEST['theme'], SugarThemeRegistry::allThemes())) {
             sugar_die("theme is invalid.");
         }
 
@@ -84,8 +85,10 @@ class AdministrationViewThemeConfigSettings extends SugarView
                 if (isset($_REQUEST[$name])) {
                     if ($_REQUEST[$name] == 'true') {
                         $_REQUEST[$name] = true;
-                    } elseif ($_REQUEST[$name] == 'false') {
-                        $_REQUEST[$name] = false;
+                    } else {
+                        if ($_REQUEST[$name] == 'false') {
+                            $_REQUEST[$name] = false;
+                        }
                     }
                     $configurator->config['theme_settings'][$_REQUEST['theme']][$name] = $_REQUEST[$name];
                 }

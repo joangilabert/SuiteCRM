@@ -48,10 +48,11 @@ require_once('modules/Import/ImportFieldSanitize.php');
 require_once('modules/Import/ImportDuplicateCheck.php');
 
 
+#[\AllowDynamicProperties]
 class Importer
 {
     /**
-     * @var ImportFieldSanitizer
+     * @var ImportFieldSanitize
      */
     protected $ifs;
 
@@ -61,27 +62,27 @@ class Importer
     protected $defaultUserCurrency;
 
     /**
-     * @var importColumns
+     * @var array
      */
     protected $importColumns;
 
     /**
-     * @var importSource
+     * @var ImportDataSource
      */
     protected $importSource;
 
     /**
-     * @var $isUpdateOnly
+     * @var bool
      */
     protected $isUpdateOnly;
 
     /**
-     * @var  $bean
+     * @var  SugarBean
      */
     protected $bean;
 
     /**
-     * @var sugarToExternalSourceFieldMap
+     * @var array
      */
     protected $sugarToExternalSourceFieldMap = array();
 
@@ -96,7 +97,7 @@ class Importer
         $this->bean = $bean;
 
         // use our own error handler
-        set_error_handler(array('Importer','handleImportErrors'), E_ALL);
+        set_error_handler(array('Importer','handleImportErrors'), E_ALL & ~E_DEPRECATED & ~E_STRICT & ~E_WARNING & ~E_NOTICE);
 
         // Increase the max_execution_time since this step can take awhile
         ini_set("max_execution_time", max($sugar_config['import_max_execution_time'], 3600));
@@ -108,7 +109,7 @@ class Importer
         $this->ifs = $this->getFieldSanitizer();
 
         //Get the default user currency
-        $this->defaultUserCurrency = new Currency();
+        $this->defaultUserCurrency = BeanFactory::newBean('Currencies');
         $this->defaultUserCurrency->retrieve('-99');
 
         //Get our import column definitions
@@ -167,7 +168,8 @@ class Importer
                 $locale = new Localization();
             }
             if (isset($row[$fieldNum])) {
-                $rowValue = $locale->translateCharset(strip_tags(trim($row[$fieldNum])), $this->importSource->importlocale_charset, $sugar_config['default_charset']);
+                // issue #6442 - translateCharset was already executed in an earlier step
+                $rowValue = strip_tags(trim($row[$fieldNum]));
             } elseif (isset($this->sugarToExternalSourceFieldMap[$field]) && isset($row[$this->sugarToExternalSourceFieldMap[$field]])) {
                 $rowValue = $locale->translateCharset(strip_tags(trim($row[$this->sugarToExternalSourceFieldMap[$field]])), $this->importSource->importlocale_charset, $sugar_config['default_charset']);
             } else {
@@ -229,7 +231,7 @@ class Importer
 
             // Handle email field, if it's a semi-colon separated export
             if ($field == 'email_addresses_non_primary' && !empty($rowValue)) {
-                if (strpos($rowValue, ';') !== false) {
+                if (strpos((string) $rowValue, ';') !== false) {
                     $rowValue = explode(';', $rowValue);
                 } else {
                     $rowValue = array($rowValue);
@@ -326,7 +328,7 @@ class Importer
 
         // check to see that the indexes being entered are unique.
         if (isset($_REQUEST['enabled_dupes']) && $_REQUEST['enabled_dupes'] != "") {
-            $toDecode = html_entity_decode($_REQUEST['enabled_dupes'], ENT_QUOTES);
+            $toDecode = html_entity_decode((string) $_REQUEST['enabled_dupes'], ENT_QUOTES);
             $enabled_dupes = json_decode($toDecode);
             $idc = new ImportDuplicateCheck($focus);
 
@@ -338,7 +340,7 @@ class Importer
         }
         //Allow fields to be passed in for dup check as well (used by external adapters)
         elseif (!empty($_REQUEST['enabled_dup_fields'])) {
-            $toDecode = html_entity_decode($_REQUEST['enabled_dup_fields'], ENT_QUOTES);
+            $toDecode = html_entity_decode((string) $_REQUEST['enabled_dup_fields'], ENT_QUOTES);
             $enabled_dup_fields = json_decode($toDecode);
             $idc = new ImportDuplicateCheck($focus);
             if ($idc->isADuplicateRecordByFields($enabled_dup_fields)) {
@@ -355,14 +357,13 @@ class Importer
 
             // check if it already exists
             $query = "SELECT * FROM {$focus->table_name} WHERE id='".$focus->db->quote($focus->id)."'";
-            $result = $focus->db->query($query)
-            or sugar_die("Error selecting sugarbean: ");
+            ($result = $focus->db->query($query)) || sugar_die("Error selecting sugarbean: ");
 
             $dbrow = $focus->db->fetchByAssoc($result);
 
             if (isset($dbrow['id']) && $dbrow['id'] != -1) {
                 // if it exists but was deleted, just remove it
-                if (isset($dbrow['deleted']) && $dbrow['deleted'] == 1 && $this->isUpdateOnly ==false) {
+                if (isset($dbrow['deleted']) && $dbrow['deleted'] == 1) {
                     $this->removeDeletedBean($focus);
                     $focus->new_with_id = true;
                 } else {
@@ -387,6 +388,21 @@ class Importer
         }
 
         if ($do_save) {
+            if(!empty($focus->emailAddress->addresses) && !empty($focus->email1)) {
+                if (is_array($focus->emailAddress->addresses))
+                {
+                    foreach ($focus->emailAddress->addresses as $k => $v) {
+                        if (!empty($v['primary_address']) && $v['primary_address'] === '1') {
+                            $beanEmail = strtolower(trim($focus->emailAddress->addresses[$k]['email_address']));
+                            $importedEmail = strtolower(trim($focus->email1));
+                            if ($beanEmail !== $importedEmail) {
+                                unset($focus->emailAddress->addresses[$k]);
+                                $focus->emailAddress->addAddress($importedEmail, true, false, $focus->invalid_email, $focus->email_opt_out);
+                            }
+                        }
+                    }
+                }
+            }
             $this->saveImportBean($focus, $newRecord);
             // Update the created/updated counter
             $this->importSource->markRowAsImported($newRecord);
@@ -447,10 +463,10 @@ class Importer
             default:
                 $returnValue = $this->ifs->$fieldtype($rowValue, $fieldDef, $focus);
                 // try the default value on fail
-                if (!$returnValue && !empty($defaultRowValue)) {
+                if ($returnValue === false && !empty($defaultRowValue)) {
                     $returnValue = $this->ifs->$fieldtype($defaultRowValue, $fieldDef, $focus);
                 }
-                if (!$returnValue) {
+                if ($returnValue === false) {
                     $this->importSource->writeError($mod_strings['LBL_ERROR_INVALID_'.strtoupper($fieldtype)], $fieldTranslated, $rowValue, $focus);
                     return false;
                 }
@@ -479,7 +495,7 @@ class Importer
         global $mod_strings;
 
         $query2 = "DELETE FROM {$focus->table_name} WHERE id='".$focus->db->quote($focus->id)."'";
-        $result2 = $focus->db->query($query2) or sugar_die($mod_strings['LBL_ERROR_DELETING_RECORD']." ".$focus->id);
+        ($result2 = $focus->db->query($query2)) || sugar_die($mod_strings['LBL_ERROR_DELETING_RECORD']." ".$focus->id);
         if ($focus->hasCustomFields()) {
             $query3 = "DELETE FROM {$focus->table_name}_cstm WHERE id_c='".$focus->db->quote($focus->id)."'";
             $result2 = $focus->db->query($query3);
@@ -500,7 +516,7 @@ class Importer
         * Bug 34854: Added all conditions besides the empty check on date modified.
         */
         if ((!empty($focus->new_with_id) && !empty($focus->date_modified)) ||
-             (empty($focus->new_with_id) && $timedate->to_db($focus->date_modified) != $timedate->to_db($timedate->to_display_date_time($focus->fetched_row['date_modified'])))
+             (is_array($focus->fetched_row) && empty($focus->new_with_id) && $timedate->to_db($focus->date_modified) != $timedate->to_db($timedate->to_display_date_time($focus->fetched_row['date_modified'])))
         ) {
             $focus->update_date_modified = false;
         }
@@ -509,7 +525,7 @@ class Importer
         if (!empty($focus->date_entered)) {
             $focus->update_date_entered = true;
         }
-            
+
         $focus->optimistic_lock = false;
         if ($focus->object_name == "Contact" && isset($focus->sync_contact)) {
             //copy the potential sync list to another varible
@@ -535,16 +551,16 @@ class Importer
         // Bug51192: check if there are any changes in the imported data
         $hasDataChanges = false;
         $dataChanges=$focus->db->getAuditDataChanges($focus);
-        
+
         if (!empty($dataChanges)) {
             foreach ($dataChanges as $field=>$fieldData) {
-                if ($fieldData['data_type'] != 'date' || strtotime($fieldData['before']) != strtotime($fieldData['after'])) {
+                if ($fieldData['data_type'] != 'date' || strtotime($fieldData['before']) !== strtotime($fieldData['after'])) {
                     $hasDataChanges = true;
                     break;
                 }
             }
         }
-        
+
         // if modified_user_id is set, set the flag to false so SugarBEan will not reset it
         if (isset($focus->modified_user_id) && $focus->modified_user_id && !$hasDataChanges) {
             $focus->update_modified_by = false;
@@ -577,9 +593,9 @@ class Importer
     {
         global $current_user;
 
-        $firstrow    = json_decode(html_entity_decode($_REQUEST['firstrow']), true);
+        $firstrow    = json_decode(html_entity_decode((string) $_REQUEST['firstrow']), true);
         $mappingValsArr = $this->importColumns;
-        $mapping_file = new ImportMap();
+        $mapping_file = BeanFactory::newBean('Import_1');
         if (isset($_REQUEST['has_header']) && $_REQUEST['has_header'] == 'on') {
             $header_to_field = array();
             foreach ($this->importColumns as $pos => $field_name) {
@@ -648,7 +664,7 @@ class Importer
             $_REQUEST['source'],
             (isset($_REQUEST['has_header']) && $_REQUEST['has_header'] == 'on'),
             $_REQUEST['custom_delimiter'],
-            html_entity_decode($_REQUEST['custom_enclosure'], ENT_QUOTES)
+            html_entity_decode((string) $_REQUEST['custom_enclosure'], ENT_QUOTES)
         );
     }
 
@@ -676,16 +692,16 @@ class Importer
         }
 
         if (in_array($fieldDef['type'], array('currency','float','int','num')) && $this->ifs->num_grp_sep != $current_user->getPreference('num_grp_sep')) {
-            $defaultRowValue = str_replace($current_user->getPreference('num_grp_sep'), $this->ifs->num_grp_sep, $defaultRowValue);
+            $defaultRowValue = str_replace($current_user->getPreference('num_grp_sep'), $this->ifs->num_grp_sep, (string) $defaultRowValue);
         }
 
         if (in_array($fieldDef['type'], array('currency','float')) && $this->ifs->dec_sep != $current_user->getPreference('dec_sep')) {
-            $defaultRowValue = str_replace($current_user->getPreference('dec_sep'), $this->ifs->dec_sep, $defaultRowValue);
+            $defaultRowValue = str_replace($current_user->getPreference('dec_sep'), $this->ifs->dec_sep, (string) $defaultRowValue);
         }
 
         $user_currency_symbol = $this->defaultUserCurrency->symbol;
         if ($fieldDef['type'] == 'currency' && $this->ifs->currency_symbol != $user_currency_symbol) {
-            $defaultRowValue = str_replace($user_currency_symbol, $this->ifs->currency_symbol, $defaultRowValue);
+            $defaultRowValue = str_replace($user_currency_symbol, $this->ifs->currency_symbol, (string) $defaultRowValue);
         }
 
         return $defaultRowValue;
@@ -722,7 +738,7 @@ class Importer
             $ifs->$field = $this->importSource->$fieldKey;
         }
 
-        $currency = new Currency();
+        $currency = BeanFactory::newBean('Currencies');
         $currency->retrieve($this->importSource->importlocale_currency);
         $ifs->currency_symbol = $currency->symbol;
 
@@ -748,7 +764,7 @@ class Importer
      */
     protected function _undoCreatedBeans(array $ids)
     {
-        $focus = new UsersLastImport();
+        $focus = BeanFactory::newBean('Import_2');
         foreach ($ids as $id) {
             $focus->undoById($id);
         }
@@ -779,7 +795,7 @@ class Importer
 
         //harvest the dupe index settings
         if (isset($_REQUEST['enabled_dupes'])) {
-            $toDecode = html_entity_decode($_REQUEST['enabled_dupes'], ENT_QUOTES);
+            $toDecode = html_entity_decode((string) $_REQUEST['enabled_dupes'], ENT_QUOTES);
             $dupe_ind = json_decode($toDecode);
 
             foreach ($dupe_ind as $dupe) {
@@ -848,7 +864,6 @@ class Importer
             case E_NOTICE:
                 $message = "NOTICE: [$errno] $errstr on line $errline in file $errfile<br />\n";
                 break;
-            case E_STRICT:
             case E_DEPRECATED:
             case E_USER_DEPRECATED:
                 // don't worry about these

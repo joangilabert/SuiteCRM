@@ -4,6 +4,7 @@ namespace Step\Acceptance;
 
 use \AcceptanceTester as Tester;
 
+#[\AllowDynamicProperties]
 class EditView extends Tester
 {
     /**
@@ -12,7 +13,7 @@ class EditView extends Tester
     public function waitForEditViewVisible()
     {
         $I = $this;
-        $I->waitForElementVisible('#EditView', 120);
+        $I->waitForElementVisible('#EditView');
     }
 
     public function clickSaveButton()

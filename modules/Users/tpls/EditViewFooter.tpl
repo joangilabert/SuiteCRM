@@ -112,7 +112,7 @@
                                     </td>
                                     <td>
                                         <input name='old_password' id='old_password' type='password' tabindex='2'
-                                               onkeyup="password_confirmation();">
+                                               onkeyup="password_confirmation();" autocomplete="new-password">
                                     </td>
                                     <td width='40%'>
                                     </td>
@@ -235,8 +235,10 @@
                     </slot>&nbsp;{sugar_help text=$MOD.LBL_RECEIVE_NOTIFICATIONS_TEXT}
                 </td>
                 <td width="33%">
-                    <slot><input name='receive_notifications' class="checkbox" tabindex='12' type="checkbox"
-                                 value="12" {$RECEIVE_NOTIFICATIONS}></slot>
+                    <slot>
+                        <input type='hidden' value='0' name='receive_notifications'>
+                        <input name='receive_notifications' class="checkbox" tabindex='12' type="checkbox" value="1" {$RECEIVE_NOTIFICATIONS}>
+                    </slot>
                 </td>
             </tr>
 
@@ -270,13 +272,18 @@
                 <td scope="row" valign="top">
                     <slot>{$MOD.LBL_USE_REAL_NAMES}:</slot>&nbsp;{sugar_help text=$MOD.LBL_USE_REAL_NAMES_DESC }</td>
                 <td>
-                    <slot><input tabindex='12' type="checkbox" name="use_real_names" {$USE_REAL_NAMES}></slot>
+                    <slot>
+                        <input type="hidden" name="use_real_names" value="false">
+                        <input tabindex='12' type="checkbox" name="use_real_names" {$USE_REAL_NAMES}>
+                    </slot>
                 </td>
                 <td scope="row" valign="top">
                     <slot>{$MOD.LBL_MAILMERGE}:</slot>&nbsp;{sugar_help text=$MOD.LBL_MAILMERGE_TEXT }
                 </td>
                 <td valign="top" nowrap>
-                    <slot><input tabindex='12' name='mailmerge_on' class="checkbox" type="checkbox" {$MAILMERGE_ON}>
+                    <slot>
+                        <input type="hidden" name="mailmerge_on" value="false">
+                        <input tabindex='12' name="mailmerge_on" class="checkbox" type="checkbox" {$MAILMERGE_ON}>
                     </slot>
                 </td>
             </tr>
@@ -370,7 +377,7 @@
                         <slot>{$MOD.LBL_PROMPT_TIMEZONE}:</slot>&nbsp;{sugar_help text=$MOD.LBL_PROMPT_TIMEZONE_TEXT }
                     </td>
                     <td>
-                        <slot><input type="checkbox" tabindex='14' class="checkbox" name="ut" value="0" {$PROMPTTZ}>
+                        <slot><input type="checkbox" tabindex='14' class="checkbox" name="ut" {$PROMPTTZ}>
                         </slot>
                     </td>
                 {else}
@@ -409,6 +416,13 @@
                                onkeydown='setSigDigits();' onkeyup='setSigDigits();'>
                     </slot>
                 </td>
+            </tr>
+            <tr>
+            <td width="17%" scope="row">
+               <slot>{$MOD.LBL_USER_LANGUAGE}:</slot></td>
+            <td scope="row">
+            <slot><select tabindex='15' id="language" name="language">{$LanguageOptions}</select></slot>
+            </td>
             </tr>
         </table>
     </div>
@@ -549,12 +563,23 @@
 
   $(document).ready(function () {
     var checkKey = function (key) {
-      if (key != '') {
+      var validation = /^[A-Z0-9\-_.]*$/i;
+      if (key != '' && validation.test(key)) {
+
+        var encodedKey = key.replace(/[&<>'"]/g, function(tag) {
+          return ({
+              '&': '&amp;',
+              '<': '&lt;',
+              '>': '&gt;',
+              "'": '&#39;',
+              '"': '&quot;'
+            }[tag]);
+        })
         $(".calendar_publish_ok").css('display', 'inline');
         $(".calendar_publish_none").css('display', 'none');
-        $('#cal_pub_key_span').html(key);
-        $('#ical_pub_key_span').html(key);
-        $('#search_pub_key_span').html(key);
+        $('#cal_pub_key_span').html(encodedKey);
+        $('#ical_pub_key_span').html(encodedKey);
+        $('#search_pub_key_span').html(encodedKey);
       } else {
         $(".calendar_publish_ok").css('display', 'none');
         $(".calendar_publish_none").css('display', 'inline');

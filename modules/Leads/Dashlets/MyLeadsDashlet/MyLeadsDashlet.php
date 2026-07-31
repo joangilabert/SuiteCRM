@@ -48,11 +48,15 @@ if (!defined('sugarEntry') || !sugarEntry) {
 require_once('include/Dashlets/DashletGeneric.php');
 
 
+#[\AllowDynamicProperties]
 class MyLeadsDashlet extends DashletGeneric
 {
     public function __construct($id, $def = null)
     {
-        global $current_user, $app_strings;
+        global $current_user, $app_strings, $dashletData;
+
+        $dashletData = $dashletData ?? [];
+
         require('modules/Leads/Dashlets/MyLeadsDashlet/MyLeadsDashlet.data.php');
 
         parent::__construct($id, $def);
@@ -63,20 +67,8 @@ class MyLeadsDashlet extends DashletGeneric
 
         $this->searchFields = $dashletData['MyLeadsDashlet']['searchFields'];
         $this->columns = $dashletData['MyLeadsDashlet']['columns'];
-        $this->seedBean = new Lead();
+        $this->seedBean = BeanFactory::newBean('Leads');
     }
 
-    /**
-     * @deprecated deprecated since version 7.6, PHP4 Style Constructors are deprecated and will be remove in 7.8, please update your code, use __construct instead
-     */
-    public function MyLeadsDashlet($id, $def = null)
-    {
-        $deprecatedMessage = 'PHP4 Style Constructors are deprecated and will be remove in 7.8, please update your code';
-        if (isset($GLOBALS['log'])) {
-            $GLOBALS['log']->deprecated($deprecatedMessage);
-        } else {
-            trigger_error($deprecatedMessage, E_USER_DEPRECATED);
-        }
-        self::__construct($id, $def);
-    }
+
 }

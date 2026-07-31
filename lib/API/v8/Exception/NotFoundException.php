@@ -40,15 +40,14 @@
 
 namespace SuiteCRM\API\v8\Exception;
 
-use SuiteCRM\Enumerator\ExceptionCode;
-
 /**
  * Class NotFoundException
  * @package SuiteCRM\API\v8\Exception
  */
+#[\AllowDynamicProperties]
 class NotFoundException extends ApiException
 {
-    const MSG_PREFIX = '[Not Found]';
-    const DEFAULT_CODE = 8005;
-    const HTTP_STATUS = 404;
+    public const MSG_PREFIX = '[Not Found]';
+    public const DEFAULT_CODE = 8005;
+    public const HTTP_STATUS = 404;
 }

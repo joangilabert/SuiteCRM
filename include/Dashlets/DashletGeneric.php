@@ -154,20 +154,6 @@ class DashletGeneric extends Dashlet
     }
 
     /**
-     * @deprecated deprecated since version 7.6, PHP4 Style Constructors are deprecated and will be remove in 7.8, please update your code, use __construct instead
-     */
-    public function DashletGeneric($id, $options = null)
-    {
-        $deprecatedMessage = 'PHP4 Style Constructors are deprecated and will be remove in 7.8, please update your code';
-        if (isset($GLOBALS['log'])) {
-            $GLOBALS['log']->deprecated($deprecatedMessage);
-        } else {
-            trigger_error($deprecatedMessage, E_USER_DEPRECATED);
-        }
-        self::__construct($id, $options);
-    }
-
-    /**
      * Sets up the display options template
      *
      * @return string HTML that shows options
@@ -261,7 +247,7 @@ class DashletGeneric extends Dashlet
                     $name = $widgetDef['name'] = 'modified_user_id';
                 }
                 //bug 39170 - end
-                if ($widgetDef['type']=='enum') {
+                if ($widgetDef['type']=='enum' || $widgetDef['type']=='multienum') {
                     $filterNotSelected = array(); // we need to have some value otherwise '' or null values make -none- to be selected by default
                 } else {
                     $filterNotSelected = '';
@@ -271,8 +257,8 @@ class DashletGeneric extends Dashlet
                 $currentSearchFields[$name]['label'] = !empty($params['label']) ? translate($params['label'], $this->seedBean->module_dir) : translate($widgetDef['vname'], $this->seedBean->module_dir);
                 $currentSearchFields[$name]['input'] = $this->layoutManager->widgetDisplayInput($widgetDef, true, (empty($this->filters[$name]) ? '' : $this->filters[$name]));
             } else { // ability to create spacers in input fields
-                $currentSearchFields['blank' + $count]['label'] = '';
-                $currentSearchFields['blank' + $count]['input'] = '';
+                $currentSearchFields['blank' . $count]['label'] = '';
+                $currentSearchFields['blank' . $count]['input'] = '';
                 $count++;
             }
         }
@@ -326,14 +312,16 @@ class DashletGeneric extends Dashlet
         if (!is_array($this->filters)) {
             // use defaults
             $this->filters = array();
-            foreach ($this->searchFields as $name => $params) {
-                if (!empty($params['default'])) {
-                    $this->filters[$name] = $params['default'];
+            if (is_array($this->searchFields)) {
+                foreach ($this->searchFields as $name => $params) {
+                    if (!empty($params['default'])) {
+                        $this->filters[$name] = $params['default'];
+                    }
                 }
             }
         }
         foreach ($this->filters as $name=>$params) {
-            if (!empty($params)) {
+            if (!empty($params) && $this->seedBean != null) {
                 if ($name == 'assigned_user_id' && $this->myItemsOnly) {
                     continue;
                 } // don't handle assigned user filter if filtering my items only
@@ -387,7 +375,7 @@ class DashletGeneric extends Dashlet
         }
 
         if ($this->myItemsOnly) {
-            array_push($returnArray, $this->seedBean->table_name . '.' . "assigned_user_id = '" . $current_user->id . "'");
+            array_push($returnArray, ($this->seedBean?->table_name ?? "") . '.' . "assigned_user_id = '" . $current_user->id . "'");
         }
 
         return $returnArray;
@@ -395,9 +383,13 @@ class DashletGeneric extends Dashlet
 
     protected function loadCustomMetadata()
     {
-        $customMetadate = 'custom/modules/'.$this->seedBean->module_dir.'/metadata/dashletviewdefs.php';
-        if (file_exists($customMetadate)) {
-            require($customMetadate);
+        if ($this->seedBean == null) {
+            return;
+        }
+        $dashletData = [];
+        $customMetadata = 'custom/modules/'.$this->seedBean->module_dir.'/metadata/dashletviewdefs.php';
+        if (file_exists($customMetadata)) {
+            require($customMetadata);
             $this->searchFields = $dashletData[$this->seedBean->module_dir.'Dashlet']['searchFields'];
             foreach ($this->searchFields  as $key =>$def) {
                 if ($key == 'assigned_user_name') {
@@ -438,19 +430,21 @@ class DashletGeneric extends Dashlet
                 $displayColumns[strtoupper($val)] = $this->columns[$val];
                 $displayColumns[strtoupper($val)]['label'] = trim($displayColumns[strtoupper($val)]['label'], ':');// strip : at the end of headers
             }
-        } elseif (isset($this->columns)) {
-            // use the default
-            foreach ($this->columns as $name => $val) {
-                if (!empty($val['default']) && $val['default']) {
-                    $displayColumns[strtoupper($name)] = $val;
-                    $displayColumns[strtoupper($name)]['label'] = trim($displayColumns[strtoupper($name)]['label'], ':');
+        } else {
+            if (isset($this->columns)) {
+                // use the default
+                foreach ($this->columns as $name => $val) {
+                    if (!empty($val['default']) && $val['default']) {
+                        $displayColumns[strtoupper($name)] = $val;
+                        $displayColumns[strtoupper($name)]['label'] = trim($displayColumns[strtoupper($name)]['label'], ':');
+                    }
                 }
             }
         }
         $this->lvs->displayColumns = $displayColumns;
 
 
-        $this->lvs->lvd->setVariableName($this->seedBean->object_name, array());
+        $this->lvs->lvd->setVariableName($this->seedBean?->object_name, array());
         $lvdOrderBy = $this->lvs->lvd->getOrderBy(); // has this list been ordered, if not use default
 
         $nameRelatedFields = array();
@@ -484,18 +478,22 @@ class DashletGeneric extends Dashlet
                 $where = '(' . implode(') AND (', $whereArray) . ')';
             }
             $this->lvs->setup($this->seedBean, $this->displayTpl, $where, $lvsParams, 0, $this->displayRows/*, $filterFields*/, array(), 'id', $id);
-            if (in_array('CREATED_BY', array_keys($displayColumns))) { // handle the created by field
+            if (array_key_exists('CREATED_BY', $displayColumns)) { // handle the created by field
                 foreach ($this->lvs->data['data'] as $row => $data) {
                     $this->lvs->data['data'][$row]['CREATED_BY'] = get_assigned_user_name($data['CREATED_BY']);
                 }
             }
             // assign a baseURL w/ the action set as DisplayDashlet
-            foreach ($this->lvs->data['pageData']['urls'] as $type => $url) {
+            $urls = $this->lvs?->data['pageData']['urls'] ?? [];
+            if (!is_array($urls)) {
+                $urls = [];
+            }
+            foreach ($urls as $type => $url) {
                 // awu Replacing action=DisplayDashlet with action=DynamicAction&DynamicAction=DisplayDashlet
                 if ($type == 'orderBy') {
-                    $this->lvs->data['pageData']['urls'][$type] = preg_replace('/(action=.*&)/Ui', 'action=DynamicAction&DynamicAction=displayDashlet&', $url);
+                    $this->lvs->data['pageData']['urls'][$type] = preg_replace('/(action=.*&)/Ui', 'action=DynamicAction&DynamicAction=displayDashlet&', (string) $url);
                 } else {
-                    $this->lvs->data['pageData']['urls'][$type] = preg_replace('/(action=.*&)/Ui', 'action=DynamicAction&DynamicAction=displayDashlet&', $url) . '&sugar_body_only=1&id=' . $this->id;
+                    $this->lvs->data['pageData']['urls'][$type] = preg_replace('/(action=.*&)/Ui', 'action=DynamicAction&DynamicAction=displayDashlet&', (string) $url) . '&sugar_body_only=1&id=' . $this->id;
                 }
             }
 
@@ -553,7 +551,7 @@ class DashletGeneric extends Dashlet
             }
         }
         if (!empty($req['dashletTitle'])) {
-            $options['title'] = $req['dashletTitle'];
+            $options['title'] = htmlentities(html_entity_decode($req['dashletTitle']));
         }
 
         // Don't save the options for myItemsOnly if we're not even showing the options.
@@ -579,6 +577,9 @@ class DashletGeneric extends Dashlet
      */
     public function addCustomFields()
     {
+        if ($this->seedBean == null) {
+            return;
+        }
         foreach ($this->seedBean->field_defs as $fieldName => $def) {
             if (!empty($def['type']) && $def['type'] == 'html') {
                 continue;

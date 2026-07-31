@@ -55,6 +55,7 @@ require_once('include/SugarLogger/LoggerTemplate.php');
  * Default SugarCRM Logger
  * @api
  */
+#[\AllowDynamicProperties]
 class SugarLogger implements LoggerTemplate
 {
     /**
@@ -68,7 +69,9 @@ class SugarLogger implements LoggerTemplate
     protected $filesuffix = "";
     protected $date_suffix = "";
     protected $log_dir = '.';
+    protected $defaultPerms = 0664;
 
+    protected $dateFormatter = null;
 
     /**
      * used for config screen
@@ -127,6 +130,7 @@ class SugarLogger implements LoggerTemplate
         $this->logSize = $config->get('logger.file.maxSize', $this->logSize);
         $this->maxLogs = $config->get('logger.file.maxLogs', $this->maxLogs);
         $this->filesuffix = $config->get('logger.file.suffix', $this->filesuffix);
+        $this->defaultPerms = $config->get('logger.file.perms', $this->defaultPerms);
         $log_dir = $config->get('log_dir', $this->log_dir);
         $this->log_dir = $log_dir . (empty($log_dir)?'':'/');
         unset($config);
@@ -143,28 +147,32 @@ class SugarLogger implements LoggerTemplate
             $this->date_suffix = "_" . date(str_replace("%", "", $this->filesuffix));
         }
         $this->full_log_file = $this->log_dir . $this->logfile . $this->date_suffix . $this->ext;
+        $this->setDateFormatter();
         $this->initialized = $this->_fileCanBeCreatedAndWrittenTo();
         $this->rollLog();
     }
 
     /**
      * Checks to see if the SugarLogger file can be created and written to
+     * @noinspection PhpUndefinedFieldInspection
+     * @return bool
      */
     protected function _fileCanBeCreatedAndWrittenTo()
     {
-        $this->_attemptToCreateIfNecessary();
-        return file_exists($this->full_log_file) && is_writable($this->full_log_file);
-    }
-
-    /**
-     * Creates the SugarLogger file if it doesn't exist
-     */
-    protected function _attemptToCreateIfNecessary()
-    {
-        if (file_exists($this->full_log_file)) {
-            return;
+        if (is_writable($this->full_log_file)) {
+            return true;
         }
-        @touch($this->full_log_file);
+
+        if (!is_file($this->full_log_file)) {
+            @touch($this->full_log_file);
+            if ($this->defaultPerms !== false) {
+                @chmod($this->full_log_file, $this->defaultPerms);
+            }
+
+            return is_writable($this->full_log_file);
+        }
+
+        return false;
     }
 
     /**
@@ -188,6 +196,60 @@ class SugarLogger implements LoggerTemplate
         return $ret;
     }
 
+    private function convertStrftimeToIntl(string $strftimeFormat): string {
+        $map = [
+            '%a' => 'EEE',   // Abbreviated weekday name (Mon, Tue)
+            '%A' => 'EEEE',  // Full weekday name (Monday, Tuesday)
+            '%b' => 'MMM',   // Abbreviated month name (Jan, Feb)
+            '%B' => 'MMMM',  // Full month name (January, February)
+            '%C' => 'yy',    // Century (20 for the year 2024)
+            '%d' => 'dd',    // Day of the month (01-31)
+            '%e' => 'd',     // Day of the month without leading zero (1-31)
+            '%D' => 'MM/dd/yy',  // Short date (equivalent to %m/%d/%y)
+            '%F' => 'yyyy-MM-dd', // ISO 8601 date (equivalent to %Y-%m-%d)
+            '%H' => 'HH',    // Hour (24-hour format, 00-23)
+            '%I' => 'hh',    // Hour (12-hour format, 01-12)
+            '%j' => 'D',     // Day of the year (001-366)
+            '%m' => 'MM',    // Month (01-12)
+            '%M' => 'mm',    // Minutes (00-59)
+            '%n' => "\n",    // New line (not applicable in IntlDateFormatter)
+            '%p' => 'a',     // AM/PM marker
+            '%r' => 'hh:mm:ss a', // 12-hour clock time (equivalent to %I:%M:%S %p)
+            '%R' => 'HH:mm', // 24-hour time format without seconds
+            '%S' => 'ss',    // Seconds (00-59)
+            '%T' => 'HH:mm:ss', // Full time format (equivalent to %H:%M:%S)
+            '%u' => 'e',     // ISO-8601 weekday (1=Monday, 7=Sunday)
+            '%w' => 'c',     // Weekday (0=Sunday, 6=Saturday)
+            '%x' => 'dd/MM/yy', // Short date representation (locale-dependent)
+            '%X' => 'HH:mm:ss', // Full time representation (locale-dependent)
+            '%y' => 'yy',    // Year without century (00-99)
+            '%Y' => 'yyyy',  // Year with century (2024)
+            '%z' => 'Z',     // Time zone offset (e.g., +0100)
+            '%Z' => 'VV',    // Time zone name (e.g., Europe/Madrid)
+            '%c' => 'EEE MMM dd HH:mm:ss yyyy',  // Format for Fri Feb 07 10:00:13 2025
+            '%%' => '%',     // Literal percent sign
+        ];
+    
+        // Special processing for unsupported values
+        $strftimeFormat = str_replace('%s', time(), $strftimeFormat); // %s → UNIX Timestamp
+        $strftimeFormat = str_replace('%U', date('W'), $strftimeFormat); // %U → Week of the year
+    
+        return strtr($strftimeFormat, $map);
+    }
+
+    private function setDateFormatter() {
+        $intlFormat = $this->convertStrftimeToIntl($this->dateFormat);
+       
+        $this->dateFormatter = new IntlDateFormatter(
+            locale_get_default(),
+            IntlDateFormatter::NONE, 
+            IntlDateFormatter::NONE,
+            date_default_timezone_get(),
+            IntlDateFormatter::GREGORIAN,
+            $intlFormat 
+        );
+    }
+    
     /**
      * Show log
      * and show a backtrace information in log when
@@ -198,7 +260,7 @@ class SugarLogger implements LoggerTemplate
         $level,
         $message
         ) {
-        global $sugar_config;
+        global $sugar_config, $timezone, $current_language;
 
         if (!$this->initialized) {
             return;
@@ -208,7 +270,7 @@ class SugarLogger implements LoggerTemplate
 
         //if we haven't opened a file pointer yet let's do that
         if (! $this->fp) {
-            $this->fp = fopen($this->full_log_file, 'a');
+            $this->fp = fopen($this->full_log_file, 'ab');
         }
 
 
@@ -227,10 +289,19 @@ class SugarLogger implements LoggerTemplate
             $message .= ("\n" . $trace);
         }
 
+        $format = new IntlDateFormatter(
+            $current_language,
+            IntlDateFormatter::MEDIUM,
+            IntlDateFormatter::MEDIUM,
+            $timezone,
+            IntlDateFormatter::GREGORIAN,
+            "EEE MMM d yyyy 'at' HH:mm:ss",
+        );
+
         //write out to the file including the time in the dateFormat the process id , the user id , and the log level as well as the message
         fwrite(
             $this->fp,
-            strftime($this->dateFormat) . ' [' . getmypid() . '][' . $userID . '][' . strtoupper($level) . '] ' . $message . "\n"
+            $format->format(time()) . ' [' . getmypid() . '][' . $userID . '][' . strtoupper($level) . '] ' . $message . "\n"
             );
     }
 

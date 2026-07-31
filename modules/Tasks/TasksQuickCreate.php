@@ -46,11 +46,11 @@ require_once('include/EditView/QuickCreate.php');
 
 
 
+#[\AllowDynamicProperties]
 class TasksQuickCreate extends QuickCreate
 {
     public $javascript;
-    
-    public function process()
+    public function process($checkFormName = false, $formName = '')
     {
         global $current_user, $timedate, $app_list_strings, $current_language, $mod_strings;
         $mod_strings = return_module_language($current_language, 'Tasks');
@@ -61,24 +61,26 @@ class TasksQuickCreate extends QuickCreate
         $this->ss->assign("STATUS_OPTIONS", get_select_options_with_id($app_list_strings['task_status_dom'], $app_list_strings['task_status_default']));
         $this->ss->assign("TIME_FORMAT", '('. $timedate->get_user_time_format().')');
         
-        $focus = new Task();
-        $time_start_hour = intval(substr($focus->time_start, 0, 2));
-        $time_start_minutes = substr($focus->time_start, 3, 5);
+        $focus = BeanFactory::newBean('Tasks');
+        $time_start_hour = (int)substr((string) $focus->time_start, 0, 2);
+        $time_start_minutes = substr((string) $focus->time_start, 3, 5);
         if ($time_start_minutes > 45) {
             $time_start_hour += 1;
         }
 
         $time_pref = $timedate->get_time_format();
-        if (strpos($time_pref, 'a')) {
+        if (strpos((string) $time_pref, 'a')) {
             if (!isset($focus->meridiem_am_values)) {
                 $focus->meridiem_am_values = array('am'=>'am', 'pm'=>'pm');
             }
             $this->ss->assign("TIME_MERIDIEM", get_select_options_with_id($focus->meridiem_am_values, $time_start_hour < 12 ? 'am' : 'pm'));
-        } elseif (strpos($time_pref, 'A')) {
-            if (!isset($focus->meridiem_AM_values)) {
-                $focus->meridiem_AM_values = array('AM'=>'AM', 'PM'=>'PM');
+        } else {
+            if (strpos((string) $time_pref, 'A')) {
+                if (!isset($focus->meridiem_AM_values)) {
+                    $focus->meridiem_AM_values = array('AM'=>'AM', 'PM'=>'PM');
+                }
+                $this->ss->assign("TIME_MERIDIEM", get_select_options_with_id($focus->meridiem_AM_values, $time_start_hour < 12 ? 'AM' : 'PM'));
             }
-            $this->ss->assign("TIME_MERIDIEM", get_select_options_with_id($focus->meridiem_AM_values, $time_start_hour < 12 ? 'AM' : 'PM'));
         } //if-else
 
         $this->ss->assign("USER_DATEFORMAT", '('. $timedate->get_user_date_format().')');
@@ -95,7 +97,7 @@ class TasksQuickCreate extends QuickCreate
         $this->javascript = new javascript();
         $this->javascript->setFormName('tasksQuickCreate');
         
-        $focus = new Task();
+        $focus = BeanFactory::newBean('Tasks');
         $this->javascript->setSugarBean($focus);
         $this->javascript->addAllFields('');
 

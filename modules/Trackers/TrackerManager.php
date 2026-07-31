@@ -45,6 +45,7 @@ require_once('modules/Trackers/monitor/Monitor.php');
 
 
 
+#[\AllowDynamicProperties]
 class TrackerManager
 {
     private static $instance;
@@ -66,21 +67,6 @@ class TrackerManager
     }
 
     /**
-     * @deprecated deprecated since version 7.6, PHP4 Style Constructors are deprecated and will be remove in 7.8, please update your code, use __construct instead
-     */
-    private function TrackerManager()
-    {
-        $deprecatedMessage = 'PHP4 Style Constructors are deprecated and will be remove in 7.8, please update your code';
-        if (isset($GLOBALS['log'])) {
-            $GLOBALS['log']->deprecated($deprecatedMessage);
-        } else {
-            trigger_error($deprecatedMessage, E_USER_DEPRECATED);
-        }
-        self::__construct();
-    }
-
-
-    /**
      * setup
      * This is a private method used to load the configuration settings whereby
      * monitors may be disabled via the Admin settings interface
@@ -89,7 +75,7 @@ class TrackerManager
     private function setup()
     {
         if (!empty($this->metadata) && empty($GLOBALS['installing'])) {
-            $admin = new Administration();
+            $admin = BeanFactory::newBean('Administration');
             $admin->retrieveSettings('tracker');
             foreach ($this->metadata as $key=>$entry) {
                 if (isset($entry['bean'])) {
@@ -156,7 +142,7 @@ class TrackerManager
                     $this->metadata[$name]['name'], //name
                                       self::$monitor_id, //monitor_id
                                    $this->metadata[$name]['metadata'],
-                                   $this->metadata[$name]['store'] //store
+                    $this->metadata[$name]['store'] //store
                                    );
                 $this->monitors[$name] = $instance;
                 return $this->monitors[$name];

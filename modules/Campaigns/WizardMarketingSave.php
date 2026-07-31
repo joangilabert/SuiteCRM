@@ -41,13 +41,7 @@ if (!defined('sugarEntry') || !sugarEntry) {
  * display the words "Powered by SugarCRM" and "Supercharged by SuiteCRM".
  */
 
-/*********************************************************************************
 
- * Description:  TODO: To be written.
- * Portions created by SugarCRM are Copyright (C) SugarCRM, Inc.
- * All Rights Reserved.
- * Contributor(s): ______________________________________..
- ********************************************************************************/
 
 
 global $timedate;
@@ -74,7 +68,7 @@ if (isset($_REQUEST['wiz_home_next_step']) && !empty($_REQUEST['wiz_home_next_st
 
 
 $prefix = 'wiz_step3_';
-$marketing = new EmailMarketing();
+$marketing = BeanFactory::newBean('EmailMarketing');
 if (isset($_REQUEST['record']) && !empty($_REQUEST['record'])) {
     $marketing->retrieve($_REQUEST['record']);
 } else {
@@ -153,14 +147,14 @@ if ($marketing->all_prospect_lists==1) {
 } else {
     if (isset($_REQUEST['message_for']) && is_array($_REQUEST['message_for'])) {
         foreach ($_REQUEST['message_for'] as $prospect_list_id) {
-            $key=array_search($prospect_list_id, $prospectlists);
-            if ($key === null or $key === false) {
+            $key=array_search($prospect_list_id, $prospectlists, true);
+            if ($key === null || $key === false) {
                 $marketing->prospectlists->add($prospect_list_id);
             } else {
                 unset($prospectlists[$key]);
             }
         }
-        if (count($prospectlists) != 0) {
+        if ((is_countable($prospectlists) ? count($prospectlists) : 0) != 0) {
             foreach ($prospectlists as $key=>$list_id) {
                 $marketing->prospectlists->delete($marketing->id, $list_id);
             }
@@ -199,11 +193,13 @@ if (isset($_REQUEST['show_wizard_summary']) && $_REQUEST['show_wizard_summary'])
         $_POST['wiz_mass'] = $marketing->id;
         if (isset($_REQUEST['sendMarketingEmailTest']) && $_REQUEST['sendMarketingEmailTest']) {
             $_POST['mode'] = 'test';
-        } elseif (isset($_REQUEST['sendMarketingEmailSchedule']) && $_REQUEST['sendMarketingEmailSchedule']) {
-            $_POST['mode'] = 'send';
-            $_SESSION['msg'] = 'LBL_EMAILS_SCHEDULED';
         } else {
-            throw new Exception('request error');
+            if (isset($_REQUEST['sendMarketingEmailSchedule']) && $_REQUEST['sendMarketingEmailSchedule']) {
+                $_POST['mode'] = 'send';
+                $_SESSION['msg'] = 'LBL_EMAILS_SCHEDULED';
+            } else {
+                throw new Exception('request error');
+            }
         }
 
         //$_POST['SUBMIT'] = 'Send Test';

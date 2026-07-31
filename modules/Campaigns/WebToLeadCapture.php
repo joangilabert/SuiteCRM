@@ -67,7 +67,7 @@ if (isset($_POST['campaign_id']) && !empty($_POST['campaign_id'])) {
     //adding the client ip address
     $_POST['client_id_address'] = query_client_ip();
     $campaign_id=$_POST['campaign_id'];
-    $campaign = new Campaign();
+    $campaign = BeanFactory::newBean('Campaigns');
     $campaign_id = $campaign->db->quote($_POST['campaign_id']);
     $isValidator = new SuiteValidator();
     if (!$isValidator->isValidId($campaign_id)) {
@@ -79,23 +79,23 @@ if (isset($_POST['campaign_id']) && !empty($_POST['campaign_id'])) {
     $camp_data = $campaign->db->fetchByAssoc($camp_result);
     // Bug 41292 - have to select marketing_id for new lead
     $db = DBManagerFactory::getInstance();
-    $marketing = new EmailMarketing();
+    $marketing = BeanFactory::newBean('EmailMarketing');
     $marketing_query = $marketing->create_new_list_query(
-                'date_start desc, date_modified desc',
-                "campaign_id = '{$campaign_id}' and status = 'active' and date_start < " . $db->convert('', 'today'),
-                array('id')
+        'date_start desc, date_modified desc',
+        "campaign_id = '{$campaign_id}' and status = 'active' and date_start < " . $db->convert('', 'today'),
+        array('id')
         );
     $marketing_result = $db->limitQuery($marketing_query, 0, 1, true);
     $marketing_data = $db->fetchByAssoc($marketing_result);
     // .Bug 41292
     if (isset($_REQUEST['assigned_user_id']) && !empty($_REQUEST['assigned_user_id'])) {
-        $current_user = new User();
+        $current_user = BeanFactory::newBean('Users');
         $current_user->retrieve($_REQUEST['assigned_user_id']);
     }
 
     if (isset($camp_data) && $camp_data != null) {
         $leadForm = new LeadFormBase();
-        $lead = new Lead();
+        $lead = BeanFactory::newBean('Leads');
         $prefix = '';
         if (!empty($_POST['prefix'])) {
             $prefix = $_POST['prefix'];
@@ -127,13 +127,13 @@ if (isset($_POST['campaign_id']) && !empty($_POST['campaign_id'])) {
         if (!empty($lead)) {
                 
                 //create campaign log
-            $camplog = new CampaignLog();
+            $camplog = BeanFactory::newBean('CampaignLog');
             $camplog->campaign_id  = $campaign_id;
             $camplog->related_id   = $lead->id;
             $camplog->related_type = $lead->module_dir;
             $camplog->activity_type = "lead";
             $camplog->target_type = $lead->module_dir;
-            $campaign_log->activity_date=$timedate->now();
+            $camplog->activity_date=$timedate->now();
             $camplog->target_id    = $lead->id;
             if (isset($marketing_data['id'])) {
                 $camplog->marketing_id = $marketing_data['id'];
@@ -178,12 +178,12 @@ if (isset($_POST['campaign_id']) && !empty($_POST['campaign_id'])) {
                 $sea->AddUpdateEmailAddress($lead->email2, 0, 1);
             }
         }
-        if (isset($_POST['redirect_url']) && !empty($_POST['redirect_url'])) {
+        if (isset($_POST['redirect_url']) && !empty($_POST['redirect_url']) && isWebToLeadAllowedRedirectHost($_POST['redirect_url'] ?? '')) {
             // Get the redirect url, and make sure the query string is not too long
             $redirect_url = $_POST['redirect_url'];
             $query_string = '';
             $first_char = '&';
-            if (strpos($redirect_url, '?') === false) {
+            if (strpos((string) $redirect_url, '?') === false) {
                 $first_char = '?';
             }
             $first_iteration = true;
@@ -193,13 +193,25 @@ if (isset($_POST['campaign_id']) && !empty($_POST['campaign_id'])) {
                     continue;
                 }
                     
-                if ($first_iteration) {
-                    $first_iteration = false;
-                    $query_string .= $first_char;
+                if (is_array($value)) {
+                    foreach ($value as $multiple) {
+                        if ($first_iteration) {
+                            $first_iteration = false;
+                            $query_string .= $first_char;
+                        } else {
+                            $query_string .= '&';
+                        }
+                        $query_string .= "{$param}=" . urlencode($multiple);
+                    }
                 } else {
-                    $query_string .= "&";
+                    if ($first_iteration) {
+                        $first_iteration = false;
+                        $query_string .= $first_char;
+                    } else {
+                        $query_string .= '&';
+                    }
+                    $query_string .= "{$param}=" . urlencode($value);
                 }
-                $query_string .= "{$param}=".urlencode($value);
             }
             if (empty($lead)) {
                 if ($first_iteration) {
@@ -242,11 +254,12 @@ if (isset($_POST['campaign_id']) && !empty($_POST['campaign_id'])) {
         sugar_cleanup();
         // die to keep code from running into redirect case below
         die();
+    } else {
+        echo $mod_strings['LBL_SERVER_IS_CURRENTLY_UNAVAILABLE'];
     }
-    echo $mod_strings['LBL_SERVER_IS_CURRENTLY_UNAVAILABLE'];
 }
 
-if (!empty($_POST['redirect'])) {
+if (!empty($_POST['redirect']) && isWebToLeadAllowedRedirectHost($_POST['redirect'] ?? '')) {
     if (headers_sent()) {
         echo '<html ' . get_language_header() . '><head><title>SugarCRM</title></head><body>';
         echo '<form name="redirect" action="' .$_POST['redirect']. '" method="GET">';

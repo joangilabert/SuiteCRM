@@ -68,19 +68,7 @@ class TemplateHandler
         $this->cacheDir = sugar_cached('');
     }
 
-    /**
-     * @deprecated deprecated since version 7.6, PHP4 Style Constructors are deprecated and will be remove in 7.8, please update your code, use __construct instead
-     */
-    public function TemplateHandler()
-    {
-        $deprecatedMessage = 'PHP4 Style Constructors are deprecated and will be remove in 7.8, please update your code';
-        if (isset($GLOBALS['log'])) {
-            $GLOBALS['log']->deprecated($deprecatedMessage);
-        } else {
-            trigger_error($deprecatedMessage, E_USER_DEPRECATED);
-        }
-        self::__construct();
-    }
+
 
 
     public function loadSmarty()
@@ -183,42 +171,43 @@ class TemplateHandler
         );
         $contents = $this->ss->fetch($tpl);
         // Insert validation and quick search stuff here
-        if ($view === 'EditView' || $ajaxSave || $view === 'ConvertLead' || strpos($view, 'QuickCreate')) {
-            global $dictionary, $beanList, $app_strings, $mod_strings;
-            $mod = $beanList[$module];
+        if ($view === 'EditView' || $ajaxSave || $view === 'ConvertLead' || $view === 'ComposeView' || strpos($view, 'QuickCreate')) {
+            global $dictionary, $app_strings, $mod_strings;
 
-            if ($mod === 'aCase') {
-                $mod = 'Case';
-            }
+            $mod = BeanFactory::getObjectName($module);
 
-            $defs = $dictionary[$mod]['fields'];
+            $defs = isset($dictionary[$mod]['fields']) ? $dictionary[$mod]['fields'] : [];
             $defs2 = array();
             //Retrieve all panel field definitions with displayParams Array field set
             $panelFields = array();
 
-            foreach ($metaDataDefs['panels'] as $panel) {
-                foreach ($panel as $row) {
-                    foreach ($row as $entry) {
-                        if (empty($entry)) {
-                            continue;
-                        }
+            if (is_array($metaDataDefs['panels'])) {
+                foreach ($metaDataDefs['panels'] as $panel) {
+                    foreach ($panel as $row) {
+                        foreach ($row as $entry) {
+                            if (empty($entry)) {
+                                continue;
+                            }
 
-                        if (is_array($entry) &&
-                            isset($entry['name']) &&
-                            isset($entry['displayParams']['required']) &&
-                            $entry['displayParams']['required']
-                        ) {
-                            $panelFields[$entry['name']] = $entry;
-                        }
+                            if (is_array($entry) &&
+                                isset($entry['name']) &&
+                                isset($entry['displayParams']['required']) &&
+                                $entry['displayParams']['required']
+                            ) {
+                                $panelFields[$entry['name']] = $entry;
+                            }
 
-                        if (is_array($entry)) {
-                            $defs2[$entry['name']] = $entry;
-                        } else {
-                            $defs2[$entry] = array('name' => $entry);
-                        }
+                            if (is_array($entry)) {
+                                if (isset($entry['name'])) {
+                                    $defs2[$entry['name']] = $entry;
+                                }
+                            } else {
+                                $defs2[$entry] = array('name' => $entry);
+                            }
+                        } //foreach
                     } //foreach
                 } //foreach
-            } //foreach
+            }
 
             foreach ($panelFields as $field => $value) {
                 $nameList = array();
@@ -314,7 +303,7 @@ class TemplateHandler
                         $mod = 'Case';
                     }
 
-                    $defs = $dictionary[$mod]['fields'];
+                    $defs = isset($dictionary[$mod]['fields']) ? $dictionary[$mod]['fields'] : [];
                     $contents .= '{literal}';
                     $contents .= $this->createQuickSearchCode($defs, array(), $view);
                     $contents .= '{/literal}';
@@ -375,11 +364,12 @@ class TemplateHandler
         $file = $this->cacheDir . $this->themeDir . $theme . '/' . $this->templateDir . $module . '/' . $view . '.tpl';
         if (file_exists($file)) {
             return $this->ss->fetch($file);
-        }
-        global $app_strings;
-        $GLOBALS['log']->fatal($app_strings['ERR_NO_SUCH_FILE'] . ": $file");
+        } else {
+            global $app_strings;
+            $GLOBALS['log']->fatal($app_strings['ERR_NO_SUCH_FILE'] . ": $file");
 
-        return $app_strings['ERR_NO_SUCH_FILE'] . ": $file";
+            return $app_strings['ERR_NO_SUCH_FILE'] . ": $file";
+        }
     }
 
     /**
@@ -535,7 +525,7 @@ class TemplateHandler
         } else {
             //Loop through the Meta-Data fields to see which ones need quick search support
             foreach ($defs2 as $f) {
-                if (!isset($defs[$f['name']])) {
+                if (!isset($f['name']) || !isset($defs[$f['name']])) {
                     continue;
                 }
 
@@ -564,7 +554,7 @@ class TemplateHandler
 
                 if ($field['type'] === 'relate' && isset($field['module']) && (preg_match(
                     '/_name$|_c$/si',
-                            $name
+                    $name
                 ) || !empty($field['quicksearch']))
                 ) {
                     if (!preg_match('/_c$/si', $name)

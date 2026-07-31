@@ -50,6 +50,7 @@ if (!defined('sugarEntry') || !sugarEntry) {
 
 
 
+#[\AllowDynamicProperties]
 class ImportMap extends SugarBean
 {
     /**
@@ -226,7 +227,7 @@ class ImportMap extends SugarBean
 
         // Bug 23354 - Make sure enclosure gets saved as an empty string if
         // it is an empty string, instead of as a null
-        if (strlen($enclosure) <= 0) {
+        if (strlen((string) $enclosure) <= 0) {
             $enclosure = ' ';
         }
 
@@ -263,7 +264,7 @@ class ImportMap extends SugarBean
         global $current_user;
 
         if (!is_admin($current_user)) {
-            $other_map = new ImportMap();
+            $other_map = BeanFactory::newBean('Import_1');
             $other_map->retrieve_by_string_fields(array('id'=> $id), false);
 
             if ($other_map->assigned_user_id != $current_user->id) {
@@ -309,7 +310,7 @@ class ImportMap extends SugarBean
                 'is_published'     => 'no'
                 );
         }
-        $other_map = new ImportMap();
+        $other_map = BeanFactory::newBean('Import_1');
         $other_map->retrieve_by_string_fields($query_arr, false);
 
         // if we find this other map, quit
@@ -345,7 +346,7 @@ class ImportMap extends SugarBean
         $obj_arr = array();
 
         while ($row = $this->db->fetchByAssoc($result, false)) {
-            $focus = new ImportMap();
+            $focus = BeanFactory::newBean('Import_1');
 
             foreach ($this->column_fields as $field) {
                 if (isset($row[$field])) {
@@ -383,7 +384,7 @@ class ImportMap extends SugarBean
 
         //retrieve user preferences and populate preference array
         $preference_values_str = $current_user->getPreference('field_values', 'import');
-        $preference_values = json_decode($preference_values_str, true);
+        $preference_values = json_decode((string) $preference_values_str, true);
 
         foreach ($import_step_fields as $val) {
             //overwrite preference array with new values from request if the value is different or new

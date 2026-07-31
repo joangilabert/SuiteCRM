@@ -59,10 +59,10 @@
 
         {{if $smarty.foreach.colIteration.total > 1 && $colData.colspan != 3}}
             {*<!-- DIV column - colspan != 3 -->*}
-            <div class="col-xs-12 col-sm-6 detail-view-row-item">
+            <div class="col-xs-12 col-sm-6 detail-view-row-item" data-field="{{$colData.field.name}}">
         {{else}}
             {*<!-- DIV column - colspan = 3 -->*}
-            <div class="col-xs-12 col-sm-12 detail-view-row-item">
+            <div class="col-xs-12 col-sm-12 detail-view-row-item" data-field="{{$colData.field.name}}">
         {{/if}}
 
 
@@ -100,7 +100,7 @@
                     {{elseif isset($colData.field.label)}}
                         {capture name="label" assign="label"}{sugar_translate label='{{$colData.field.label}}' module='{{$module}}'}{/capture}
                         {$label|strip_semicolon}:
-                    {{elseif isset($fields[$colData.field.name])}}
+                    {{elseif isset($fields[$colData.field.name].vname)}}
                         {capture name="label" assign="label"}{sugar_translate label='{{$fields[$colData.field.name].vname}}' module='{{$module}}'}{/capture}
                         {$label|strip_semicolon}:
                     {{else}}
@@ -121,10 +121,10 @@
 
                     {{if $smarty.foreach.colIteration.total > 1 && $colData.colspan != 3}}
                         {*<!-- phone (version 1) -->*}
-                        <div class="col-xs-12 col-sm-8 detail-view-field {{if $inline_edit && !empty($colData.field.name) && ($fields[$colData.field.name].inline_edit == 1 || !isset($fields[$colData.field.name].inline_edit))}}inlineEdit{{/if}}" type="{{$fields[$colData.field.name].type}}" field="{{$fields[$colData.field.name].name}}" {{if $colData.colspan}}colspan='{{$colData.colspan}}'{{/if}} {{if isset($fields[$colData.field.name].type) && $fields[$colData.field.name].type == 'phone'}}class="phone"{{/if}}>
+                        <div class="col-xs-12 col-sm-8 detail-view-field{{if $inline_edit && !empty($colData.field.name) && ($fields[$colData.field.name].inline_edit == 1 || !isset($fields[$colData.field.name].inline_edit))}} inlineEdit{{/if}}{{if isset($fields[$colData.field.name].type) && $fields[$colData.field.name].type == 'phone'}} phone{{/if}}" type="{{$fields[$colData.field.name].type}}" field="{{$fields[$colData.field.name].name}}" {{if $colData.colspan}}colspan='{{$colData.colspan}}'{{/if}}>
                     {{else}}
                         {*<!-- phone (version 2) -->*}
-                        <div class="col-xs-12 col-sm-10 detail-view-field {{if $inline_edit && !empty($colData.field.name) && ($fields[$colData.field.name].inline_edit == 1 || !isset($fields[$colData.field.name].inline_edit))}}inlineEdit{{/if}}" type="{{$fields[$colData.field.name].type}}" field="{{$fields[$colData.field.name].name}}" {{if $colData.colspan}}colspan='{{$colData.colspan}}'{{/if}} {{if isset($fields[$colData.field.name].type) && $fields[$colData.field.name].type == 'phone'}}class="phone"{{/if}}>
+                        <div class="col-xs-12 col-sm-10 detail-view-field{{if $inline_edit && !empty($colData.field.name) && ($fields[$colData.field.name].inline_edit == 1 || !isset($fields[$colData.field.name].inline_edit))}} inlineEdit{{/if}}{{if isset($fields[$colData.field.name].type) && $fields[$colData.field.name].type == 'phone'}} phone{{/if}}" type="{{$fields[$colData.field.name].type}}" field="{{$fields[$colData.field.name].name}}" {{if $colData.colspan}}colspan='{{$colData.colspan}}'{{/if}}>
                     {{/if}}
 
                     {{if !empty($colData.field.name)}}
@@ -144,7 +144,7 @@
                     {{if ($colData.field.customCode && !$colData.field.customCodeRenderField) || $colData.field.assign}}
                         {counter name="panelFieldCount" print=false}
                         <span id="{{$colData.field.name}}" class="sugar_field">{{sugar_evalcolumn var=$colData.field colData=$colData}}</span>
-                    {{elseif $fields[$colData.field.name] && !empty($colData.field.fields) }}
+                    {{elseif isset($fields[$colData.field.name]) && !empty($colData.field.fields) }}
 
                         {{foreach from=$colData.field.fields item=subField}}
                             {{if $fields[$subField]}}
@@ -201,9 +201,6 @@
 
         </div>
         {*<!-- /DIV column -->*}
-        {{if $fieldCount==0}}
-        <div class="clear"></div>
-        {{/if}}
 
 
     {{/foreach}}

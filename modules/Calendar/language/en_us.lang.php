@@ -5,7 +5,7 @@
  * SugarCRM, Inc. Copyright (C) 2004-2013 SugarCRM Inc.
  *
  * SuiteCRM is an extension to SugarCRM Community Edition developed by SalesAgility Ltd.
- * Copyright (C) 2011 - 2018 SalesAgility Ltd.
+ * Copyright (C) 2011 - 2019 SalesAgility Ltd.
  *
  * This program is free software; you can redistribute it and/or modify it under
  * the terms of the GNU Affero General Public License version 3 as published by the
@@ -113,8 +113,8 @@ $mod_strings = array(
     'LBL_ERROR_LOADING' => 'Error while loading',
     'LBL_GOTO_DATE' => 'Go to Date',
     'NOTICE_DURATION_TIME' => 'Duration time must be greater than 0',
-    'LBL_STYLE_BASIC' => 'BASIC',
-    'LBL_STYLE_ADVANCED' => 'ADVANCED',
+    'LBL_STYLE_BASIC' => 'BASIC', //No need to be translated in all caps. Translation used just in menu action items when using the SuiteP template
+    'LBL_STYLE_ADVANCED' => 'ADVANCED', //No need to be translated in all caps. Translation used just in menu action items when using the SuiteP template
 
     'LBL_NO_USER' => 'No match for field: Assigned to',
     'LBL_SUBJECT' => 'Subject',

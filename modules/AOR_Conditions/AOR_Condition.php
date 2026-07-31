@@ -38,6 +38,7 @@
  * reasonably feasible for technical reasons, the Appropriate Legal Notices must
  * display the words "Powered by SugarCRM" and "Supercharged by SuiteCRM".
  */
+#[\AllowDynamicProperties]
 class AOR_Condition extends Basic
 {
     public $new_schema = true;
@@ -74,19 +75,7 @@ class AOR_Condition extends Basic
         parent::__construct();
     }
 
-    /**
-     * @deprecated deprecated since version 7.6, PHP4 Style Constructors are deprecated and will be remove in 7.8, please update your code, use __construct instead
-     */
-    public function AOR_Condition()
-    {
-        $deprecatedMessage = 'PHP4 Style Constructors are deprecated and will be remove in 7.8, please update your code';
-        if (isset($GLOBALS['log'])) {
-            $GLOBALS['log']->deprecated($deprecatedMessage);
-        } else {
-            trigger_error($deprecatedMessage, E_USER_DEPRECATED);
-        }
-        self::__construct();
-    }
+
 
 
     public function save_lines($post_data, $parent, $key = '')
@@ -109,7 +98,7 @@ class AOR_Condition extends Basic
             if (isset($post_data[$key . 'deleted'][$i]) && $post_data[$key . 'deleted'][$i] == 1) {
                 $this->mark_deleted($post_data[$key . 'id'][$i]);
             } else {
-                $condition = new AOR_Condition();
+                $condition = BeanFactory::newBean('AOR_Conditions');
                 foreach ($this->field_defs as $field_def) {
                     $field_name = $field_def['name'];
                     if (isset($post_data[$key . $field_name][$i])) {
@@ -121,23 +110,31 @@ class AOR_Condition extends Basic
                                 default:
                                     $post_data[$key . $field_name][$i] = encodeMultienumValue($post_data[$key . $field_name][$i]);
                             }
-                        } elseif ($field_name == 'value' && $post_data[$key . 'value_type'][$i] === 'Value') {
-                            $post_data[$key . $field_name][$i] = fixUpFormatting($_REQUEST['report_module'], $condition->field, $post_data[$key . $field_name][$i]);
-                        } elseif ($field_name == 'parameter') {
-                            $post_data[$key . $field_name][$i] = isset($post_data[$key . $field_name][$i]);
-                        } elseif ($field_name == 'module_path') {
-                            $post_data[$key . $field_name][$i] = base64_encode(serialize(explode(":", $post_data[$key . $field_name][$i])));
+                        } else {
+                            if ($field_name == 'value' && $post_data[$key . 'value_type'][$i] === 'Value') {
+                                $post_data[$key . $field_name][$i] = fixUpFormatting($_REQUEST['report_module'], $condition->field, $post_data[$key . $field_name][$i]);
+                            } else {
+                                if ($field_name == 'parameter') {
+                                    $post_data[$key . $field_name][$i] = isset($post_data[$key . $field_name][$i]);
+                                } else {
+                                    if ($field_name == 'module_path') {
+                                        $post_data[$key . $field_name][$i] = base64_encode(serialize(explode(":", $post_data[$key . $field_name][$i])));
+                                    }
+                                }
+                            }
                         }
-                        if ($field_name == 'parenthesis' && $post_data[$key . $field_name][$i] == 'END') {
-                            if (!isset($lastParenthesisStartConditionId)) {
+                        if ($field_name === 'parenthesis' && $post_data[$key . $field_name][$i] !== 'START') {
+                            if (!isset($lastParenthesisStartConditionIds)) {
                                 throw new Exception('a closure parenthesis has no starter pair');
                             }
-                            $condition->parenthesis = $lastParenthesisStartConditionId;
+                            $condition->parenthesis = array_pop($lastParenthesisStartConditionIds);
                         } else {
                             $condition->$field_name = $post_data[$key . $field_name][$i];
                         }
-                    } elseif ($field_name == 'parameter') {
-                        $condition->$field_name = 0;
+                    } else {
+                        if ($field_name == 'parameter') {
+                            $condition->$field_name = 0;
+                        }
                     }
                 }
                 // Period must be saved as a string instead of a base64 encoded datetime.
@@ -153,8 +150,8 @@ class AOR_Condition extends Basic
                     }
                     $condition->aor_report_id = $parent->id;
                     $conditionId = $condition->save();
-                    if ($condition->parenthesis == 'START') {
-                        $lastParenthesisStartConditionId = $conditionId;
+                    if ($condition->parenthesis === 'START') {
+                        $lastParenthesisStartConditionIds[] = $conditionId;
                     }
                 }
             }

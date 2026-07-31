@@ -53,6 +53,7 @@ require_once 'data/Link2.php';
 /**
  * @brief Bug #40166. Campaign Log Report will not display Contact/Account Names
  */
+#[\AllowDynamicProperties]
 class ProspectLink extends Link2
 {
     /**
@@ -118,7 +119,8 @@ class ProspectLink extends Link2
             }
 
             return $join;
+        } else {
+            return parent::getJoin($params, $return_array);
         }
-        return parent::getJoin($params, $return_array);
     }
 }

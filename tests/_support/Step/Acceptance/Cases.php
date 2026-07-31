@@ -2,17 +2,9 @@
 
 namespace Step\Acceptance;
 
+#[\AllowDynamicProperties]
 class Cases extends \AcceptanceTester
 {
-    /**
-     * Navigate to cases module
-     */
-    public function gotoCases()
-    {
-        $I = new NavigationBar($this->getScenario());
-        $I->clickAllMenuItem('Cases');
-    }
-
     /**
      * Create a case
      *
@@ -37,7 +29,7 @@ class Cases extends \AcceptanceTester
         $I->selectOption('#priority', 'Low');
         $I->selectOption('#status', 'Duplicate');
 
-        $I->executeJS('tinyMCE.activeEditor.setContent("TinyMCE Content Test");');
+        $I->executeJS('tinymce.activeEditor.setContent("TinyMCE Content Test");');
 
         $I->seeElement('#assigned_user_name');
 

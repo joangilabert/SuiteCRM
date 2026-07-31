@@ -42,8 +42,8 @@ if (!defined('sugarEntry') || !sugarEntry) {
  */
 
  
-require_once('include/MVC/View/views/view.ajax.php');
 
+#[\AllowDynamicProperties]
 class ViewEditFields extends ViewAjax
 {
     public function __construct()

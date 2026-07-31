@@ -1,7 +1,4 @@
 <?php
-if (!defined('sugarEntry') || !sugarEntry) {
-    die('Not A Valid Entry Point');
-}
 /**
  *
  * SugarCRM Community Edition is a customer relationship management program developed by
@@ -41,7 +38,11 @@ if (!defined('sugarEntry') || !sugarEntry) {
  * display the words "Powered by SugarCRM" and "Supercharged by SuiteCRM".
  */
 
+if (!defined('sugarEntry') || !sugarEntry) {
+    die('Not A Valid Entry Point');
+}
 
+#[\AllowDynamicProperties]
 class CalendarUtils
 {
 
@@ -75,8 +76,7 @@ class CalendarUtils
                 'related_to',
                 'parent_name',
                 'parent_id',
-                'parent_type',
-                'priority'
+                'parent_type'
             ),
             'Calls' => array(
                 'name',
@@ -86,8 +86,7 @@ class CalendarUtils
                 'related_to',
                 'parent_name',
                 'parent_id',
-                'parent_type',
-                'priority'
+                'parent_type'
             ),
             'Tasks' => array(
                 'name',
@@ -179,7 +178,7 @@ class CalendarUtils
         $field_list = CalendarUtils::get_fields();
         $field_arr = array();
         foreach ($field_list[$bean->module_dir] as $field) {
-            if ($field == 'related_to') {
+            if ($field === 'related_to') {
                 $focus = BeanFactory::getBean($bean->parent_type, $bean->parent_id);
                 $field_arr[$field] = $focus->name;
             } else {
@@ -266,10 +265,11 @@ class CalendarUtils
      */
     public static function build_repeat_sequence($date_start, $params)
     {
+        $dow = '';
         $arr = array();
 
         $type = $params['type'];
-        $interval = intval($params['interval']);
+        $interval = (int)$params['interval'];
         if ($interval < 1) {
             $interval = 1;
         }
@@ -306,6 +306,7 @@ class CalendarUtils
 
         if (!empty($params['until'])) {
             $end = SugarDateTime::createFromFormat($GLOBALS['timedate']->get_date_format(), $until);
+            $end->setTime(0, 0, 0);
             $end->modify("+1 Day");
         } else {
             $end = $start;
@@ -328,7 +329,7 @@ class CalendarUtils
                     $day_index = $last_dow;
                     for ($d = $last_dow + 1; $d <= $last_dow + 7; $d++) {
                         $day_index = $d % 7;
-                        if (strpos($dow, (string)($day_index)) !== false) {
+                        if (strpos((string) $dow, (string)($day_index)) !== false) {
                             break;
                         }
                     }

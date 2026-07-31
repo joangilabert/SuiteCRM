@@ -38,6 +38,7 @@
  * display the words "Powered by SugarCRM" and "Supercharged by SuiteCRM".
  */
 
+#[\AllowDynamicProperties]
 class MBLanguage
 {
     public $iTemplates = array();
@@ -50,21 +51,6 @@ class MBLanguage
         $this->label = $label;
     }
 
-    /**
-     * @deprecated deprecated since version 7.6, PHP4 Style Constructors are deprecated and will be remove in 7.8, please update your code, use __construct instead
-     */
-    public function MBLanguage($name, $path, $label, $key_name)
-    {
-        $deprecatedMessage = 'PHP4 Style Constructors are deprecated and will be remove in 7.8, please update your code';
-        if (isset($GLOBALS['log'])) {
-            $GLOBALS['log']->deprecated($deprecatedMessage);
-        } else {
-            trigger_error($deprecatedMessage, E_USER_DEPRECATED);
-        }
-        self::__construct($name, $path, $label, $key_name);
-    }
-
-
     public function load()
     {
         $this->generateModStrings();
@@ -73,6 +59,8 @@ class MBLanguage
 
     public function loadStrings($file)
     {
+        global $mod_strings;
+        $mod_strings = $mod_strings ?? [];
         $module = strtoupper($this->name);
         $object_name = strtoupper($this->key_name);
         $_object_name = strtolower($this->name);
@@ -95,6 +83,7 @@ class MBLanguage
 
     public function loadAppListStrings($file)
     {
+        $app_list_strings = $app_list_strings ?? [];
         if (!file_exists($file)) {
             return;
         }
@@ -119,6 +108,7 @@ class MBLanguage
     {
         $this->strings = array();
         $this->loadTemplates();
+        $current_mod_strings = $GLOBALS['mod_strings'];
 
         foreach ($this->iTemplates as $template=>$val) {
             $file = MB_IMPLEMENTS . '/' . $template . '/language';
@@ -129,6 +119,9 @@ class MBLanguage
             $this->loadStrings($file);
         }
         $this->loadStrings($this->path . '/language');
+
+        //reset global mod_string to prevent conflicts with Module Builder modules
+        $GLOBALS['mod_strings'] = $current_mod_strings;
     }
 
     public function getModStrings($language='en_us')
@@ -158,10 +151,14 @@ class MBLanguage
 
     public function generateAppStrings($buildFromTemplate = true)
     {
-        $this->appListStrings = array('en_us.lang.php'=>array());
-        //By default, generate app strings for the current language as well.
-        $this->appListStrings[$GLOBALS [ 'current_language' ] . ".lang.php"] = array();
-        $this->loadAppListStrings($this->path . '/../../language/application');
+        $this->appListStrings = ['en_us.lang.php' => []];
+        // Create empty arrays for all installed languages so that they get created when we save the module
+        foreach (array_keys(get_languages()) as $installedLang) {
+            $this->appListStrings[$installedLang . '.lang.php'] = [];
+        }
+        $path = dirname($this->path, 2) . '/language/application';
+
+        $this->loadAppListStrings($path);
 
         if ($buildFromTemplate) {
             //go through the templates application strings and load anything that is needed
@@ -183,7 +180,7 @@ class MBLanguage
         foreach ($this->strings as $lang=>$values) {
             //Check if the module Label has changed.
             $renameLang = $rename || empty($values) || (isset($values['LBL_MODULE_NAME']) && $this->label != $values['LBL_MODULE_NAME']);
-            $mod_strings = return_module_language(str_replace('.lang.php', '', $lang), 'ModuleBuilder');
+            $mod_strings = return_module_language(str_replace('.lang.php', '', (string) $lang), 'ModuleBuilder');
             $required = array(
                 'LBL_LIST_FORM_TITLE'=>$this->label . " " . $mod_strings['LBL_LIST'],
                 'LBL_MODULE_NAME'=>$this->label,
@@ -206,14 +203,14 @@ class MBLanguage
             }
             write_array_to_file('mod_strings', $values, $save_path .'/'.$lang, 'w', $header);
         }
-        $app_save_path = $this->path . '/../../language/application';
-        mkdir_recursive($app_save_path);
+        $path = dirname($this->path, 2) . '/language/application';
+        mkdir_recursive($path);
         $key_changed = ($this->key_name != $key_name);
 
         foreach ($this->appListStrings as $lang=>$values) {
             // Load previously created modules data
             // $app_list_strings = array (); --- fix for issue #305
-            $neededFile = $app_save_path . '/'. $lang;
+            $neededFile = $path . '/'. $lang;
             if (file_exists($neededFile)) {
                 include $neededFile;
             }
@@ -238,10 +235,10 @@ class MBLanguage
                 }
                 $okey = $key;
                 if ($key_changed) {
-                    $key = str_replace($this->key_name, $key_name, $key);
+                    $key = str_replace($this->key_name, $key_name, (string) $key);
                 }
                 if ($key_changed) {
-                    $key = str_replace(strtolower($this->key_name), strtolower($key_name), $key);
+                    $key = str_replace(strtolower($this->key_name), strtolower($key_name), (string) $key);
                 }
                 // if we aren't duplicating or the key has changed let's add it
                 if (!$duplicate || $okey != $key) {
@@ -249,9 +246,7 @@ class MBLanguage
                 }
             }
 
-            $fp = sugar_fopen($app_save_path . '/'. $lang, 'w');
-            fwrite($fp, $appFile);
-            fclose($fp);
+            sugar_file_put_contents($path . '/'. $lang, $appFile);
         }
     }
 
@@ -284,6 +279,7 @@ class MBLanguage
     {
         if (empty($this->templates)) {
             if (file_exists("$this->path/config.php")) {
+                $config = [];
                 include "$this->path/config.php";
                 $this->templates = $config['templates'];
                 $this->iTemplates = array();

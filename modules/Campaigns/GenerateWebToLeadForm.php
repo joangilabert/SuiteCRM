@@ -41,13 +41,7 @@ if (!defined('sugarEntry') || !sugarEntry) {
  * display the words "Powered by SugarCRM" and "Supercharged by SuiteCRM".
  */
 
-/*********************************************************************************
 
- * Description:  TODO: To be written.
- * Portions created by SugarCRM are Copyright (C) SugarCRM, Inc.
- * All Rights Reserved.
- * Contributor(s): ______________________________________..
- ********************************************************************************/
 require_once('include/formbase.php');
 
 
@@ -74,7 +68,6 @@ $web_assigned_user = '';
 $web_team_user = '';
 $web_form_footer = '';
 $regex = "/^\w+(['\.\-\+]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,})+\$/";
-//_ppd($web_required_symbol);
 
 $moduleDir = '';
 if (!empty($_REQUEST['moduleDir'])) {
@@ -111,7 +104,7 @@ if (!empty($_REQUEST['assigned_user_id'])) {
 
 $typeOfPerson = !empty($_REQUEST['typeOfPerson']) ? $_REQUEST['typeOfPerson'] : 'Lead';
  $person = new $typeOfPerson();
- $fieldsMetaData = new FieldsMetaData();
+ $fieldsMetaData = BeanFactory::newBean('EditCustomFields');
  $xtpl=new XTemplate('modules/Campaigns/WebToLeadForm.html');
  $xtpl->assign("MOD", $mod_strings);
  $xtpl->assign("APP", $app_strings);
@@ -140,12 +133,15 @@ $xtpl->assign("BODY_HTML", $Web_To_Lead_Form_html ? $Web_To_Lead_Form_html : '')
 
 require_once('include/SugarTinyMCE.php');
 $tiny = new SugarTinyMCE();
-$tiny->defaultConfig['height']=700;
-$tiny->defaultConfig['apply_source_formatting']=true;
-$tiny->defaultConfig['cleanup']=false;
-$tiny->defaultConfig['extended_valid_elements'] .= ',input[name|id|type|value|onclick|required|placeholder|title],select[name|id|multiple|tabindex|onchange|required|title],option[value|selected|title]';
-$ed = $tiny->getInstance('body_html');
-$xtpl->assign("tiny", $ed);
+$tiny->defaultConfig['height'] = 700;
+$tinyConfig = $tiny->getConfig();
+$js = '<script type="text/javascript">';
+$js .= $tinyConfig;
+$js .= "tinyConfig.selector = '#body_html';";
+$js .= "tinyConfig.extended_valid_elements += ',input[name|id|type|value|onclick|required|placeholder|title],select[name|id|multiple|tabindex|onchange|required|title],option[value|selected|title]';";
+$js .= 'tinymce.init(tinyConfig);';
+$js .= '</script>';
+$xtpl->assign("tiny", $js);
 
 $xtpl->parse("main.textarea");
 

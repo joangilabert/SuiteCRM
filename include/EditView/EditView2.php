@@ -50,6 +50,7 @@ require_once('include/EditView/SugarVCR.php');
  * New EditView
  * @api
  */
+#[\AllowDynamicProperties]
 class EditView
 {
     /**
@@ -261,9 +262,10 @@ class EditView
                     sugar_mkdir('modules/' . $this->module . '/metadata');
                 }
 
-                $fp = sugar_fopen('modules/' . $this->module . '/metadata/' . $metadataFileName . '.php', 'w');
-                fwrite($fp, $parser->parse($htmlFile, $dictionary[$focus->object_name]['fields'], $this->module));
-                fclose($fp);
+                sugar_file_put_contents(
+                    'modules/' . $this->module . '/metadata/' . $metadataFileName . '.php',
+                    $parser->parse($htmlFile, $dictionary[$focus->object_name]['fields'], $this->module)
+                );
             }
 
             // Flag an error... we couldn't create the best guess meta-data file
@@ -273,7 +275,7 @@ class EditView
                 $error = str_replace(
                     '[file]',
                     "modules/$this->module/metadata/$metadataFileName.php",
-                    $app_strings['ERR_CANNOT_CREATE_METADATA_FILE']
+                    (string) $app_strings['ERR_CANNOT_CREATE_METADATA_FILE']
                 );
                 $GLOBALS['log']->fatal($error);
                 echo $error;
@@ -387,22 +389,24 @@ class EditView
     public function render()
     {
         $totalWidth = 0;
-        foreach ($this->defs['templateMeta']['widths'] as $col => $def) {
-            foreach ($def as $k => $value) {
-                $totalWidth += $value;
+        if(isset($this->defs['templateMeta']['widths']) && is_array($this->defs['templateMeta']['widths'])) {
+            foreach ($this->defs['templateMeta']['widths'] as $col => $def) {
+                foreach ($def as $k => $value) {
+                    $totalWidth += $value;
+                }
             }
-        }
 
-        // calculate widths
-        foreach ($this->defs['templateMeta']['widths'] as $col => $def) {
-            foreach ($def as $k => $value) {
-                $this->defs['templateMeta']['widths'][$col][$k] = round($value / ($totalWidth / 100), 2);
+            // calculate widths
+            foreach ($this->defs['templateMeta']['widths'] as $col => $def) {
+                foreach ($def as $k => $value) {
+                    $this->defs['templateMeta']['widths'][$col][$k] = round($value / ($totalWidth / 100), 2);
+                }
             }
         }
 
         $this->sectionPanels = array();
         $this->sectionLabels = array();
-        if (!empty($this->defs['panels']) && count($this->defs['panels']) > 0) {
+        if (!empty($this->defs['panels']) && (is_countable($this->defs['panels']) ? count($this->defs['panels']) : 0) > 0) {
             $keys = array_keys($this->defs['panels']);
             if (is_numeric($keys[0])) {
                 $defaultPanel = $this->defs['panels'];
@@ -420,51 +424,53 @@ class EditView
         static $itemCount = 100; //Start the generated tab indexes at 100 so they don't step on custom ones.
 
         /* loop all the panels */
-        foreach ($this->defs['panels'] as $key => $p) {
-            $panel = array();
+        if (is_array($this->defs['panels'])) {
+            foreach ($this->defs['panels'] as $key => $p) {
+                $panel = array();
 
-            if (!is_array($this->defs['panels'][$key])) {
-                $this->sectionPanels[strtoupper($key)] = $p;
-            } else {
-                foreach ($p as $row => $rowDef) {
-                    $columnsInRows = count($rowDef);
-                    $columnsUsed = 0;
-                    foreach ($rowDef as $col => $colDef) {
-                        $panel[$row][$col] = is_array($p[$row][$col])
-                            ? array('field' => $p[$row][$col])
-                            : array('field' => array('name' => $p[$row][$col]));
+                if (!is_array($this->defs['panels'][$key])) {
+                    $this->sectionPanels[strtoupper($key)] = $p;
+                } else {
+                    foreach ($p as $row => $rowDef) {
+                        $columnsInRows = is_countable($rowDef) ? count($rowDef) : 0;
+                        $columnsUsed = 0;
+                        foreach ($rowDef as $col => $colDef) {
+                            $panel[$row][$col] = is_array($p[$row][$col])
+                                ? array('field' => $p[$row][$col])
+                                : array('field' => array('name' => $p[$row][$col]));
 
-                        $panel[$row][$col]['field']['tabindex'] =
-                            (isset($p[$row][$col]['tabindex']) && is_numeric($p[$row][$col]['tabindex']))
-                                ? $p[$row][$col]['tabindex']
-                                : '0';
+                            $panel[$row][$col]['field']['tabindex'] =
+                                (isset($p[$row][$col]['tabindex']) && is_numeric($p[$row][$col]['tabindex']))
+                                    ? $p[$row][$col]['tabindex']
+                                    : '0';
 
-                        if ($columnsInRows < $maxColumns) {
-                            if ($col == $columnsInRows - 1) {
-                                $panel[$row][$col]['colspan'] = 2 * $maxColumns - ($columnsUsed + 1);
-                            } else {
-                                $panel[$row][$col]['colspan'] = floor(($maxColumns * 2 - $columnsInRows) / $columnsInRows);
-                                $columnsUsed = $panel[$row][$col]['colspan'];
+                            if ($columnsInRows < $maxColumns) {
+                                if ($col == $columnsInRows - 1) {
+                                    $panel[$row][$col]['colspan'] = 2 * $maxColumns - ($columnsUsed + 1);
+                                } else {
+                                    $panel[$row][$col]['colspan'] = floor(($maxColumns * 2 - $columnsInRows) / $columnsInRows);
+                                    $columnsUsed = $panel[$row][$col]['colspan'];
+                                }
                             }
-                        }
 
-                        //Set address types to have colspan value of 2 if colspan is not already defined
-                        if (is_array($colDef) && !empty($colDef['hideLabel']) && !isset($panel[$row][$col]['colspan'])) {
-                            $panel[$row][$col]['colspan'] = 2;
-                        }
+                            //Set address types to have colspan value of 2 if colspan is not already defined
+                            if (is_array($colDef) && !empty($colDef['hideLabel']) && !isset($panel[$row][$col]['colspan'])) {
+                                $panel[$row][$col]['colspan'] = 2;
+                            }
 
-                        $itemCount++;
+                            $itemCount++;
+                        }
                     }
+
+                    $panel = $this->getPanelWithFillers($panel);
+
+                    $this->sectionPanels[strtoupper($key)] = $panel;
                 }
 
-                $panel = $this->getPanelWithFillers($panel);
 
-                $this->sectionPanels[strtoupper($key)] = $panel;
-            }
-
-
-            $panelCount++;
-        } //foreach
+                $panelCount++;
+            } //foreach
+        }
     }
 
     /**
@@ -480,7 +486,7 @@ class EditView
     {
         $addFiller = true;
         foreach ($panel as $row) {
-            if (count($row) == $this->defs['templateMeta']['maxColumns']
+            if ((is_countable($row) ? count($row) : 0) == $this->defs['templateMeta']['maxColumns']
                 || 1 == count($panel)
             ) {
                 $addFiller = false;
@@ -490,7 +496,7 @@ class EditView
 
         if ($addFiller) {
             $rowCount = count($panel);
-            $filler = count($panel[$rowCount - 1]);
+            $filler = is_countable($panel[$rowCount - 1]) ? count($panel[$rowCount - 1]) : 0;
             while ($filler < $this->defs['templateMeta']['maxColumns']) {
                 $panel[$rowCount - 1][$filler++] = array('field' => array('name' => ''));
             }
@@ -522,7 +528,7 @@ class EditView
         }
 
         if (isset($_REQUEST['offset'])) {
-            $this->offset = $_REQUEST['offset'] - 1;
+            $this->offset = (int)$_REQUEST['offset'] - 1;
         }
 
         if ($this->showVCRControl) {
@@ -588,7 +594,7 @@ class EditView
                 foreach (array("formula", "default", "comments", "help") as $toEscape) {
                     if (!empty($this->fieldDefs[$name][$toEscape])) {
                         $this->fieldDefs[$name][$toEscape] = htmlentities(
-                            $this->fieldDefs[$name][$toEscape],
+                            (string) $this->fieldDefs[$name][$toEscape],
                             ENT_QUOTES,
                             'UTF-8'
                         );
@@ -885,12 +891,12 @@ class EditView
 
         $date_format = $timedate->get_cal_date_format();
         $time_separator = ':';
-        if (preg_match('/\d+([^\d])\d+([^\d]*)/s', $time_format, $match)) {
+        if (preg_match('/\d+([^\d])\d+([^\d]*)/s', (string) $time_format, $match)) {
             $time_separator = $match[1];
         }
 
         // Create Smarty variables for the Calendar picker widget
-        $t23 = strpos($time_format, '23') !== false ? '%H' : '%I';
+        $t23 = strpos((string) $time_format, '23') !== false ? '%H' : '%I';
         if (!isset($match[2]) || empty($match[2])) {
             $this->th->ss->assign('CALENDAR_FORMAT', $date_format . ' ' . $t23 . $time_separator . '%M');
         } else {
@@ -901,7 +907,7 @@ class EditView
         $this->th->ss->assign('CALENDAR_FDOW', $current_user->get_first_day_of_week());
         $this->th->ss->assign('TIME_SEPARATOR', $time_separator);
 
-        $seps = get_number_seperators();
+        $seps = get_number_separators();
         $this->th->ss->assign('NUM_GRP_SEP', $seps[0]);
         $this->th->ss->assign('DEC_SEP', $seps[1]);
 
@@ -932,37 +938,35 @@ class EditView
             $ajaxSave,
             $this->defs
         );
-
         /* BEGIN - SECURITY GROUPS */
         //if popup select add panel if user is a member of multiple groups to metadataFile
         global $sugar_config;
-        if (
-            $this->focus->module_dir !== "Users" &&
-            $this->focus->module_dir !== "SugarFeed" &&
-            $sugar_config['securitysuite_popup_select'] === true &&
-            isset($sugar_config['securitysuite_popup_select']) &&
-            empty($this->focus->fetched_row['id'])
-        ) {
+        if(isset($sugar_config['securitysuite_popup_select']) && $sugar_config['securitysuite_popup_select'] == true
+            // $_REQUEST['isDuplicate'] can never be === true cause it comes as a string from $_REQUEST
+            && (empty($this->focus->fetched_row['id']) || ($_REQUEST['isDuplicate'] ?? false) == true) && $this->focus->module_dir != "Users" && $this->focus->module_dir != "SugarFeed") {
 
             //there are cases such as uploading an attachment to an email template where the request module may
             //not be the same as the current bean module. If that happens we can just skip it
             //however...let quickcreate through
-            if ($this->view !== 'QuickCreate' && (empty($_REQUEST['module']) || $_REQUEST['module'] !== $this->focus->module_dir)) {
-                return $str;
-            }
+            if($this->view != 'QuickCreate' && (empty($_REQUEST['module']) || $_REQUEST['module'] != $this->focus->module_dir)) return $str;
 
             require_once('modules/SecurityGroups/SecurityGroup.php');
-            $groupFocus = new SecurityGroup();
-            $security_modules = $groupFocus->getSecurityModules();
-            if (array_key_exists($this->focus->module_dir, $security_modules)) {
+            $security_modules = SecurityGroup::getSecurityModules();
+            if(array_key_exists($this->focus->module_dir,$security_modules)) {
                 global $current_user;
 
-                $group_count = $groupFocus->getMembershipCount($current_user->id);
-                if ($group_count > 1) {
-                    $groups = $groupFocus->getUserSecurityGroups($current_user->id);
+                $group_count = SecurityGroup::getMembershipCount($current_user->id);
+                if($group_count > 1) {
+
+                    //https://www.sugaroutfitters.com/support/securitysuite/2313
+                    //if there is a parent then use the groups on that record as the default selected
+                    //note: only the user's groups show in the drop down. A request may be made to include any already on parent
+                    $parent_groups = SecurityGroup::getParentGroups($this->focus);
+
+                    $groups = SecurityGroup::getUserSecurityGroups($current_user->id);
                     $group_options = '';
-                    foreach ($groups as $group) {
-                        $group_options .= '<option value="' . $group['id'] . '" label="' . $group['name'] . '" selected="selected">' . $group['name'] . '</option>';
+                    foreach($groups as $group) {
+                        $group_options .= '<option value="'.$group['id'].'" label="'.$group['name'].'" '.(empty($group['noninheritable'])?'selected="selected"':'').'>'.$group['name'].'</option>';
                     }
                     //multilingual support
                     global $current_language;
@@ -971,37 +975,22 @@ class EditView
                     $lbl_securitygroups_select = $ss_mod_strings['LBL_GROUP_SELECT'];
                     $lbl_securitygroups = $ss_mod_strings['LBL_LIST_FORM_TITLE'];
 
-                    $group_panel = <<<EOQ
-<div class="edit view edit508 " id="detailpanel_securitygroups">
-    <h4>&nbsp;&nbsp;
-    $lbl_securitygroups_select
-    </h4>
-    <table width="100%" cellspacing="1" cellpadding="0" border="0" class="edit view panelContainer" id="LBL_PANEL_SECURITYGROUPS">
-    <tbody><tr>
-    <td width="12.5%" valign="top" scope="col" id="account_type_label">
-        $lbl_securitygroups:
-    </td>
-    <td width="37.5%" valign="top">
-        <select title="" id="securitygroup_list" name="securitygroup_list[]" multiple="multiple" size="${group_count}">
-        $group_options
-        </select>
-    </td>
-    </tr>
-    </tbody></table>
-</div>
-EOQ;
-                    $group_panel = preg_replace("/[\r\n]+/", "", $group_panel);
-
+                    $smarty = new Sugar_Smarty();
+                    $smarty->assign('SECURITY_GROUP_SELECT', $lbl_securitygroups_select);
+                    $smarty->assign('SECURITY_GROUPS', $lbl_securitygroups);
+                    $smarty->assign('SECURITY_GROUP_OPTIONS', $group_options);
+                    $smarty->assign('SECURITY_GROUP_COUNT', $group_count);
+                    $group_panel = $smarty->fetch('include/EditView/SecurityGroups.tpl');
+                    $group_panel = preg_replace("/[\r\n]+/", '', (string) $group_panel);
                     $group_panel_append = <<<EOQ
-<script>
-    $('#${form_name}_tabs div:first').append($('${group_panel}'));
-</script>
+    <script>
+        $('#{$form_name}_tabs .panel-content').append($('{$group_panel}'));
+    </script>
 EOQ;
                     $str .= $group_panel_append;
                 }
             }
         }
-
         /* END - SECURITY GROUPS */
 
         return $str;

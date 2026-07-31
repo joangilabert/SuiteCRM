@@ -42,6 +42,7 @@ if (!defined('sugarEntry') || !sugarEntry) {
     die('Not A Valid Entry Point');
 }
 
+#[\AllowDynamicProperties]
 class chart
 {
     private $start_date;
@@ -68,7 +69,8 @@ class chart
 
     public function draw($start_date, $end_date, $sel_projects, $sel_users, $sel_contacts, $resources, $chart_type)
     {
-        global $current_user, $db, $mod_strings;
+        global $current_user, $mod_strings;
+        $db = DBManagerFactory::getInstance();
 
         if ($chart_type == "monthly") {
             list($time_span, $day_count) = $this->year_week($start_date, $end_date);
@@ -164,7 +166,7 @@ class chart
 
         //From the query above, populates the select box
         foreach ($user_list as $user) {
-            $user_obj = new User();
+            $user_obj = BeanFactory::newBean('Users');
             $user_obj->retrieve($user->id);
             var_dump($user_obj->id);
             if (in_array($user->id, $sel_users)) {//Check if the select box option matches the resource passed in.
@@ -192,7 +194,7 @@ class chart
 
         //From the query above, populates the select box
         foreach ($contact_list as $contact) {
-            $contact_obj = new Contact();
+            $contact_obj = BeanFactory::newBean('Contacts');
             $contact_obj->retrieve($contact->id);
 
             if (in_array($contact->id, $sel_contacts)) {//Check if the select box option matches the resource passed in.
@@ -328,12 +330,12 @@ class chart
                 $count = $resource->task_count;
 
                 if ($resource->type == 'project_users_1_c') {
-                    $user_obj = new User();
+                    $user_obj = BeanFactory::newBean('Users');
                     $user_obj->retrieve($resource->id);
 
                     echo '<tr id="'.$resource->id.'" class="task_row"><td no class="main_table no_wrap"><a title="'.$mod_strings["LBL_RESOURCE_TYPE_TITLE_USER"].'" href="index.php?module=Users&action=DetailView&record='.$resource->id.'">'.$user_obj->full_name.'</a></td>';
                 } elseif ($resource->type == 'project_contacts_1_c') {
-                    $contact_obj = new Contact();
+                    $contact_obj = BeanFactory::newBean('Contacts');
                     $contact_obj->retrieve($resource->id);
 
                     echo '<tr id="'.$resource->id.'" class="task_row"><td no class="main_table no_wrap"><a title="'.$mod_strings["LBL_RESOURCE_TYPE_TITLE_CONTACT"].'" href="index.php?module=Contacts&action=DetailView&record='.$resource->id.'">'.$contact_obj->full_name.'</a></td>';
@@ -384,7 +386,7 @@ class chart
             foreach ($time_span as $year => $months) {
                 foreach ($months as $month => $weeks) {//count the number of days in each month
 
-                    echo '<td class="main_table weeks" colspan="' . count($weeks) . '">'.$month .'</td>';
+                    echo '<td class="main_table weeks" colspan="' . (is_countable($weeks) ? count($weeks) : 0) . '">'.$month .'</td>';
                 }
             }
 
@@ -396,7 +398,7 @@ class chart
                     {
                         $wcount++;
                     }*/
-                    $wcount+= count($weeks);
+                    $wcount+= is_countable($weeks) ? count($weeks) : 0;
                 }
                 $width = $wcount * 26; //used to set width on years row. width needed for css text clipping
                 echo '<td colspan="'.$wcount.'" class="main_table years"><div style="width: '.$width.'px;" class="year_div">' . $year.'</div></td>';
@@ -424,16 +426,16 @@ class chart
 
             echo '</tr>';
 
-            foreach ($resources as $resource) {
-                $count = $resource->task_count;
+                foreach ($resources as $resource) {
+                    $count = $resource->task_count;
 
                 if ($resource->type == 'project_users_1_c') {
-                    $user_obj = new User();
+                    $user_obj = BeanFactory::newBean('Users');
                     $user_obj->retrieve($resource->id);
 
                     echo '<tr id="'.$resource->id.'" class="task_row"><td no class="main_table no_wrap"><a title="'.$mod_strings["LBL_RESOURCE_TYPE_TITLE_USER"].'" href="index.php?module=Users&action=DetailView&record='.$resource->id.'">'.$user_obj->full_name.'</a></td>';
                 } elseif ($resource->type == 'project_contacts_1_c') {
-                    $contact_obj = new Contact();
+                    $contact_obj = BeanFactory::newBean('Contacts');
                     $contact_obj->retrieve($resource->id);
 
                     echo '<tr id="'.$resource->id.'" class="task_row"><td no class="main_table no_wrap"><a title="'.$mod_strings["LBL_RESOURCE_TYPE_TITLE_CONTACT"].'" href="index.php?module=Contacts&action=DetailView&record='.$resource->id.'">'.$contact_obj->full_name.'</a></td>';
@@ -474,7 +476,7 @@ class chart
             foreach ($time_span as $year => $quarters) {
                 foreach ($quarters as $quarter => $months) {//count the number of days in each month
                     
-                    echo '<td class="main_table weeks" colspan="' . count($months) . '">'.$quarter .'</td>';
+                    echo '<td class="main_table weeks" colspan="' . (is_countable($months) ? count($months) : 0) . '">'.$quarter .'</td>';
                 }
             }
 
@@ -483,7 +485,7 @@ class chart
                 $qcount= 0;
                 foreach ($quarters as $quarter => $months) {//count the number of months in each quarter
                 
-                    $qcount+= count($months);
+                    $qcount+= is_countable($months) ? count($months) : 0;
                 }
                 $width = $qcount * 26; //used to set width on years row. width needed for css text clipping
                 echo '<td colspan="'.$qcount.'" class="main_table years"><div style="width: '.$width.'px;" class="year_div">' . $year.'</div></td>';
@@ -515,12 +517,12 @@ class chart
                 $count = $resource->task_count;
 
                 if ($resource->type == 'project_users_1_c') {
-                    $user_obj = new User();
+                    $user_obj = BeanFactory::newBean('Users');
                     $user_obj->retrieve($resource->id);
 
                     echo '<tr id="'.$resource->id.'" class="task_row"><td no class="main_table no_wrap"><a title="'.$mod_strings["LBL_RESOURCE_TYPE_TITLE_USER"].'" href="index.php?module=Users&action=DetailView&record='.$resource->id.'">'.$user_obj->full_name.'</a></td>';
                 } elseif ($resource->type == 'project_contacts_1_c') {
-                    $contact_obj = new Contact();
+                    $contact_obj = BeanFactory::newBean('Contacts');
                     $contact_obj->retrieve($resource->id);
 
                     echo '<tr id="'.$resource->id.'" class="task_row"><td no class="main_table no_wrap"><a title="'.$mod_strings["LBL_RESOURCE_TYPE_TITLE_CONTACT"].'" href="index.php?module=Contacts&action=DetailView&record='.$resource->id.'">'.$contact_obj->full_name.'</a></td>';
@@ -657,11 +659,11 @@ class chart
         $sdate->modify('+'.$day.' days');
         $edate->modify('+'.$x.' months');
 
-        if ($sdate->format('Y') != $edate->format('Y')) {
+        if ($sdate->format('Y') !== $edate->format('Y')) {
             return -1;
         }
 
-        if ($sdate->format('m') != $edate->format('m')) {
+        if ($sdate->format('m') !== $edate->format('m')) {
             return -1;
         }
         return 0;
@@ -732,15 +734,15 @@ class chart
         $now = $now->format('Y-m-d');
         // $GLOBALS['log']->fatal("date2 ".$now);
 
-        if ($date1->format('l') == 'Sunday' && $date == $now) {
+        if ($date1->format('l') == 'Sunday' && $date === $now) {
             return 'weekend-today';
-        } elseif ($date1->format('l') == 'Saturday' && $date == $now) {
+        } elseif ($date1->format('l') == 'Saturday' && $date === $now) {
             return 'weekend-today';
         } elseif ($date1->format('l') == 'Sunday') {
             return 'weekend';
         } elseif ($date1->format('l') == 'Saturday') {
             return 'weekend';
-        } elseif ($date == $now) {
+        } elseif ($date === $now) {
             return 'today';
         }
         return false;

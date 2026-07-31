@@ -40,15 +40,14 @@
 
 namespace SuiteCRM\API\v8\Exception;
 
-use SuiteCRM\Enumerator\ExceptionCode;
-
 /**
  * Class ConflictException
  * @package SuiteCRM\API\v8\Exception
  */
+#[\AllowDynamicProperties]
 class ConflictException extends ApiException
 {
-    const MSG_PREFIX = '[Conflict]';
-    const DEFAULT_CODE = 8021;
-    const HTTP_STATUS = 409;
+    public const MSG_PREFIX = '[Conflict]';
+    public const DEFAULT_CODE = 8021;
+    public const HTTP_STATUS = 409;
 }

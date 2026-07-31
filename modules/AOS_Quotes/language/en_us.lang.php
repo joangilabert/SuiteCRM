@@ -5,7 +5,7 @@
  * SugarCRM, Inc. Copyright (C) 2004-2013 SugarCRM Inc.
  *
  * SuiteCRM is an extension to SugarCRM Community Edition developed by SalesAgility Ltd.
- * Copyright (C) 2011 - 2018 SalesAgility Ltd.
+ * Copyright (C) 2011 - 2019 SalesAgility Ltd.
  *
  * This program is free software; you can redistribute it and/or modify it under
  * the terms of the GNU Affero General Public License version 3 as published by the
@@ -112,7 +112,7 @@ $mod_strings = array(
     'LBL_SHIPPING_ADDRESS_STREET_4' => 'Shipping Street 4',
     'LBL_SHIPPING_ADDRESS_STREET' => 'Shipping Street:',
     'LBL_SHIPPING_ADDRESS' => 'Shipping Address:',
-    'LBL_STATE' => 'State:',
+    'LBL_STATE' => 'State/Region:',
     'LBL_TICKER_SYMBOL' => 'Ticker Symbol:',
     'LBL_TYPE' => 'Type:',
     'LBL_WEBSITE' => 'Website:',
@@ -160,8 +160,8 @@ $mod_strings = array(
     'LBL_DISCOUNT_AMT' => 'Discount',
     'LBL_UNIT_PRICE' => 'Sale Price',
     'LBL_TOTAL_PRICE' => 'Total',
-    'LBL_VAT' => 'Tax',
-    'LBL_VAT_AMT' => 'Tax Amount',
+    'LBL_VAT' => 'Tax', // VAT
+    'LBL_VAT_AMT' => 'Tax Amount', // VAT
     'LBL_ADD_PRODUCT_LINE' => 'Add Product Line',
     'LBL_SERVICE_NAME' => 'Service',
     'LBL_SERVICE_LIST_PRICE' => 'List',
@@ -176,7 +176,7 @@ $mod_strings = array(
     'LBL_LIST_NUM' => 'Num',
     'LBL_PDF_NAME' => 'Quote',
     'LBL_EMAIL_NAME' => 'Quote for',
-    'LBL_QUOTE_DATE' => 'Quotation Date',
+    'LBL_QUOTE_DATE' => 'Quote Date',
     'LBL_NO_TEMPLATE' => 'ERROR\nNo templates found. If you have not created a Quote template, go to the PDF templates module and create one',
     'LBL_SUBTOTAL_TAX_AMOUNT' => 'Subtotal + Tax',//pre shipping
     'LBL_EMAIL_PDF' => 'Email PDF',

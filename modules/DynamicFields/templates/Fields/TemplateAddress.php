@@ -1,6 +1,6 @@
 <?php
-if (! defined('sugarEntry') || ! sugarEntry) {
-    die('Not A Valid Entry Point') ;
+if (!defined('sugarEntry') || !sugarEntry) {
+    die('Not A Valid Entry Point');
 }
 /**
  *
@@ -44,6 +44,7 @@ if (! defined('sugarEntry') || ! sugarEntry) {
 require_once('modules/DynamicFields/templates/Fields/TemplateField.php') ;
 require_once('modules/DynamicFields/templates/Fields/TemplateAddressCountry.php') ;
 
+#[\AllowDynamicProperties]
 class TemplateAddress extends TemplateField
 {
     public $type = 'varchar';

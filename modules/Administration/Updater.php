@@ -69,12 +69,12 @@ if (isset($_REQUEST['useraction']) && ($_REQUEST['useraction']=='Save' || $_REQU
 }
 
 echo getClassicModuleTitle(
-        "Administration",
-        array(
+    "Administration",
+    array(
             "<a href='index.php?module=Administration&action=index'>".translate('LBL_MODULE_NAME', 'Administration')."</a>",
            $mod_strings['LBL_SUITE_UPDATE_TITLE'],
            ),
-        false
+    false
         );
 
 if (get_sugarbeat()) {
@@ -98,7 +98,7 @@ $has_updates= false;
 if (!empty($license->settings['license_latest_versions'])) {
     $encodedVersions = $license->settings['license_latest_versions'];
 
-    $versions = unserialize(base64_decode($encodedVersions));
+    $versions = unserialize(base64_decode($encodedVersions), ['allowed_classes' => false]);
     include('sugar_version.php');
     if (!empty($versions)) {
         foreach ($versions as $version) {

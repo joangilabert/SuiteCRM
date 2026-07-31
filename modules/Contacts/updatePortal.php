@@ -44,6 +44,7 @@ if (!defined('sugarEntry') || !sugarEntry) {
 
 require_once 'modules/AOP_Case_Updates/util.php';
 
+#[\AllowDynamicProperties]
 class updatePortal
 {
     /**
@@ -51,6 +52,7 @@ class updatePortal
      */
     public function updateUser($bean)
     {
+        $object_arr = [];
         if (!isAOPEnabled()) {
             return;
         }
@@ -65,10 +67,10 @@ class updatePortal
 
             $object_arr['Contacts'] = $bean->id;
             $body_html = aop_parse_template($template->body_html, $object_arr);
-            $body_html = str_replace($search, $replace, $body_html);
+            $body_html = str_replace($search, $replace, (string) $body_html);
 
             $body_plain = aop_parse_template($template->body, $object_arr);
-            $body_plain = str_replace($search, $replace, $body_plain);
+            $body_plain = str_replace($search, $replace, (string) $body_plain);
 
             $this->sendEmail($bean->email1, $template->subject, $body_html, $body_plain, $bean);
         }
@@ -81,12 +83,12 @@ class updatePortal
      * @param $altEmailBody
      * @param SugarBean|null $relatedBean
      */
-    public function sendEmail($emailTo, $emailSubject, $emailBody, $altEmailBody, SugarBean $relatedBean = null)
+    public function sendEmail($emailTo, $emailSubject, $emailBody, $altEmailBody, ?SugarBean $relatedBean = null)
     {
         require_once 'modules/Emails/Email.php';
         require_once 'include/SugarPHPMailer.php';
 
-        $emailObj = new Email();
+        $emailObj = BeanFactory::newBean('Emails');
         $emailSettings = getPortalEmailSettings();
 
         $mail = new SugarPHPMailer();
@@ -115,7 +117,7 @@ class updatePortal
                 $emailObj->parent_type = $relatedBean->module_dir;
                 $emailObj->parent_id = $relatedBean->id;
             }
-            $emailObj->date_sent = TimeDate::getInstance()->nowDb();
+            $emailObj->date_sent_received = TimeDate::getInstance()->nowDb();
             $emailObj->modified_user_id = '1';
             $emailObj->created_by = '1';
             $emailObj->status = 'sent';

@@ -41,22 +41,16 @@ if (!defined('sugarEntry') || !sugarEntry) {
  * display the words "Powered by SugarCRM" and "Supercharged by SuiteCRM".
  */
 
-/*********************************************************************************
 
- * Description:  TODO: To be written.
- * Portions created by SugarCRM are Copyright (C) SugarCRM, Inc.
- * All Rights Reserved.
- * Contributor(s): ______________________________________..
- ********************************************************************************/
 
 if (!isset($_REQUEST['record'])) {
     sugar_die("A record number must be specified to delete the campaign.");
 }
 
-$focus = new Campaign();
+$focus = BeanFactory::newBean('Campaigns');
 $focus->retrieve($_REQUEST['record']);
 
-if (isset($_REQUEST['mode']) and $_REQUEST['mode']=='Test') {
+if (isset($_REQUEST['mode']) && $_REQUEST['mode']=='Test') {
     //deletes all data associated with the test run.
     require_once('modules/Campaigns/DeleteTestCampaigns.php');
     $deleteTest = new DeleteTestCampaigns();

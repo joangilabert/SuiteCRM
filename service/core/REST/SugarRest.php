@@ -45,6 +45,7 @@ if (!defined('sugarEntry')) {
  * This class is a base class implementation of REST protocol
  * @api
  */
+ #[\AllowDynamicProperties]
  class SugarRest
  {
 
@@ -80,7 +81,7 @@ if (!defined('sugarEntry')) {
              if (empty($_REQUEST['method'])) {
                  echo '<pre>';
                  $reflect = new ReflectionClass(get_class($this->implementation));
-                 $restWSDL = $reflect->__toString();
+                 $restWSDL = (string)$reflect;
                  $restWSDL = preg_replace('/@@.*/', "", $restWSDL);
                  echo $restWSDL;
              } else {

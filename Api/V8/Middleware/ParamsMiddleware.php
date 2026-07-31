@@ -1,13 +1,18 @@
 <?php
 namespace Api\V8\Middleware;
 
+use Api\V8\Helper\ModuleAccessChecker;
 use Api\V8\JsonApi\Response\ErrorResponse;
 use Api\V8\Param\BaseParam;
+use Api\V8\Param\ModuleAwareParamInterface;
 use Exception;
 use LoggerManager;
+use RuntimeException;
 use Slim\Http\Request;
 use Slim\Http\Response;
+use Api\V8\BeanDecorator\BeanManager;
 
+#[\AllowDynamicProperties]
 class ParamsMiddleware
 {
     /**
@@ -16,11 +21,26 @@ class ParamsMiddleware
     private $params;
 
     /**
-     * @param BaseParam $params
+     * @var BeanManager
      */
-    public function __construct(BaseParam $params)
+    private $beanManager;
+
+    /**
+     * @var ModuleAccessChecker
+     */
+    private $moduleAccessChecker;
+
+    /**
+     * ParamsMiddleware constructor.
+     * @param BaseParam $params
+     * @param BeanManager $beanManager
+     * @param ModuleAccessChecker $moduleAccessChecker
+     */
+    public function __construct(BaseParam $params, BeanManager $beanManager, ModuleAccessChecker $moduleAccessChecker)
     {
         $this->params = $params;
+        $this->beanManager = $beanManager;
+        $this->moduleAccessChecker = $moduleAccessChecker;
     }
 
     /**
@@ -33,16 +53,22 @@ class ParamsMiddleware
     public function __invoke(Request $request, Response $httpResponse, callable $next)
     {
         try {
+            $this->setCurrentUserGlobal($request);
             $parameters = $this->getParameters($request);
             $this->params->configure($parameters);
+
+            if ($this->params instanceof ModuleAwareParamInterface) {
+                $this->moduleAccessChecker->checkAccess($this->params->getModuleName());
+            }
+
             $request = $request->withAttribute('params', $this->params);
         } catch (Exception $exception) {
             $response = new ErrorResponse();
             $response->setStatus(400);
             $msg = $exception->getMessage();
             $dbg = "\nCode:" . $exception->getCode() .
-                "\n" . $exception->getFile() . ':' . $exception->getLine() . 
-                "\nTrace:\n" . $exception->getTraceAsString() . 
+                "\n" . $exception->getFile() . ':' . $exception->getLine() .
+                "\nTrace:\n" . $exception->getTraceAsString() .
                 "\n";
             LoggerManager::getLogger()->fatal("API Exception detected:\nMessage was: $msg\nException details:\n$dbg");
             $response->setDetail($msg);
@@ -55,6 +81,26 @@ class ParamsMiddleware
         }
 
         return $next($request, $httpResponse);
+    }
+
+    /**
+     * @param Request $request
+     */
+    protected function setCurrentUserGlobal(Request $request)
+    {
+        $oauth2Token = $this->beanManager->newBeanSafe('OAuth2Tokens');
+
+        $oauth2Token->retrieve_by_string_fields(
+            ['access_token' => $request->getAttribute('oauth_access_token_id')]
+        );
+
+        $currentUser = $this->beanManager->getBeanSafe('Users', $oauth2Token->assigned_user_id);
+
+        if (!$currentUser->isEnabled()) {
+            throw new RuntimeException('Not found');
+        }
+
+        $GLOBALS['current_user'] = $currentUser;
     }
 
     /**

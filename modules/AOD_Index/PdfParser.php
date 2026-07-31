@@ -2,6 +2,7 @@
 
 /**
  * @file
+ * @deprecated since v7.12.0
  * Class PdfParser
  *
  * @author : Sebastien MALOT <sebastien@malot.fr>
@@ -12,11 +13,13 @@
  * - http://framework.zend.com/issues/secure/attachment/12512/Pdf.php
  * - http://www.php.net/manual/en/ref.pdf.php#74211
  */
+#[\AllowDynamicProperties]
 class PdfParser
 {
     /**
      * Parse PDF file
      *
+     * @deprecated since v7.12.0
      * @param string $filename
      * @return string
      */
@@ -30,6 +33,7 @@ class PdfParser
     /**
      * Parse PDF content
      *
+     * @deprecated since v7.12.0
      * @param string $content
      * @return string
      */
@@ -41,6 +45,7 @@ class PdfParser
     /**
      * Convert a PDF into text.
      *
+     * @deprecated since v7.12.0
      * @param string $filename The filename to extract the data from.
      * @return string The extracted text from the PDF
      */
@@ -67,7 +72,7 @@ class PdfParser
                 $a_data = self::getDataArray($obj, 'stream', 'endstream');
 
                 if (is_array($a_data) && isset($a_data[0])) {
-                    $a_chunks[$j]['data'] = trim(substr($a_data[0], strlen('stream'), strlen($a_data[0]) - strlen('stream') - strlen('endstream')));
+                    $a_chunks[$j]['data'] = trim(substr((string) $a_data[0], strlen('stream'), strlen((string) $a_data[0]) - strlen('stream') - strlen('endstream')));
                 }
 
                 $j++;
@@ -82,7 +87,7 @@ class PdfParser
             if (isset($chunk['data'])) {
 
         // look at the filter to find out which encoding has been used
-                if (strpos($chunk['filter'], 'FlateDecode') !== false) {
+                if (strpos((string) $chunk['filter'], 'FlateDecode') !== false) {
                     // Use gzuncompress but suppress error messages.
                     $data =@ gzuncompress($chunk['data']);
                 } else {
@@ -103,17 +108,23 @@ class PdfParser
          */
         if (trim($result_data) == '') {
             return null;
-        }
-        // Optimize hyphened words
-        $result_data = preg_replace('/\s*-[\r\n]+\s*/', '', $result_data);
-        $result_data = preg_replace('/\s+/', ' ', $result_data);
+        } else {
+            // Optimize hyphened words
+            $result_data = preg_replace('/\s*-[\r\n]+\s*/', '', $result_data);
+            $result_data = preg_replace('/\s+/', ' ', $result_data);
 
-        return $result_data;
+            return $result_data;
+        }
     }
 
+    /**
+     * @deprecated since v7.12.0
+     * @param $content
+     * @return string|string[]
+     */
     protected static function extractTextElements($content)
     {
-        if (strpos($content, '/CIDInit') === 0) {
+        if (strpos((string) $content, '/CIDInit') === 0) {
             return '';
         }
 
@@ -133,9 +144,9 @@ class PdfParser
                 preg_match_all('/\\\\([0-9]{3})/', $command, $found_octal_values);
 
                 foreach ($found_octal_values[0] as $value) {
-                    $octal = substr($value, 1);
+                    $octal = substr((string) $value, 1);
 
-                    if (intval($octal) < 40) {
+                    if ((int)$octal < 40) {
                         // Skips non printable chars
                         $command = str_replace($value, '', $command);
                     } else {
@@ -261,6 +272,7 @@ class PdfParser
     /**
      * Strip out the text from a small chunk of data.
      *
+     * @deprecated since v7.12.0
      * @param string $text
      * @param int $font_size Currently not used
      *
@@ -309,7 +321,7 @@ class PdfParser
 
     /**
      * Convert a section of data into an array, separated by the start and end words.
-     *
+     * @deprecated since v7.12.0
      * @param  string $data       The data.
      * @param  string $start_word The start of each section of data.
      * @param  string $end_word   The end of each section of data.

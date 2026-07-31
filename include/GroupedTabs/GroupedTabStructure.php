@@ -42,6 +42,7 @@ if (!defined('sugarEntry') || !sugarEntry) {
  */
 
 
+#[\AllowDynamicProperties]
 class GroupedTabStructure
 {
     /**
@@ -93,8 +94,10 @@ class GroupedTabStructure
             foreach ($frames as $key => $values) {
                 $moduleExtraMenu[$key] = $values;
             }
-        } elseif (isset($modList['iFrames'])) {
-            unset($modList['iFrames']);
+        } else {
+            if (isset($modList['iFrames'])) {
+                unset($modList['iFrames']);
+            }
         }
                 
         $modList = array_merge($modList, $moduleExtraMenu);
@@ -103,9 +106,12 @@ class GroupedTabStructure
         foreach ($tabStructure as $mainTab => $subModules) {
             //Ensure even empty groups are returned
             if ($labelAsKey) {
-                $retStruct[$subModules['label']]['modules'] = array();
+                $retStruct[$subModules['label']] ??= [];
+                $retStruct[$subModules['label']]['modules'] ??= [];
             } else {
-                $retStruct[$app_strings[$subModules['label']]]['modules']= array();
+                $tabKey = $app_strings[$subModules['label']] ?? '';
+                $retStruct[$tabKey] ??= [];
+                $retStruct[$tabKey]['modules'] ??= [];
             }
 
             foreach ($subModules['modules'] as $key => $subModule) {
@@ -117,7 +123,8 @@ class GroupedTabStructure
                         if ($labelAsKey) {
                             $retStruct[$subModules['label']]['modules'][$module] = $app_list_strings['moduleList'][$module];
                         } else {
-                            $retStruct[$app_strings[$subModules['label']]]['modules'][$module] = $app_list_strings['moduleList'][$module];
+                            $tabKey = $app_strings[$subModules['label']] ?? '';
+                            $retStruct[$tabKey]['modules'][$module] = $app_list_strings['moduleList'][$module];
                         }
                         $mlhUsed[$module] = true;
                         break;
@@ -130,13 +137,13 @@ class GroupedTabStructure
                     unset($retStruct[$subModules['label']]);
                 }
             } else {
-                if (empty($retStruct[$app_strings[$subModules['label']]]['modules'])) {
-                    unset($retStruct[$app_strings[$subModules['label']]]);
+                $tabKey = $app_strings[$subModules['label']] ?? '';
+                if (empty($retStruct[$tabKey]['modules'])) {
+                    unset($retStruct[$tabKey]);
                 }
             }
         }
-        
-//        _pp($retStruct);
+
         return $retStruct;
     }
 }

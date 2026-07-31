@@ -51,6 +51,7 @@ use Psr\Log\LogLevel;
  * @package SuiteCRM\Utility
  * @see http://www.php-fig.org/psr/psr-3/
  */
+#[\AllowDynamicProperties]
 class SuiteLogger extends AbstractLogger
 {
     /**
@@ -59,7 +60,7 @@ class SuiteLogger extends AbstractLogger
      * @param array $context eg array(user => 'joe')
      * @throws InvalidArgumentException
      */
-    public function log($level, $message, array $context = array())
+    public function log($level, $message, array $context = []): void
     {
         $log = \LoggerManager::getLogger();
         $message = $this->interpolate($message, $context);
@@ -97,7 +98,7 @@ class SuiteLogger extends AbstractLogger
                 $log->debug('[DEBUG] ' . $message);
                 break;
             default:
-                throw new InvalidArgumentException();
+                throw new InvalidArgumentException('Invalid log level type: ' . $level);
         }
     }
 
@@ -107,9 +108,9 @@ class SuiteLogger extends AbstractLogger
      * @param array $context
      * @return string
      */
-    private function interpolate($message, array $context = array())
+    private function interpolate($message, array $context = [])
     {
-        $replace = array();
+        $replace = [];
 
         if (empty($context)) {
             return $message;

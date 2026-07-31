@@ -5,7 +5,7 @@
  * SugarCRM, Inc. Copyright (C) 2004-2013 SugarCRM Inc.
  *
  * SuiteCRM is an extension to SugarCRM Community Edition developed by SalesAgility Ltd.
- * Copyright (C) 2011 - 2018 SalesAgility Ltd.
+ * Copyright (C) 2011 - 2019 SalesAgility Ltd.
  *
  * This program is free software; you can redistribute it and/or modify it under
  * the terms of the GNU Affero General Public License version 3 as published by the
@@ -45,7 +45,7 @@ if (!defined('sugarEntry') || !sugarEntry) {
 $mod_strings = array(
     'ERR_NO_2FACTOR_EMAIL_TMPL' => 'Two-factor email template is not set, please change settings on password management page.',
     'ERR_NO_2FACTOR_EMAIL_TMPL_CODE' => 'Two-factor email template should contain a $code at least.',
-    'LBL_DELETE_USER_CONFIRM' => 'When the User record is deleted, the corresponding Employee record will also be deleted. After the user is deleted, any workflow definitions and reports involving the user might need to be updated.<br/><br/> Deleting a User record cannot be undone.',
+    'LBL_DELETE_USER_CONFIRM' => 'When the User record is deleted, the corresponding Employee record will also be deleted. After the user is deleted, any workflow definitions and reports involving the user might need to be updated.<br/><br/> Personal / Group Inbound Accounts that contain / are assigned to this user will also need updated. <br/><br/> Deleting a User record cannot be undone.',
     'LBL_DELETE_GROUP_CONFIRM' => 'Are you sure you want to delete this Group User? Click OK to delete the User record.<br/>After clicking OK, you will be given the ability to reassign records assigned to the Group User to another user.',
     'LNK_IMPORT_USERS' => 'Import Users',
     'ERR_DELETE_RECORD' => 'A record number must be specified to delete the account.',
@@ -70,7 +70,7 @@ $mod_strings = array(
     'ERR_RULES_NOT_MET' => 'The password you entered did not meet the password requirements. Please try again.',
     'ERR_USER_NAME_EXISTS_1' => 'The user name ',
     'ERR_USER_NAME_EXISTS_2' => ' already exists. Duplicate user names are not allowed. Please change the user name to be unique.',
-    'ERR_USER_IS_LOCKED_OUT' => 'This user is locked out of the SuiteCRM application and cannot log in using his/her existing password.',
+    'ERR_USER_IS_LOCKED_OUT' => 'This user is locked out of the SuiteCRM application and cannot log in using their existing password.',
     'ERR_PASSWORD_MINPWDLENGTH' => 'Password should contain at least %d characters.',
     'ERR_PASSWORD_ONEUPPER' => 'Password should contain uppercase characters.',
     'ERR_PASSWORD_ONELOWER' => 'Password should contain lowercase characters.',
@@ -84,11 +84,12 @@ $mod_strings = array(
     'ERR_RECIPIENT_EMAIL' => 'Recipient Email Address',
     'ERR_SERVER_STATUS' => 'Your server status',
     'ERR_SERVER_SMTP_EMPTY' => 'The system is unable to send an email to the user. Please check the Outgoing Mail Configuration in <a href="index.php?module=EmailMan&action=config">Email Settings</a>.',
+    'ERR_DELETE_USER' => 'It is not allowed to delete logged in user.',
     'LBL_ADDRESS_CITY' => 'Address City',
     'LBL_ADDRESS_COUNTRY' => 'Address Country',
     'LBL_ADDRESS_INFORMATION' => 'Address Information',
     'LBL_ADDRESS_POSTALCODE' => 'Address Postal Code',
-    'LBL_ADDRESS_STATE' => 'Address State',
+    'LBL_ADDRESS_STATE' => 'Address State/Region',
     'LBL_ADDRESS_STREET' => 'Address Street',
     'LBL_ADDRESS' => 'Address',
     'LBL_ADMIN_USER' => 'System Administrator User',
@@ -96,6 +97,7 @@ $mod_strings = array(
     'LBL_REGULAR_DESC' => 'User can access modules and records based on roles.',
     'LBL_PHOTO' => 'Photo',
     'LBL_ADMIN' => 'System Administrator',
+    'LBL_LAST_ADMIN_NOTICE' => 'Current selection could include yourself. You cannot change your own type of user or status.',
     'LBL_ADVANCED' => 'Advanced',
     'LBL_ANY_ADDRESS' => 'Any Address:',
     'LBL_ANY_EMAIL' => 'Any Email',
@@ -120,6 +122,7 @@ $mod_strings = array(
     'LBL_NUMBER_GROUPING_SEP_TEXT' => 'Character used to separate thousands',
     'LBL_DECIMAL_SEP' => 'Decimal Symbol',
     'LBL_DECIMAL_SEP_TEXT' => 'Character used to separate decimal portion',
+    'LBL_USER_LANGUAGE' => 'User Language',
     'LBL_FDOW' => 'First Day of Week',
     'LBL_FDOW_TEXT' => 'First Day displayed in Week, Month, and Year Views',
     'LBL_DATE_FORMAT_TEXT' => 'Set the display format for date stamps',
@@ -180,7 +183,7 @@ $mod_strings = array(
     'LBL_LIST_MEMBERSHIP' => 'Membership',
     'LBL_LIST_NAME' => 'Name',
     'LBL_LIST_STATUS' => 'Status',
-    'LBL_LIST_TITLE' => 'Title',
+    'LBL_LIST_TITLE' => 'Job Title',
     'LBL_LIST_USER_NAME' => 'User Name',
     'LBL_LOCALE_DEFAULT_NAME_FORMAT' => 'Name Display Format',
     'LBL_LOCALE_DESC_FIRST' => '[First]',
@@ -300,7 +303,7 @@ $mod_strings = array(
     'LBL_TIME_FORMAT' => 'Time Format',
     'LBL_TIMEZONE_TEXT' => 'Set the current time zone',
     'LBL_TIMEZONE' => 'Time Zone',
-    'LBL_TITLE' => 'Title',
+    'LBL_TITLE' => 'Job Title',
     'LBL_USE_REAL_NAMES' => 'Show Full Names',
     'LBL_USE_REAL_NAMES_DESC' => 'Display users\' full names instead of their User Names in assignment fields.',
     'LBL_USER_INFORMATION' => 'User Profile',
@@ -380,26 +383,26 @@ $mod_strings = array(
 <table cellpadding=0 cellspacing=0>
 <tr><td><!--not_in_theme!-->Visit www.suitecrm.com
 <img src=include/images/suitecrm_login.png style="margin-right: 5px;">
-</td><td><a href="http://www.suitecrm.com/" target="_blank"><b>SuiteCRM</b></a></td></tr>
+</td><td><a href="https://www.suitecrm.com/" target="_blank"><b>SuiteCRM</b></a></td></tr>
 </table>',
     'LBL_WIZARD_FINISH1' => 'What would you like to do next?',
     'LBL_WIZARD_FINISH2' => 'Start Using SuiteCRM',
-    'LBL_WIZARD_FINISH3' => 'Import Data ',
+    'LBL_WIZARD_FINISH3' => 'Import Data',
     'LBL_WIZARD_FINISH4' => 'Import data from external sources into the application.',
     'LBL_WIZARD_FINISH5' => 'Create Users',
     'LBL_WIZARD_FINISH6' => 'Create new user accounts for people to use to access the application.',
     'LBL_WIZARD_FINISH7' => 'View and Manage Application Settings',
     'LBL_WIZARD_FINISH8' => 'Manage advanced settings, including default application settings.',
-    'LBL_WIZARD_FINISH9' => 'Configure the Application ',
+    'LBL_WIZARD_FINISH9' => 'Configure the Application',
     'LBL_WIZARD_FINISH10' => 'Use Studio to create and manage application fields and layouts.',
-    'LBL_WIZARD_FINISH11' => 'Visit SuiteCRM Site ',
+    'LBL_WIZARD_FINISH11' => 'Visit SuiteCRM Site',
     'LBL_WIZARD_FINISH12' => 'Find training materials and classes that will help you get started as a system administrator or end user of the application.',
-    'LBL_WIZARD_FINISH14' => 'Documentation ',
-    'LBL_WIZARD_FINISH15' => 'Product Guides and Release Notes ',
-    'LBL_WIZARD_FINISH16' => 'Knowledge Base ',
+    'LBL_WIZARD_FINISH14' => 'Documentation',
+    'LBL_WIZARD_FINISH15' => 'Product Guides and Release Notes',
+    'LBL_WIZARD_FINISH16' => 'Knowledge Base',
     'LBL_WIZARD_FINISH17' => 'Tips from SuiteCRM',
-    'LBL_WIZARD_FINISH18' => 'Forums ',
-    'LBL_WIZARD_FINISH19' => 'Forums dedicated to the SuiteCRM Community to discuss topics of interest with each other and with SuiteCRM Developers ',
+    'LBL_WIZARD_FINISH18' => 'Forums',
+    'LBL_WIZARD_FINISH19' => 'Forums dedicated to the SuiteCRM Community to discuss topics of interest with each other and with SuiteCRM Developers',
     'LBL_WIZARD_FINISH2DESC' => 'Go directly to the application Home page.',
     'LBL_WIZARD_PERSONALINFO' => 'Your Information',
     'LBL_WIZARD_LOCALE' => 'Your Locale',
@@ -549,7 +552,7 @@ $mod_strings = array(
     'LBL_CASES_SUBPANEL_TITLE' => 'Cases',
     'LBL_INTENT' => 'Intent',
     'LBL_MESSAGE_ID' => 'Message ID',
-    'LBL_REPLY_HEADER_1' => 'On ',
+    'LBL_REPLY_HEADER_1' => 'On',
     'LBL_REPLY_HEADER_2' => 'wrote:',
     'LBL_REPLY_TO_ADDRESS' => 'Reply-to Address',
     'LBL_REPLY_TO_NAME' => 'Reply-to Name',
@@ -579,11 +582,11 @@ $mod_strings = array(
     'LBL_NEW' => 'New',
     'LBL_NEXT_EMAIL' => 'Next Free Item',
     'LBL_REPLIED' => 'Replied',
-    'LBL_TO' => 'To: ',
+    'LBL_TO' => 'To:',
     'LBL_TOGGLE_ALL' => 'Toggle All',
     'LBL_UNKNOWN' => 'Unknown',
     'LBL_USE' => 'Assign:',
-    'LBL_ASSIGN_SELECTED_RESULTS_TO' => 'Assign Selected Results To: ',
+    'LBL_ASSIGN_SELECTED_RESULTS_TO' => 'Assign Selected Results To:',
     'LBL_USER_SELECT' => 'Select Users',
     'LBL_USING_RULES' => 'Using Rules:',
     'LBL_WARN_NO_DIST' => 'No Distribution Method Selected',
@@ -607,7 +610,7 @@ $mod_strings = array(
     'LBL_EMAIL_FLAGGED' => 'Flagged:',
     'LBL_EMAIL_REPLY_TO_STATUS' => 'Reply To Status:',
     'LBL_TYPE' => 'Type:',
-    //#20680 EmailTemplate Ext.Message.show;
+    //#20680 EmialTemplate Ext.Message.show;
     'LBL_EMAILTEMPLATE_MESSAGE_SHOW_TITLE' => 'Please check!',
     'LBL_EMAILTEMPLATE_MESSAGE_SHOW_MSG' => 'Selecting this template will overwrite any data already entered within the email body. Do you wish to continue?',
     'LBL_EMAILTEMPLATE_MESSAGE_CLEAR_MSG' => 'Selecting "--None--" will clear any data already entered within the email body. Do you wish to continue?',
@@ -634,7 +637,7 @@ $mod_strings = array(
     'LBL_SELECTED_ADDR' => 'Selected',
     'LBL_ADD_CC_BCC_SEP' => '|',
     'LBL_SEND_EMAIL_FAIL_TITLE' => 'Error Sending Email',
-    'LBL_EMAIL_DETAIL_VIEW_SHOW' => 'show ',
+    'LBL_EMAIL_DETAIL_VIEW_SHOW' => 'show',
     'LBL_EMAIL_DETAIL_VIEW_MORE' => ' more',
     'LBL_MORE_OPTIONS' => 'More',
     'LBL_LESS_OPTIONS' => 'Less',
@@ -682,4 +685,12 @@ $mod_strings = array(
     'ERR_USER_FACTOR_SMTP_REQUIRED' => 'SMTP server settings required first.',
     'ERR_USER_FACTOR_CHANGE_DISABLED' => 'Current user is not able to change two factor authentication settings.',
     'LNK_IMPORT_CAMPAIGNS' => 'Import Campaign',
+
+    'LNK_ACCESS_TOKENS' => 'API Access Tokens',
+    'LNK_LIST_OUTBOUND_EMAIL_ACCOUNTS' => 'Outbound Email Accounts',
+    'LNK_LIST_INBOUND_EMAIL_ACCOUNTS' => 'Inbound Email Accounts',
+    'LNK_EXTERNAL_OAUTH_CONNECTIONS' => 'External OAuth Connections',
+
+    'LNK_LIST_CALENDAR_ACCOUNTS' => 'View Calendar Accounts',
+
 ); // END STRINGS DEFS

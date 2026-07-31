@@ -41,8 +41,8 @@ if (!defined('sugarEntry') || !sugarEntry) {
  * display the words "Powered by SugarCRM" and "Supercharged by SuiteCRM".
  */
 
-require_once('include/MVC/View/views/view.detail.php');
 
+#[\AllowDynamicProperties]
 class LeadsViewDetail extends ViewDetail
 {
     public function display()

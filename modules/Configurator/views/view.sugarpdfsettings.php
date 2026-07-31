@@ -42,6 +42,7 @@ if (!defined('sugarEntry') || !sugarEntry) {
  */
 
 
+#[\AllowDynamicProperties]
 class ConfiguratorViewSugarpdfsettings extends SugarView
 {
     /**
@@ -72,7 +73,10 @@ class ConfiguratorViewSugarpdfsettings extends SugarView
      */
     public function display()
     {
+
         global $mod_strings, $app_strings, $app_list_strings;
+
+        $SugarpdfSettings = [];
 
         require_once("modules/Configurator/metadata/SugarpdfSettingsdefs.php");
         if (file_exists('custom/modules/Configurator/metadata/SugarpdfSettingsdefs.php')) {
@@ -83,7 +87,7 @@ class ConfiguratorViewSugarpdfsettings extends SugarView
             // Save the logos
             $error=$this->checkUploadImage();
             if (empty($error)) {
-                $focus = new Administration();
+                $focus = BeanFactory::newBean('Administration');
                 foreach ($SugarpdfSettings as $k=>$v) {
                     if ($v['type'] == 'password') {
                         if (isset($_POST[$k])) {
@@ -103,7 +107,7 @@ class ConfiguratorViewSugarpdfsettings extends SugarView
         }
 
         if (!empty($_POST['restore'])) {
-            $focus = new Administration();
+            $focus = BeanFactory::newBean('Administration');
             foreach ($_POST as $key => $val) {
                 $prefix = $focus->get_config_prefix($key);
                 if (in_array($prefix[0], $focus->config_categories)) {
@@ -118,12 +122,12 @@ class ConfiguratorViewSugarpdfsettings extends SugarView
         }
 
         echo getClassicModuleTitle(
-                "Administration",
-                array(
+            "Administration",
+            array(
                     "<a href='index.php?module=Administration&action=index'>".translate('LBL_MODULE_NAME', 'Administration')."</a>",
                    $mod_strings['LBL_PDFMODULE_NAME'],
                    ),
-                false
+            false
                 );
 
         $pdf_class = array("TCPDF"=>"TCPDF","EZPDF"=>"EZPDF");
@@ -169,7 +173,7 @@ class ConfiguratorViewSugarpdfsettings extends SugarView
         $files = array('sugarpdf_pdf_header_logo'=>$_FILES['new_header_logo'], 'sugarpdf_pdf_small_header_logo'=>$_FILES['new_small_header_logo']);
         foreach ($files as $k=>$v) {
             if (empty($error) && isset($v) && !empty($v['name'])) {
-                $file_name = K_PATH_CUSTOM_IMAGES .'pdf_logo_'. basename($v['name']);
+                $file_name = K_PATH_CUSTOM_IMAGES .'pdf_logo_'. basename((string) $v['name']);
                 if (file_exists($file_name)) {
                     rmdir_recursive($file_name);
                 }
@@ -196,7 +200,7 @@ class ConfiguratorViewSugarpdfsettings extends SugarView
                         if (!empty($error)) {
                             rmdir_recursive($file_name);
                         } else {
-                            $_POST[$k]='pdf_logo_'. basename($v['name']);
+                            $_POST[$k]='pdf_logo_'. basename((string) $v['name']);
                         }
                     } else {
                         $error='ERR_ALERT_FILE_UPLOAD';

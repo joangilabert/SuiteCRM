@@ -1,21 +1,25 @@
 <?php
 namespace Api\V8\BeanDecorator;
 
+use \SugarBean;
+use \Person;
+
+#[\AllowDynamicProperties]
 class BeanManager
 {
-    const DEFAULT_OFFSET = 0;
-    const DEFAULT_LIMIT = -1;
-    const DEFAULT_ALL_RECORDS = -99;
+    public const DEFAULT_OFFSET = 0;
+    public const DEFAULT_LIMIT = -1;
+    public const DEFAULT_ALL_RECORDS = -99;
 
     /**
      * @var \DBManager
      */
-    private $db;
+    protected $db;
 
     /**
      * @var array
      */
-    private $beanAliases;
+    protected $beanAliases;
 
     /**
      * @param \DBManager $db
@@ -206,6 +210,35 @@ class BeanManager
     }
 
     /**
+     * @param \SugarBean $sourceBean
+     * @param string $linkFieldName
+     * @return SugarBean
+     */
+    public function getLinkedFieldBean(\SugarBean $sourceBean, $linkFieldName)
+    {
+        if (!$sourceBean->load_relationship($linkFieldName)) {
+            throw new \RuntimeException(
+                sprintf('Cannot load relationship %s for %s module', $linkFieldName, $sourceBean->getObjectName())
+            );
+        }
+
+        $linkFieldModule = $sourceBean->$linkFieldName->getRelatedModuleName();
+        $linkFieldBean = $this->getBean($linkFieldModule);
+
+        if (!$linkFieldBean) {
+            throw new \DomainException(
+                sprintf(
+                    'Link field has not found in %s to determine relationship for %s',
+                    $sourceBean->getObjectName(),
+                    $linkFieldName
+                )
+            );
+        }
+
+        return $linkFieldBean;
+    }
+
+    /**
      * @param string $module
      * @param string $where
      *
@@ -213,16 +246,64 @@ class BeanManager
      */
     public function countRecords($module, $where)
     {
+        $table_name = $this->newBeanSafe($module)->getTableName();
+        $table_name_cstm = $this->newBeanSafe($module)->get_custom_table_name();
+
+        $join = '';
+        if ($this->db->tableExists($table_name_cstm)) {
+            $join = sprintf(
+                'LEFT JOIN %s on (%s.id = %s.id_c)',
+                $table_name_cstm,
+                $table_name,
+                $table_name_cstm,
+            );
+        }
+
         $rowCount = $this->db->fetchRow(
             $this->db->query(
                 sprintf(
-                    "SELECT COUNT(*) AS cnt FROM %s %s",
-                    $this->newBeanSafe($module)->getTableName(),
+                    "SELECT COUNT(*) AS cnt FROM %s %s %s",
+                    $table_name,
+                    $join,
                     $where === '' ? '' : 'WHERE ' .  $where
                 )
             )
         )["cnt"];
 
-        return intval($rowCount);
+        return (int)$rowCount;
+    }
+
+    /**
+     * @param SugarBean $bean
+     * @return array
+     */
+    public function getDefaultFields(SugarBean $bean)
+    {
+        return array_column($bean->field_defs, 'name');
+    }
+
+    /**
+     * @param SugarBean $bean
+     * @param array $fields
+     * @return array
+     */
+    public function filterAcceptanceFields(SugarBean $bean, array $fields)
+    {
+        if (!$bean instanceof Person) {
+            return $fields;
+        }
+
+        return array_filter(
+            $fields,
+            static function ($field) use ($bean) {
+                return (
+                    in_array($field, array_column($bean->field_defs, 'name'), true)
+                    && (
+                        empty($bean->field_defs[$field]['link_type'])
+                        || $bean->field_defs[$field]['link_type'] !== 'relationship_info'
+                    )
+                );
+            }
+        );
     }
 }

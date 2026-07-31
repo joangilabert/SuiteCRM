@@ -57,15 +57,20 @@ class actionCreateRecord extends actionBase
      * @param array $params
      * @return string
      */
-    public function edit_display($line, SugarBean $bean = null, $params = array())
+    public function edit_display($line, ?SugarBean $bean = null, $params = array())
     {
         global $app_list_strings;
 
         $modules = $app_list_strings['aow_moduleList'];
+        $recordType = $params['record_type'] ?? '';
 
         $checked = 'CHECKED';
         if (isset($params['relate_to_workflow']) && !$params['relate_to_workflow']) {
             $checked = '';
+        }
+        $copy_email_addresses_checked = '';
+        if (isset($params['copy_email_addresses']) && $params['copy_email_addresses']) {
+            $copy_email_addresses_checked = 'CHECKED';
         }
 
         $html = "<table border='0' cellpadding='0' cellspacing='0' width='100%' data-workflow-action='create-record'>";
@@ -74,12 +79,15 @@ class actionCreateRecord extends actionBase
                  translate('LBL_RECORD_TYPE', 'AOW_Actions') .
                  '</label>:<span class="required">
 *</span>&nbsp;&nbsp;';
-        $html .= "<select name='aow_actions_param[".$line."][record_type]' id='aow_actions_param_record_type".$line."'  onchange='show_crModuleFields($line);'>".get_select_options_with_id($modules, $params['record_type']). '</select></td>';
+        $html .= "<select name='aow_actions_param[".$line."][record_type]' id='aow_actions_param_record_type".$line."'  onchange='show_crModuleFields($line);'>".get_select_options_with_id($modules, $recordType). '</select></td>';
         $html .= '<td id="relate_label" class="relate_label" scope="row" valign="top"><label>' .
                  translate('LBL_RELATE_WORKFLOW', 'AOW_Actions') .
                  '</label>:';
         $html .= "<input type='hidden' name='aow_actions_param[".$line."][relate_to_workflow]' value='0' >";
         $html .= "<input type='checkbox' id='aow_actions_param[".$line."][relate_to_workflow]' name='aow_actions_param[".$line."][relate_to_workflow]' value='1' $checked></td>";
+        $html .= '<td id="copy_email_addresses_label" scope="row" valign="top">'.translate("LBL_COPY_EMAIL_ADDRESSES_WORKFLOW", "AOW_Actions").':&nbsp;&nbsp;';
+        $html .= "<input type='hidden' name='aow_actions_param[".$line."][copy_email_addresses]' value='0' >";
+        $html .= "<input type='checkbox' id='aow_actions_param[".$line."][copy_email_addresses]' name='aow_actions_param[".$line."][copy_email_addresses]' value='1' $copy_email_addresses_checked></td>";
         $html .= '</tr>';
         $html .= '<tr>';
         $html .= '<td colspan="4" scope="row"><table id="crLine' .
@@ -89,7 +97,7 @@ class actionCreateRecord extends actionBase
         $html .= '<tr>';
         $html .= '<td colspan="4" scope="row"><input type="button" tabindex="116" style="display:none" class="button" value="'.translate(
             'LBL_ADD_FIELD',
-                'AOW_Actions'
+            'AOW_Actions'
         ).'" id="addcrline'.$line.'" onclick="add_crLine('.$line.')" /></td>';
         $html .= '</tr>';
         $html .= '<tr>';
@@ -98,7 +106,7 @@ class actionCreateRecord extends actionBase
         $html .= '<tr>';
         $html .= '<td colspan="4" scope="row"><input type="button" tabindex="116" style="display:none" class="button" value="'.translate(
             'LBL_ADD_RELATIONSHIP',
-                'AOW_Actions'
+            'AOW_Actions'
         ).'" id="addcrrelline'.$line.'" onclick="add_crRelLine('.$line.')" /></td>';
         $html .= '</tr>';
 
@@ -109,7 +117,7 @@ class actionCreateRecord extends actionBase
             $html .= 'cr_fields[' . $line . '] = "' . trim(preg_replace(
                 '/\s+/',
                 ' ',
-                    getModuleFields(
+                (string) getModuleFields(
                         $params['record_type'],
                         'EditView',
                         '',
@@ -120,7 +128,7 @@ class actionCreateRecord extends actionBase
             $html .= 'cr_relationships[' . $line . '] = "' . trim(preg_replace(
                 '/\s+/',
                 ' ',
-                    getModuleRelationships($params['record_type'])
+                (string) getModuleRelationships($params['record_type'])
             )) . '";';
             $html .= 'cr_module[' .$line. '] = "' .$params['record_type']. '";';
             if (isset($params['field'])) {
@@ -129,7 +137,7 @@ class actionCreateRecord extends actionBase
                         $params['value'][$key] = json_encode($params['value'][$key]);
                     }
 
-                    $html .= "load_crline('".$line."','".$field."','".str_replace(array("\r\n","\r","\n"), ' ', $params['value'][$key])."','".$params['value_type'][$key]."');";
+                    $html .= "load_crline('".$line."','".$field."','".str_replace(array("\r\n","\r","\n"), ' ', (string) $params['value'][$key])."','".$params['value_type'][$key]."');";
                 }
             }
             if (isset($params['rel'])) {
@@ -161,10 +169,18 @@ class actionCreateRecord extends actionBase
                 $record = new $beanList[$params['record_type']]();
                 $this->set_record($record, $bean, $params);
                 $this->set_relationships($record, $bean, $params);
+                $invalidEmails = $this->copyEmailAddresses($record, $bean, $params);
+                if ($invalidEmails > 0) {
+                    LoggerManager::getLogger()->warn("Given bean contains $invalidEmails invalid Email address(es).");
+                }
+                if ($invalidEmails < 0) {
+                    LoggerManager::getLogger()->error("Email address copy error occured, bean was: $bean->module_name");
+                }
 
                 if (isset($params['relate_to_workflow']) && $params['relate_to_workflow']) {
                     require_once 'modules/Relationships/Relationship.php';
-                    $key = Relationship::retrieve_by_modules($bean->module_dir, $record->module_dir, DBManagerFactory::getInstance());
+                    $dbManager = DBManagerFactory::getInstance();
+                    $key = Relationship::retrieve_by_modules($bean->module_dir, $record->module_dir, $dbManager);
                     if (!empty($key)) {
                         foreach ($bean->field_defs as $field=>$def) {
                             if ($def['type'] == 'link' && !empty($def['relationship']) && $def['relationship'] == $key) {
@@ -194,6 +210,7 @@ class actionCreateRecord extends actionBase
         $record_vardefs = $record->getFieldDefinitions();
 
         if (isset($params['field'])) {
+            $retrieved = false;
             foreach ($params['field'] as $key => $field) {
                 if ($field === '') {
                     continue;
@@ -242,11 +259,12 @@ class actionCreateRecord extends actionBase
                             case 'business_hours':
                                 require_once 'modules/AOBH_BusinessHours/AOBH_BusinessHours.php';
 
-                                $businessHours = new AOBH_BusinessHours();
+                                $businessHours = BeanFactory::newBean('AOBH_BusinessHours');
 
                                 $dateToUse = $params['value'][$key][0];
                                 $sign = $params['value'][$key][1];
                                 $amount = $params['value'][$key][2];
+                                $type = $bean->field_defs[$dateToUse]['type'] ?? 'datetime';
 
                                 if ($sign !== 'plus') {
                                     $amount = 0-$amount;
@@ -255,11 +273,28 @@ class actionCreateRecord extends actionBase
                                     $value = $businessHours->addBusinessHours($amount);
                                 } elseif ($dateToUse === 'field') {
                                     $dateToUse = $params['field'][$key];
-                                    $value = $businessHours->addBusinessHours($amount, $timedate->fromDb($bean->$dateToUse));
+                                    $type = $bean->field_defs[$dateToUse]['type'] ?? 'datetime';
+
+                                    if ($bean->$dateToUse === '') {
+                                        $date = gmdate($dformat);
+                                        $value = $businessHours->addBusinessHours($amount, $timedate->fromDbType($date, $record_vardefs[$field]['type']));
+                                        $value = $timedate->asDbType($value, $record_vardefs[$field]['type']);
+                                        break;
+                                    }
+
+                                    $date = $bean->$dateToUse;
+                                    $value = $businessHours->addBusinessHours($amount, $timedate->fromDbType($date, $type));
+                                } elseif ($dateToUse === 'today') {
+                                    $date = gmdate('Y-m-d').' 00:00:00';
+                                    $value = $businessHours->addBusinessHours($amount, $timedate->fromDb($date));
                                 } else {
-                                    $value = $businessHours->addBusinessHours($amount, $timedate->fromDb($bean->$dateToUse));
+                                    $date = $bean->$dateToUse;
+                                    if ($date === '') {
+                                        $date = gmdate($dformat);
+                                    }
+                                    $value = $businessHours->addBusinessHours($amount, $timedate->fromDbType($date, $type));
                                 }
-                                $value = $timedate->asDb($value);
+                                $value = $timedate->asDbType($value, $type);
                                 break;
                             default:
                                 if ($params['value'][$key][0] === 'now') {
@@ -271,7 +306,13 @@ class actionCreateRecord extends actionBase
                                     $date = $params['value'][$key][0];
                                 } else {
                                     $dateToUse = $params['value'][$key][0];
-                                    $date = $bean->$dateToUse;
+                                    if (!$retrieved) {
+                                        $bean->retrieve($bean->id);
+                                        $retrieved = true;
+                                    }
+                                    $type = $bean->field_defs[$dateToUse]['type'] ?? 'datetime';
+                                    $date = $timedate->fromUserType($bean->$dateToUse, $type);
+                                    $date !== null ? $date->asDB() : gmdate($dformat);
                                 }
 
                                 if ($params['value'][$key][1] !== 'now') {
@@ -288,14 +329,14 @@ class actionCreateRecord extends actionBase
                         switch ($params['value'][$key][0]) {
                             case 'security_group':
                                 require_once 'modules/SecurityGroups/SecurityGroup.php';
-                                $security_group = new SecurityGroup();
+                                $security_group = BeanFactory::newBean('SecurityGroups');
                                 $security_group->retrieve($params['value'][$key][1]);
                                 $group_users = $security_group->get_linked_beans('users', 'User');
                                 $users = array();
                                 $r_users = array();
                                 if ($params['value'][$key][2] != '') {
                                     require_once 'modules/ACLRoles/ACLRole.php';
-                                    $role = new ACLRole();
+                                    $role = BeanFactory::newBean('ACLRoles');
                                     $role->retrieve($params['value'][$key][2]);
                                     $role_users = $role->get_linked_beans('users', 'User');
                                     foreach ($role_users as $role_user) {
@@ -311,7 +352,7 @@ class actionCreateRecord extends actionBase
                                 break;
                             case 'role':
                                 require_once 'modules/ACLRoles/ACLRole.php';
-                                $role = new ACLRole();
+                                $role = BeanFactory::newBean('ACLRoles');
                                 $role->retrieve($params['value'][$key][2]);
                                 $role_users = $role->get_linked_beans('users', 'User');
                                 $users = array();
@@ -369,18 +410,33 @@ class actionCreateRecord extends actionBase
 
         $bean_processed = isset($record->processed) ? $record->processed : false;
 
+        $assignedUserId = $record->fetched_row['assigned_user_id'] ?? '';
+
         if ($in_save) {
             global $current_user;
             $record->processed = true;
-            $check_notify = $record->assigned_user_id != $current_user->id && $record->assigned_user_id != $record->fetched_row['assigned_user_id'];
+            $check_notify = $record->assigned_user_id != $current_user->id && $record->assigned_user_id != $assignedUserId;
         } else {
-            $check_notify = $record->assigned_user_id != $record->fetched_row['assigned_user_id'];
+            $check_notify = $record->assigned_user_id != $assignedUserId;
         }
 
         $record->process_save_dates =false;
         $record->new_with_id = false;
 
+        /* Since we only work on non-deleted records this means the delete field
+         * was set during this action.
+         * Complete the deletion process by calling mark_deleted() after save() */
+        $was_deleted = false;
+        if ($record->deleted) {
+            $record->deleted = 0;
+            $was_deleted = true;
+        }
+
         $record->save($check_notify);
+
+        if ($was_deleted) {
+            $record->mark_deleted($record->id);
+        }
 
         $record->processed = $bean_processed;
     }
@@ -425,5 +481,84 @@ class actionCreateRecord extends actionBase
                 }
             }
         }
+    }
+
+    /**
+     *
+     * @param SugarBean $toBean
+     * @param SugarBean $fromBean
+     * @param array $params
+     * @return int Number of invalid email addresses found in $fromBean's email addresses argument. Negative numbers are error code
+     */
+    protected function copyEmailAddresses(SugarBean $toBean, SugarBean $fromBean, $params = array())
+    {
+        $ret = 0;
+        if (isset($params['copy_email_addresses']) && $params['copy_email_addresses']) {
+            $toBean->addresses = $fromBean->addresses;
+            $toBean->email1 = $fromBean->email1;
+            $toBean->email2 = $fromBean->email2;
+            if (isset($fromBean->emailAddress) && $fromBean->emailAddress instanceof SugarEmailAddress) {
+                $tmp_sea2 = new SugarEmailAddress();
+                foreach ($fromBean->emailAddress->addresses as $currentEmailAddress) {
+                    if ($this->validateCurrentEmailAddress($currentEmailAddress)) {
+                        $ret++;
+                    }
+                    $tmp_sea2->addAddress(
+                        $currentEmailAddress['email_address'],
+                        $currentEmailAddress['primary_address'],
+                        $currentEmailAddress['reply_to_address'],
+                        $currentEmailAddress['invalid_email'],
+                        $currentEmailAddress['opt_out'],
+                        $currentEmailAddress['email_address_id']
+                    );
+                }
+                $tmp_sea2->saveEmail($toBean->id, $toBean->module_name);
+            } else {
+                // exception
+                LoggerManager::getLogger()->error('From-bean should implement emailAddress. Given bean is ' . $fromBean->module_name);
+                return -1;
+            }
+        } else {
+            // exception
+            LoggerManager::getLogger()->error('Given parameter should contains index "copy_email_addresses"');
+            return -2;
+        }
+
+        return $ret;
+    }
+
+    /**
+     *
+     * @param arra $currentEmailAddress
+     * @return bool Returns TRUE if it's a valid email address parameter, FALSE otherwise.
+     */
+    protected function validateCurrentEmailAddress($currentEmailAddress)
+    {
+        $ret = true;
+        if (!isset($currentEmailAddress['email_address'])) {
+            LoggerManager::getLogger()->warn('Index "email_address" is not set.');
+            $ret = false;
+        }
+        if (!isset($currentEmailAddress['primary_address'])) {
+            LoggerManager::getLogger()->warn('Index "primary_address" is not set.');
+            $ret = false;
+        }
+        if (!isset($currentEmailAddress['reply_to_address'])) {
+            LoggerManager::getLogger()->warn('Index "reply_to_address" is not set.');
+            $ret = false;
+        }
+        if (!isset($currentEmailAddress['invalid_email'])) {
+            LoggerManager::getLogger()->warn('Index "invalid_email" is not set.');
+            $ret = false;
+        }
+        if (!isset($currentEmailAddress['opt_out'])) {
+            LoggerManager::getLogger()->warn('Index "opt_out" is not set.');
+            $ret = false;
+        }
+        if (!isset($currentEmailAddress['email_address_id'])) {
+            LoggerManager::getLogger()->warn('Index "email_address_id" is not set.');
+            $ret = false;
+        }
+        return $ret;
     }
 }

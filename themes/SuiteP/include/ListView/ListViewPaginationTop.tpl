@@ -61,7 +61,9 @@
 						{if $showFilterIcon}
 							{include file='include/ListView/ListViewSearchLink.tpl'}
 						{/if}
-						{include file='include/ListView/ListViewColumnsFilterLink.tpl'}
+      {if empty($hideColumnFilter)}
+          {include file='include/ListView/ListViewColumnsFilterLink.tpl'}
+      {/if}
 						&nbsp;{$selectedObjectsSpan}
 					</td>
 					<td  nowrap='nowrap' align="right" class='paginationChangeButtons' width="1%">
@@ -93,7 +95,7 @@
 								<span class='suitepicon suitepicon-action-right'></span>
 							</button>
 						{else}
-							<button type='button' id='listViewNextButton_{$action_menu_location}' name='listViewNextButton' class='button' title='{$navStrings.next}' disabled='disabled'>
+							<button type='button' id='listViewNextButton_{$action_menu_location}' name='listViewNextButton' class='list-view-pagination-button' title='{$navStrings.next}' disabled='disabled'>
 								<span class='suitepicon suitepicon-action-right'></span>
 							</button>
 						{/if}

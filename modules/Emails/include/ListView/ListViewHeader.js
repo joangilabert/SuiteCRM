@@ -45,7 +45,7 @@ if(!SUGAR.Emails) {
  * @param {string} moduleName
  * @param {string} actionUrl
  * @param {function} successCallback
- * @param {function} errorCallback (optional)
+ * @param {boolean} errorCallback (optional)
  * @param {string} loadingTitle (optional)
  * @param {string} errorMessage (optional)
  */
@@ -121,15 +121,38 @@ SUGAR.Emails.handleSelectedListViewItems =  function(
 
 $(document).ready(function () {
 
-  var query = JSON.parse($('[name=current_query_by_page]').val());
-  var jQueryBtnEmailsCurrentFolder = $('.btn-emails-current-folder');
+  $.ajax({
+    type: "GET",
+    cache: false,
+    url: 'index.php?module=Emails&action=GetFolders'
+  }).done(function (data) {
+    let query = JSON.parse($('[name=current_query_by_page]').val());
+    let jQueryBtnEmailsCurrentFolder = $('.btn-emails-current-folder');
+    let response = JSON.parse(data);
+    let responses = response.response;
 
-  if(typeof query.folder === 'undefined' ||  query.folder === '') {
-    jQueryBtnEmailsCurrentFolder.remove();
-  } else if(query.folder === null) {
-    jQueryBtnEmailsCurrentFolder.html('<span class="glyphicon glyphicon-alert"></span>');
-  } else {
-    jQueryBtnEmailsCurrentFolder.text(query.folder);
-  }
+    if(typeof query.folder === 'undefined' ||  query.folder === '') {
+      jQueryBtnEmailsCurrentFolder.remove();
+    } else if(query.folder === null) {
+      jQueryBtnEmailsCurrentFolder.html('<span class="glyphicon glyphicon-alert"></span>');
+    }
 
+    for (let i = 0; i < (responses.length); i++) {
+      if (responses[i].id === query.folders_id) {
+        let folderText = $('<span>').html(responses[(i)].text).text();
+        jQueryBtnEmailsCurrentFolder.text(folderText);
+      } else if (responses[i].id === query.inbound_email_record) {
+        let regExp = /\(([^)]+)\)/;
+        let decodedText = $('<span>').html(responses[(i)].text).text();
+        let match = regExp.exec(decodedText);
+        let folderEscaped = $('<span>').text(query.folder)[0].innerHTML;
+        let matchEscaped = match ? $('<span>').text(match[0])[0].innerHTML : '';
+        if (matchEscaped) {
+          jQueryBtnEmailsCurrentFolder.html(folderEscaped + ' ' + matchEscaped);
+        } else {
+          jQueryBtnEmailsCurrentFolder.html(folderEscaped);
+        }
+      }
+    }
+  });
 });

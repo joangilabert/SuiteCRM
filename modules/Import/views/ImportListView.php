@@ -46,6 +46,7 @@ if (!defined('sugarEntry') || !sugarEntry) {
 require_once('include/ListView/ListViewSmarty.php');
 
 
+#[\AllowDynamicProperties]
 class ImportListView
 {
     /**
@@ -103,9 +104,9 @@ class ImportListView
 
         if (!isset($params['offset'])) {
             throw new Exception("Missing required parameter offset for ImportListView");
+        } else {
+            $this->dataSource->setCurrentOffset($params['offset']);
         }
-        $this->dataSource->setCurrentOffset($params['offset']);
-        
 
         $this->recordsPerPage = isset($params['totalRecords']) ? $params['totalRecords'] : ($sugar_config['list_max_entries_per_page'] + 0);
         $this->data = $this->dataSource->loadDataSet($this->recordsPerPage)->getDataSet();
@@ -127,7 +128,7 @@ class ImportListView
         $this->ss->assign('navStrings', $navStrings);
         $this->ss->assign('pageData', $this->generatePaginationData());
         $this->ss->assign('tableID', $this->tableID);
-        $this->ss->assign('colCount', count($this->headerColumns));
+        $this->ss->assign('colCount', is_countable($this->headerColumns) ? count($this->headerColumns) : 0);
         $this->ss->assign('APP', $app_strings);
         $this->ss->assign('rowColor', array('oddListRow', 'evenListRow'));
         $this->ss->assign('displayColumns', $this->headerColumns);
@@ -137,8 +138,9 @@ class ImportListView
         $contents = $this->ss->fetch('modules/Import/tpls/listview.tpl');
         if ($return) {
             return $contents;
+        } else {
+            echo $contents;
         }
-        echo $contents;
     }
 
     /**
@@ -150,8 +152,8 @@ class ImportListView
     {
         $maxColumns = 0;
         foreach ($this->data as $data) {
-            if (count($data) > $maxColumns) {
-                $maxColumns = count($data);
+            if ((is_countable($data) ? count($data) : 0) > $maxColumns) {
+                $maxColumns = is_countable($data) ? count($data) : 0;
             }
         }
         return $maxColumns;

@@ -42,6 +42,7 @@ if (!defined('sugarEntry') || !sugarEntry) {
  */
 
 
+#[\AllowDynamicProperties]
 class SugarWidgetFieldTime extends SugarWidgetFieldDateTime
 {
     public function displayList(&$layout_def)
@@ -57,7 +58,7 @@ class SugarWidgetFieldTime extends SugarWidgetFieldDateTime
                 
         // Get the date context of the time, important for DST
         $layout_def_date = $layout_def;
-        $layout_def_date['name'] = str_replace('time', 'date', $layout_def_date['name']);
+        $layout_def_date['name'] = str_replace('time', 'date', (string) $layout_def_date['name']);
         $date = $this->displayListPlain($layout_def_date);
                 
         $content = $this->displayListPlain($layout_def);
@@ -65,7 +66,8 @@ class SugarWidgetFieldTime extends SugarWidgetFieldDateTime
         if (!empty($date)) { // able to get the date context of the time
             $td = explode(' ', $timedate->to_display_date_time($date . ' ' . $content));
             return $td[1];
-        }   // assume there is no time context
-        return $timedate->to_display_time($content);
+        } else { // assume there is no time context
+            return $timedate->to_display_time($content);
+        }
     }
 }

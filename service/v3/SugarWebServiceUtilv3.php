@@ -39,6 +39,7 @@
  */
 
 require_once('service/core/SoapHelperWebService.php');
+#[\AllowDynamicProperties]
 class SugarWebServiceUtilv3 extends SoapHelperWebServices
 {
     public function get_name_value($field, $value)
@@ -204,7 +205,7 @@ class SugarWebServiceUtilv3 extends SoapHelperWebServices
 
         if ($value->module_dir == 'Bugs') {
             require_once('modules/Releases/Release.php');
-            $seedRelease = new Release();
+            $seedRelease = BeanFactory::newBean('Releases');
             $options = $seedRelease->get_releases(true, "Active");
             $options_ret = array();
             foreach ($options as $name=>$value) {
@@ -278,6 +279,8 @@ class SugarWebServiceUtilv3 extends SoapHelperWebServices
 
     public function get_module_view_defs($module_name, $type, $view)
     {
+        $listViewDefs = [];
+        $viewdefs = [];
         require_once('include/MVC/View/SugarView.php');
         $metadataFile = null;
         $results = array();
@@ -355,7 +358,8 @@ class SugarWebServiceUtilv3 extends SoapHelperWebServices
             $response = $seed->get_list(/* Order by date field */"{$meta['date_field']} ASC",  /*Where clause */
                 $query, /* No Offset */
                 0,
-                                        /* No limit */-1, /* Max 10 items */
+                                        /* No limit */
+                -1, /* Max 10 items */
                 10, /*No Deleted */
                 0
             );
@@ -424,7 +428,7 @@ class SugarWebServiceUtilv3 extends SoapHelperWebServices
         $a_date = strtotime($a['date_due']) ;
         $b_date = strtotime($b['date_due']) ;
 
-        if ($a_date == $b_date) {
+        if ($a_date === $b_date) {
             return 0 ;
         }
         return ($a_date > $b_date) ? 1 : -1;

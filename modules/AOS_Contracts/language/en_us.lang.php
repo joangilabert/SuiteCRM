@@ -5,7 +5,7 @@
  * SugarCRM, Inc. Copyright (C) 2004-2013 SugarCRM Inc.
  *
  * SuiteCRM is an extension to SugarCRM Community Edition developed by SalesAgility Ltd.
- * Copyright (C) 2011 - 2018 SalesAgility Ltd.
+ * Copyright (C) 2011 - 2019 SalesAgility Ltd.
  *
  * This program is free software; you can redistribute it and/or modify it under
  * the terms of the GNU Affero General Public License version 3 as published by the
@@ -76,6 +76,7 @@ $mod_strings = array(
     'LBL_STATUS' => 'Status',
     'LBL_CUSTOMER_SIGNED_DATE' => 'Customer Signed Date',
     'LBL_COMPANY_SIGNED_DATE' => 'Company Signed Date',
+    'LBL_RENEWAL_REMINDER' => ' Contract Renewal Reminder',
     'LBL_RENEWAL_REMINDER_DATE' => 'Renewal Reminder Date',
     'LBL_CONTRACT_TYPE' => 'Contract Type',
     'LBL_CONTACT' => 'Contact',

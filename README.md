@@ -1,81 +1,96 @@
-## SuiteCRM 7.10.11
+<a href="https://suitecrm.com">
+  <img width="180px" height="41px" src="https://suitecrm.com/wp-content/uploads/2017/12/logo.png" align="right" />
+</a>
 
-[![Build Status](https://travis-ci.org/salesagility/SuiteCRM.svg?branch=master)](https://travis-ci.org/salesagility/SuiteCRM)
-[![codecov](https://codecov.io/gh/salesagility/SuiteCRM/branch/hotfix/graph/badge.svg)](https://codecov.io/gh/salesagility/SuiteCRM/branch/master)
+# SuiteCRM 7.15.2
 
-
-### What's in this repository ###
-
-This is the git repository for the SuiteCRM project, the award-winning, enterprise-class open source CRM.
-
-This repository has been created to allow community members to collaborate and contribute to the project, helping to develop the SuiteCRM ecosystem.
-
-### Contributing to the project ###
-
-#### Security ####
-
-We take Security seriously here at SuiteCRM so if you have discovered a security risk report it by
-emailing security@suitecrm.com. This will be delivered to the product team who handle security issues.
-Please don't disclose security bugs publicly until they have been handled by the security team.
-
-Your email will be acknowledged within 24 hours during the business week (Mon - Fri), and you’ll receive a more
-detailed response to your email within 72 hours during the business week (Mon - Fri) indicating the next steps in
-handling your report.
-
-##### Important: Please read before developing code intended for inclusion in the SuiteCRM project. #####
-
-Please read and sign the following [contributor agreement][cont_agrmt]
-
-[cont_agrmt]: https://www.clahub.com/agreements/salesagility/SuiteCRM
-
-The Contributor Agreement only needs to be signed once for all pull requests and contributions. 
-
-Once signed and confirmed, any pull requests will be considered for inclusion in the SuiteCRM project.
+[![contributions welcome](https://img.shields.io/badge/contributions-welcome-brightgreen.svg?style=flat)](https://github.com/SuiteCRM/SuiteCRM/issues)
+[![GitHub contributors](https://img.shields.io/github/contributors/SuiteCRM/suitecrm)](https://github.com/SuiteCRM/SuiteCRM/graphs/contributors)
+[![LICENSE](https://img.shields.io/github/license/suitecrm/suitecrm.svg)](https://github.com/SuiteCRM/suitecrm/blob/hotfix/LICENSE.txt)
 
 
-### Translations ###
-SuiteCRM in your language: [ Download and install language packs from][suitecrm_languages]
 
-[suitecrm_languages]: https://crowdin.com/project/suitecrmtranslations
+[Website](https://suitecrm.com) |
+[Demo](https://suitecrm.com/demo/) |
+[Maintainers](https://suitecrm.com/about/about-us/suitecrm-ltd/) |
+[Contributors](https://github.com/SuiteCRM/SuiteCRM/graphs/contributors) |
+[Community Forum](https://community.suitecrm.com/) |
+[Partners](https://suitecrm.com/about/about-us/partners/) |
+[Extensions Directory](https://store.suitecrm.com/?tag=suitecrm) |
+[Translations](https://sourceforge.net/projects/suitecrmtranslations/)
+
+[SuiteCRM](https://suitecrm.com) is the award-winning open-source, enterprise-ready Customer Relationship Management (CRM) software application.
+
+Our vision is to be the most adopted open source enterprise CRM in the world, giving users full control of their data and freedom to own and customise their business solution.
+
+SuiteCRM 7 is a mature and stable CRM with a large community and regular releases containing new features, security patches and bug fixes from both our community and the SuiteCRM team.
+
+You may also be interested in [SuiteCRM 8](https://github.com/SuiteCRM/SuiteCRM-Core) the latest version of SuiteCRM. At the time of writing, SuiteCRM 8 is in the levelling up phase and not yet as feature complete. More information is available on the [SuiteCRM Journey ](https://suitecrm.com/the-suitecrm-8-journey/).
+
+### Getting Started
+
+SuiteCRM 7 is compatible with most Linux and Windows servers. Test and development servers can be deployed locally, however for best performance and compatibility we recommend hosting on a linux based server with a properly configured LAMP Stack. As SuiteCRM is based on standard technologies like Apache, PHP and MySQL, the CRM can be self-hosted on your own internal network, on a public cloud provider or on a fully managed hosting service.
+
+#### Key System Requirements
+* **Web Server:** Apache (recommended) or IIS
+* **PHP:** 8.1 - 8.4
+* **Database:** MySQL or MariaDB (recommended) or MSSQL
+
+Please see our [Compatibility Matrix](https://docs.suitecrm.com/admin/compatibility-matrix/) and [Installation Guide](https://docs.suitecrm.com/admin/installation-guide/downloading-installing/) for more detail.
+
+SuiteCRM Ltd, the authors and maintainers of SuiteCRM offer a range of [fully managed hosting](https://suitecrm.com/suitecrmhosted/) services. These are ideal for organisations who don't have the in house knowledge or experience to host and maintain the application and are a great way to support the future development of the project.
+
+### Demo
+
+We have a demo of SuiteCRM 7 available online, allowing you to easily try the CRM and some of its features.
+
+Try out our demo here: [Click here to visit the SuiteCRM Demo](https://suitecrm.com/demo/)
+
+The demo rebuilds every hour, so any changes made will be removed automatically on a regular basis. Please note the demo is public so don't upload any personal information.
+
+### Updating SuiteCRM
+
+To benefit from the latest security and bugfixes as well as the most comprehensive feature set, we recommend all users upgrade to the latest ESR release at their earliest opportunity. See our [upgrade documentation](https://docs.suitecrm.com/admin/installation-guide/upgrading/) for more detail.
+
+### News and Releases
+
+To stay up to date on our latest releases, including security patches and fixes we recommend you monitor our [News Page](https://suitecrm.com/about/newsroom/press/) and [Release Notes](https://docs.suitecrm.com/admin/releases/)
+
+You can also [Subscribe to our Newsletter](https://suitecrm.com/about/about-us/sign-up-for-marketing/) or follow us on Social Media.
+
+### Code Contributors
+
+This project exists thanks to all the people who [contribute](https://github.com/SuiteCRM/SuiteCRM/graphs/contributors) and more.
+<a href="https://github.com/SuiteCRM/SuiteCRM/graphs/contributors"><img src="https://opencollective.com/SuiteCRM/contributors.svg?avatarHeight=36&width=890&button=false" /></a>
+
+As an open source project, we welcome sponsorships from our individuals and organisations in our community. Your contribution to the project will help drive the SuiteCRM project forward at a greater rate.
+
+If you use SuiteCRM in your organisation, please consider [sponsoring the SuiteCRM Project](https://suitecrm.com/join-the-project/suitecrm-community-sponsorship/)
+
+Or if You want to buy the **core team** a coffee :coffee: or beer :beer:?
+Then consider a small [donation](https://opencollective.com/SuiteCRM/contribute) to help fuel our activities :heart:
 
 
-### Code of Conduct ###
+### Roadmap ### 
 
-See our [Code of Conduct][code_of_conduct] on our Wiki.
+View the [Roadmap](https://suitecrm.com/roadmap/) for details on our planned features and future direction.
 
-[code_of_conduct]: https://docs.suitecrm.com/community/code-of-conduct/
+### Support ###
 
+SuiteCRM is an open-source project. If you require help with support then please use our [support forum](https://community.suitecrm.com/). By using the forums the knowledge is shared with everyone in the community. Our developer and community team members answer questions on the forum daily, but it also allows the other members of the community to contribute. If you would like customisations to specifically fit your SuiteCRM needs then please visit the [website](https://suitecrm.com/).
 
-### Helpful links for the community ###
+SuiteCRM Ltd also offers a range of complimentary hosting and support services:
 
-The following links offer various ways to view, contribute and collaborate to the SuiteCRM project:
+- [Hosting](https://suitecrm.com/suitecrmhosted/)
+- [Support Plans](https://suitecrm.com/enterprise/support-plans/)
+- [SuiteASSURED](https://suitecrm.com/enterprise/suiteassured/)
 
+By utilising these services you are also contributing to the future development and progress of the project.
 
-+ [SuiteCRM Demo - A fully working SuiteCRM demo available for people to try before downloading the full SuiteCRM package][suitecrm_demo]
-+ [SuiteCRM Forums - Forums dedicated to discussions about SuiteCRM with various topics and subjects about SuiteCRM][suitecrm_forums]
-+ [SuiteCRM Documentation - A wiki containing relevant documentation to SuiteCRM, constantly being added to][suitecrm_docs]
-+ [SuiteCRM Partners - Our partner section where partners of SuiteCRM can be viewed][suitecrm_partners]
-+ [SuiteCRM Extensions Directory - An extensions directory where community members can submit extensions built for SuiteCRM][suitecrm_ext]
-
-[suitecrm_demo]: https://suitecrm.com/demo
-[suitecrm_forums]: https://suitecrm.com/suitecrm/forum/suite-forum
-[suitecrm_docs]: https://docs.suitecrm.com/
-[suitecrm_partners]: https://suitecrm.com/about/about-us/partners
-[suitecrm_ext]: https://store.suitecrm.com/
-
-### Development Roadmap ###
-
-[ View the Community Roadmap here and get involved][suitecrm_roadmap]
-
-[suitecrm_roadmap]: https://suitecrm.com/roadmap
-
-[More detailed SuiteCRM Community LTS Roadmap][suitecrm_detailed_roadmap]
-
-[suitecrm_detailed_roadmap]: https://suitecrm.com/lts/
-
-### Support & Licensing ###
-
-SuiteCRM is an open source project. As such please do not contact us directly via email or phone for SuiteCRM support. Instead please use our support forum. By using the forum the knowledge is shared with everyone in the community. Our developers answer questions on the forum daily but it also gives the other members of the community the opportunity to contribute. If you would like customisations to specifically fit your SuiteCRM  needs then please use our contact form.
+### License [![AGPLv3](https://img.shields.io/github/license/suitecrm/suitecrm.svg)](./LICENSE.txt)
 
 SuiteCRM is published under the AGPLv3 license.
+
+
+
 

@@ -50,12 +50,12 @@ if (isset($GLOBALS['sugar_config']['hide_admin_diagnostics']) && $GLOBALS['sugar
 }
 
 echo getClassicModuleTitle(
-        "Administration",
-        array(
+    "Administration",
+    array(
             "<a href='index.php?module=Administration&action=index'>{$mod_strings['LBL_MODULE_NAME']}</a>",
            translate('LBL_DIAGNOSTIC_TITLE')
            ),
-        true
+    true
         );
 
 
@@ -68,13 +68,13 @@ if (empty($_REQUEST['file']) || empty($_REQUEST['guid'])) {
 
     //Making sure someone doesn't pass a variable name as a false reference
     //  to delete a file
-    if (strcmp(substr($_REQUEST['file'], 0, 10), "diagnostic") != 0) {
+    if (strcmp(substr((string) $_REQUEST['file'], 0, 10), "diagnostic") != 0) {
         die($mod_strings['LBL_DIAGNOSTIC_DELETE_DIE']);
     }
 
     if (file_exists($cachedfile = sugar_cached("diagnostic/".$_REQUEST['guid']."/".$_REQUEST['file'].".zip"))) {
         unlink($cachedfile);
-        rmdir(dirname($cachedfile));
+        rmdir(dirname((string) $cachedfile));
         echo $mod_strings['LBL_DIAGNOSTIC_DELETED']."<br><br>";
     } else {
         echo $mod_strings['LBL_DIAGNOSTIC_FILE'] . $_REQUEST['file'].$mod_strings['LBL_DIAGNOSTIC_ZIP'];

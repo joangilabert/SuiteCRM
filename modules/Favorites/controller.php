@@ -39,6 +39,7 @@
  */
 include_once 'modules/Favorites/Favorites.php';
 
+#[\AllowDynamicProperties]
 class FavoritesController extends SugarController
 {
     public function action_create_record()
@@ -56,7 +57,7 @@ class FavoritesController extends SugarController
 
     public function action_remove_record()
     {
-        $favourite_class = new Favorites();
+        $favourite_class = BeanFactory::newBean('Favorites');
         $favorite_id = $favourite_class->getFavoriteID($_REQUEST['record_module'], $_REQUEST['record_id']);
 
         if ($favorite_id) {
@@ -70,7 +71,7 @@ class FavoritesController extends SugarController
     public function action_check_favorite()
     {
         if (isset($_REQUEST['record_module']) &&  $_REQUEST['record_id']) {
-            $favourite_class = new Favorites();
+            $favourite_class = BeanFactory::newBean('Favorites');
             $return = $favourite_class->getFavoriteID($_REQUEST['record_module'], $_REQUEST['record_id']);
         } else {
             $return = false;
@@ -81,7 +82,7 @@ class FavoritesController extends SugarController
 
     public function action_get_sidebar_elements()
     {
-        $favourite_class = new Favorites();
+        $favourite_class = BeanFactory::newBean('Favorites');
         $return = $favourite_class->getCurrentUserSidebarFavorites($_REQUEST['record_id']);
         echo json_encode($return);
     }

@@ -106,9 +106,10 @@ function override_recursive_helper($key_names, $array_name, $value)
 {
     if (empty($key_names)) {
         return "=".var_export_helper($value, true).";";
+    } else {
+        $key = array_shift($key_names);
+        return "[".var_export($key, true)."]". override_recursive_helper($key_names, $array_name, $value);
     }
-    $key = array_shift($key_names);
-    return "[".var_export($key, true)."]". override_recursive_helper($key_names, $array_name, $value);
 }
 
 function override_value_to_string_recursive2($array_name, $value_name, $value, $save_empty = true)
@@ -121,11 +122,13 @@ function override_value_to_string_recursive2($array_name, $value_name, $value, $
             $str.= override_value_to_string_recursive2($newArrayName, $key, $val, $save_empty);
         }
         return $str;
+    } else {
+        if (!$save_empty && empty($value)) {
+            return;
+        } else {
+            return "\$$array_name" . "[$quoted_vname] = " . var_export($value, true) . ";\n";
+        }
     }
-    if (!$save_empty && empty($value)) {
-        return;
-    }
-    return "\$$array_name" . "[$quoted_vname] = " . var_export($value, true) . ";\n";
 }
 
 /**
@@ -175,8 +178,10 @@ function object_to_array_recursive($obj)
                         $diff[$key] = $value;
                     }
                 }
-            } elseif ((!isset($array2[$key]) || $value != $array2[$key]) && (isset($value) || $allowEmpty)) {
-                $diff[$key] = $value;
+            } else {
+                if ((!isset($array2[$key]) || $value != $array2[$key]) && (isset($value) || $allowEmpty)) {
+                    $diff[$key] = $value;
+                }
             }
         }
         return $diff;
@@ -208,11 +213,12 @@ function object_to_array_recursive($obj)
 // Example: array("a", "b", "c") and array("x", "y", "z") are passed in; array("ax", "by", "cz") is returned
 function array_merge_values($arr1, $arr2)
 {
-    if (count($arr1) != count($arr2)) {
+    if (count($arr1) !== count($arr2)) {
         return false;
     }
+    $arr1Count = count($arr1);
 
-    for ($i = 0; $i < count($arr1); $i++) {
+    for ($i = 0; $i < $arr1Count; $i++) {
         $arr1[$i] .= $arr2[$i];
     }
 
@@ -233,7 +239,7 @@ function array_search_insensitive($key, $haystack)
 
     $found = false;
     foreach ($haystack as $k => $v) {
-        if (strtolower($v) == strtolower($key)) {
+        if (strtolower($v) === strtolower($key)) {
             $found = true;
             break;
         }
@@ -242,10 +248,42 @@ function array_search_insensitive($key, $haystack)
     return $found;
 }
 
+
+/**
+ * This function is useful to format properly indices definitions before
+ * compare them to decide if this index should be created in database or not.
+ *
+ * Example:
+ * If an index definition in vardefs.php contains a field like this:
+ *   => 'last_name  (  30 ) ',
+ *
+ * This function formats this string like this:
+ *  => 'last_name (30)',
+ *
+ * The function replaces
+ *  - one o more whitespace by only one whitespace.
+ *  - trim the string.
+ *  - whitespace after '('
+ *  - whitespace before ')'
+ * @param  array $indexArray an index definition
+ * @return array $indexArray an index definition
+ */
+function fixIndexArrayFormat($indexArray)
+{
+    foreach ($indexArray as $key => $value) {
+        $indexArray[$key] = preg_replace("/\s+/u", " ", (string) $value);
+        $indexArray[$key] = trim($indexArray[$key]);
+        $indexArray[$key] = str_replace(['( ', ' )'], ['(', ')'], $indexArray[$key]);
+    }
+    return $indexArray;
+}
+
+
 /**
  * Wrapper around PHP's ArrayObject class that provides dot-notation recursive searching
  * for multi-dimensional arrays
  */
+#[\AllowDynamicProperties]
 class SugarArray extends ArrayObject
 {
     /**
@@ -286,7 +324,7 @@ class SugarArray extends ArrayObject
 
     private function _getFromSource($key, $default)
     {
-        if (strpos($key, '.') === false) {
+        if (strpos((string) $key, '.') === false) {
             return isset($this[$key]) ? $this[$key] : $default;
         }
 
@@ -299,12 +337,13 @@ class SugarArray extends ArrayObject
     {
         if ($raw_config === $default) {
             return $default;
-        } elseif (count($children) == 0) {
+        } elseif ((is_countable($children) ? count($children) : 0) == 0) {
             return $raw_config;
-        }
-        $next_key = array_shift($children);
-        return isset($raw_config[$next_key]) ?
+        } else {
+            $next_key = array_shift($children);
+            return isset($raw_config[$next_key]) ?
                 $this->_getRecursive($raw_config[$next_key], $children, $default) :
                 $default;
+        }
     }
 }

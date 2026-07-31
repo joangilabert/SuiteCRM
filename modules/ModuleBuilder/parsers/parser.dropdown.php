@@ -44,6 +44,7 @@ if (!defined('sugarEntry') || !sugarEntry) {
 
 require_once('modules/ModuleBuilder/parsers/ModuleBuilderParser.php');
 
+ #[\AllowDynamicProperties]
  class ParserDropDown extends ModuleBuilderParser
  {
 
@@ -61,9 +62,16 @@ require_once('modules/ModuleBuilder/parsers/ModuleBuilderParser.php');
          $type = $_REQUEST['view_package'];
          $dir = '';
          $dropdown_name = $params['dropdown_name'];
+
+         // Validate dropdown name to prevent PHP code injection (written into language files as PHP code)
+         if (!is_safe_label_key($dropdown_name)) {
+             $GLOBALS['log']->security("ParserDropDown: invalid dropdown_name rejected");
+             throw new RuntimeException('Invalid dropdown name.');
+         }
+
          $json = getJSONobj();
 
-         $list_value = str_replace('&quot;&quot;:&quot;&quot;', '&quot;__empty__&quot;:&quot;&quot;', $params['list_value']);
+         $list_value = str_replace('&quot;&quot;:&quot;&quot;', '&quot;__empty__&quot;:&quot;&quot;', (string) $params['list_value']);
          //Bug 21362 ENT_QUOTES- convert single quotes to escaped single quotes.
          $rawurldecode = rawurldecode($list_value);
          $htmldecode = html_entity_decode($rawurldecode, ENT_QUOTES);
@@ -75,6 +83,10 @@ require_once('modules/ModuleBuilder/parsers/ModuleBuilderParser.php');
              foreach ($temp as $item) {
                  $keytemp = SugarCleaner::stripTags(from_html($item [ 0 ]), false);
                  $valuetemp = SugarCleaner::stripTags(from_html($item [ 1 ]), false);
+                 if ($keytemp !== '' && !is_safe_label_key($keytemp)) {
+                     $GLOBALS['log']->security("ParserDropDown: invalid dropdown item key rejected");
+                     continue;
+                 }
                  $dropdown[ $keytemp ] =  $valuetemp;
              }
          }
@@ -104,7 +116,7 @@ require_once('modules/ModuleBuilder/parsers/ModuleBuilderParser.php');
                  $GLOBALS['app_list_strings'][$dropdown_name] = $dropdown;
              }
              //write to contents
-             $contents = str_replace("?>", '', $contents);
+             $contents = str_replace("?>", '', (string) $contents);
              if (empty($contents)) {
                  $contents = "<?php";
              }
@@ -115,10 +127,10 @@ require_once('modules/ModuleBuilder/parsers/ModuleBuilderParser.php');
                      //only if the value has changed or does not exist do we want to add it this way
                      if (!isset($my_list_strings[$dropdown_name][$key]) || strcmp($my_list_strings[$dropdown_name][$key], $value) != 0) {
                          //clear out the old value
-                         $pattern_match = '/\s*\$app_list_strings\s*\[\s*\''.$dropdown_name.'\'\s*\]\[\s*\''.$key.'\'\s*\]\s*=\s*[\'\"]{1}.*?[\'\"]{1};\s*/ism';
-                         $contents = preg_replace($pattern_match, "\n", $contents);
+                         $pattern_match = '/\s*\$app_list_strings\s*\[\s*\''.$dropdown_name.'\'\s*\]\[\s*\''.preg_quote($key, '/').'\'\s*\]\s*=\s*[\'\"]{1}.*?[\'\"]{1};\s*/ism';
+                         $contents = preg_replace($pattern_match, "\n", (string) $contents);
                          //add the new ones
-                         $contents .= "\n\$GLOBALS['app_list_strings']['$dropdown_name']['$key']=" . var_export_helper($value) . ";";
+                         $contents .= "\n\$app_list_strings['$dropdown_name'][" . var_export((string)$key, true) . "]=" . var_export_helper($value) . ";";
                      }
                  }
              } else {
@@ -139,7 +151,7 @@ require_once('modules/ModuleBuilder/parsers/ModuleBuilderParser.php');
      * function synchDropDown
      * 	Ensures that the set of dropdown keys is consistant accross all languages.
      *
-     * @param $dropdown_name The name of the dropdown to be synched
+     * @param $dropdown_name string The name of the dropdown to be synched
      * @param $dropdown array The dropdown currently being saved
      * @param $selected_lang String the language currently selected in Studio/MB
      * @param $saveLov String the path to the directory to save the new lang file in.
@@ -167,7 +179,7 @@ require_once('modules/ModuleBuilder/parsers/ModuleBuilderParser.php');
      * function synchMBDropDown
      * 	Ensures that the set of dropdown keys is consistant accross all languages in a ModuleBuilder Module
      *
-     * @param $dropdown_name The name of the dropdown to be synched
+     * @param $dropdown_name String The name of the dropdown to be synched
      * @param $dropdown array The dropdown currently being saved
      * @param $selected_lang String the language currently selected in Studio/MB
      * @param $module MBModule the module to update the languages in
@@ -206,21 +218,27 @@ require_once('modules/ModuleBuilder/parsers/ModuleBuilderParser.php');
          return $sub;
      }
 
-     public function getPatternMatch($dropdown_name)
+     public function getPatternMatchGlobal($dropdown_name)
      {
          return '/\s*\$GLOBALS\s*\[\s*\'app_list_strings\s*\'\s*\]\[\s*\''
              . $dropdown_name.'\'\s*\]\s*=\s*array\s*\([^\)]*\)\s*;\s*/ism';
      }
 
+     public function getPatternMatch($dropdown_name)
+     {
+         return '/\s*\$app_list_strings\s*\[\s*\''.$dropdown_name.'\'\s*\]\s*=\s*array\s*\([^\)]*\)\s*;\s*/ism';
+     }
+
      public function getNewCustomContents($dropdown_name, $dropdown, $lang)
      {
          $contents = return_custom_app_list_strings_file_contents($lang);
-         $contents = str_replace("?>", '', $contents);
+         $contents = str_replace("?>", '', (string) $contents);
          if (empty($contents)) {
              $contents = "<?php";
          }
+         $contents = preg_replace($this->getPatternMatchGlobal($dropdown_name), "\n", $contents);
          $contents = preg_replace($this->getPatternMatch($dropdown_name), "\n", $contents);
-         $contents .= "\n\$GLOBALS['app_list_strings']['$dropdown_name']=" . var_export_helper($dropdown) . ";";
+         $contents .= "\n\$app_list_strings['$dropdown_name']=" . var_export_helper($dropdown) . ";";
          return $contents;
      }
  }

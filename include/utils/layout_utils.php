@@ -73,7 +73,7 @@ function get_form_header(
     $keywords = array("/class=\"button\"/","/class='button'/","/class=button/","/<\/form>/");
     $match = false;
     foreach ($keywords as $left) {
-        if (preg_match($left, $other_text)) {
+        if (preg_match($left, (string) $other_text)) {
             $match = true;
         }
     }
@@ -130,22 +130,25 @@ function get_module_title(
     global $app_strings;
 
     $the_title = "<div class='moduleTitle'>\n";
-    $module = preg_replace("/ /", "", $module);
+    $module = preg_replace("/ /", "", (string) $module);
     $iconPath = "";
     if (is_file(SugarThemeRegistry::current()->getImageURL('icon_'.$module.'_32.png', false))) {
         $iconPath = SugarThemeRegistry::current()->getImageURL('icon_'.$module.'_32.png');
-    } elseif (is_file(SugarThemeRegistry::current()->getImageURL('icon_'.ucfirst($module).'_32.png', false))) {
-        $iconPath = SugarThemeRegistry::current()->getImageURL('icon_'.ucfirst($module).'_32.png');
+    } else {
+        if (is_file(SugarThemeRegistry::current()->getImageURL('icon_'.ucfirst($module).'_32.png', false))) {
+            $iconPath = SugarThemeRegistry::current()->getImageURL('icon_'.ucfirst($module).'_32.png');
+        }
     }
     if (!empty($iconPath)) {
         $the_title .= '<h2>';
+        $sw = new SugarView();
         if (SugarThemeRegistry::current()->directionality == "ltr") {
             $the_title .= "<a href='index.php?module={$module}&action=index'><img src='{$iconPath}' " . "alt='".$module."' title='".$module."' align='absmiddle'></a>";
-            $the_title .= ($count >= 1) ? SugarView::getBreadCrumbSymbol() : "";
+            $the_title .= ($count >= 1) ? $sw->getBreadCrumbSymbol() : "";
             $the_title .=  $module_title.'';
         } else {
             $the_title .= $module_title;
-            $the_title .= ($count > 1) ? SugarView::getBreadCrumbSymbol() : "";
+            $the_title .= ($count > 1) ? $sw->getBreadCrumbSymbol() : "";
             $the_title .= "<a href='index.php?module={$module}&action=index'><img src='{$iconPath}' "  . "alt='".$module."' title='".$module."' align='absmiddle'></a>";
         }
         $the_title .= '</h2>';
@@ -203,7 +206,7 @@ function getClassicModuleTitle($module, $params, $show_create=false, $index_url_
     $module_title = '';
     $index = 0;
 
-    $module = preg_replace("/ /", "", $module);
+    $module = preg_replace("/ /", "", (string) $module);
     $iconPath = "";
     $the_title = "<div class='moduleTitle'>\n";
 

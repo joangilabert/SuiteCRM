@@ -45,7 +45,7 @@ if (!defined('sugarEntry') || !sugarEntry) {
 $GLOBALS['starttTime'] = microtime(true);
 
 set_include_path(
-    dirname(__FILE__).'/..'.PATH_SEPARATOR.
+    __DIR__.'/..'.PATH_SEPARATOR.
     get_include_path()
 );
 
@@ -56,7 +56,7 @@ if (!defined('PHP_VERSION_ID')) {
 
 if (empty($GLOBALS['installing']) && !file_exists('config.php')) {
     header('Location: install.php');
-    exit();
+    throw new Exception('SuiteCRM is not installed. Entry point needs an installed SuiteCRM, please install first.');
 }
 
 $BASE_DIR = realpath(dirname(__DIR__));
@@ -82,13 +82,8 @@ if (empty($GLOBALS['installing']) && empty($sugar_config['dbconfig']['db_name'])
 }
 
 // make sure SugarConfig object is available
-$GLOBALS['sugar_config'] = $sugar_config;
+$GLOBALS['sugar_config'] = !empty($sugar_config) ? $sugar_config : [];
 require_once 'include/SugarObjects/SugarConfig.php';
-
-if (!empty($sugar_config['xhprof_config'])) {
-    require_once 'include/SugarXHprof/SugarXHprof.php';
-    SugarXHprof::getInstance()->start();
-}
 
 ///////////////////////////////////////////////////////////////////////////////
 ////	DATA SECURITY MEASURES
@@ -146,7 +141,7 @@ UploadStream::register();
 ///////////////////////////////////////////////////////////////////////////////
 ////    Handle loading and instantiation of various Sugar* class
 if (!defined('SUGAR_PATH')) {
-    define('SUGAR_PATH', realpath(dirname(__FILE__).'/..'));
+    define('SUGAR_PATH', realpath(__DIR__.'/..'));
 }
 require_once 'include/SugarObjects/SugarRegistry.php';
 
@@ -163,6 +158,17 @@ if (empty($GLOBALS['installing'])) {
             session_id($_REQUEST['PHPSESSID']);
         } else {
             unset($_GET['PHPSESSID']);
+        }
+    }
+
+    $sessionGCConfig = $sugar_config['session_gc'] ?? [];
+    if (!isset($sessionGCConfig['enable']) || isTrue($sessionGCConfig['enable'])) {
+        $gcProbability = $sessionGCConfig['gc_probability'] ?? 1;
+        $gcDivisor = $sessionGCConfig['gc_divisor'] ?? 100;
+
+        if (!headers_sent()) {
+            ini_set('session.gc_probability', $gcProbability);
+            ini_set('session.gc_divisor', $gcDivisor);
         }
     }
 
@@ -191,10 +197,10 @@ if (empty($GLOBALS['installing'])) {
         $_SERVER['REQUEST_URI'] = '';
     }
 
-    $current_user = new User();
+    $current_user = BeanFactory::newBean('Users');
     $GLOBALS['current_user'] = $current_user;
     $current_entity = null;
-    $system_config = new Administration();
+    $system_config = BeanFactory::newBean('Administration');
     $system_config->retrieveSettings();
 
     LogicHook::initialize()->call_custom_logic('', 'after_entry_point');
@@ -202,3 +208,9 @@ if (empty($GLOBALS['installing'])) {
 
 ////	END SETTING DEFAULT VAR VALUES
 ///////////////////////////////////////////////////////////////////////////////
+
+//It does a check to see if the host is valid
+$sapi_type = php_sapi_name();
+if ($sapi_type !== 'cli') {
+    check_trusted_hosts();
+}

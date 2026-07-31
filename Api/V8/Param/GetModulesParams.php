@@ -4,7 +4,8 @@ namespace Api\V8\Param;
 use Api\V8\Param\Options as ParamOption;
 use Symfony\Component\OptionsResolver\OptionsResolver;
 
-class GetModulesParams extends BaseParam
+#[\AllowDynamicProperties]
+class GetModulesParams extends BaseParam implements ModuleAwareParamInterface
 {
     /**
      * @return string
@@ -46,6 +47,14 @@ class GetModulesParams extends BaseParam
     public function getFilter()
     {
         return isset($this->parameters['filter']) ? $this->parameters['filter'] : '';
+    }
+
+    /**
+     * @return bool
+     */
+    public function getDeleted()
+    {
+        return strpos($this->getFilter(), ".deleted = '1'") !== false;
     }
 
     /**

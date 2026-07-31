@@ -27,6 +27,7 @@
  * @author Hartmut Holzgraefe <hholzgra@php.net>
  * @version 0.99.1dev
  */
+#[\AllowDynamicProperties]
 class _parse_proppatch
 {
     /**
@@ -83,7 +84,7 @@ class _parse_proppatch
         $this->props = array();
         $had_input = false;
 
-        $f_in = fopen($path, "r");
+        $f_in = fopen($path, 'rb');
         if (!$f_in) {
             $this->success = false;
             return;
@@ -93,18 +94,18 @@ class _parse_proppatch
 
         xml_set_element_handler(
             $xml_parser,
-                                array(&$this, "_startElement"),
-                                array(&$this, "_endElement")
+            array(&$this, "_startElement"),
+            array(&$this, "_endElement")
         );
 
         xml_set_character_data_handler(
             $xml_parser,
-                                       array(&$this, "_data")
+            array(&$this, "_data")
         );
 
         xml_parser_set_option(
             $xml_parser,
-                              XML_OPTION_CASE_FOLDING,
+            XML_OPTION_CASE_FOLDING,
             false
         );
 
@@ -136,7 +137,7 @@ class _parse_proppatch
      */
     public function _startElement($parser, $name, $attrs)
     {
-        if (strstr($name, " ")) {
+        if (strstr((string) $name, " ")) {
             list($ns, $tag) = explode(" ", $name);
             if ($ns == "") {
                 $this->success = false;
@@ -161,7 +162,7 @@ class _parse_proppatch
         if ($this->depth >= 4) {
             $this->current["val"] .= "<$tag";
             foreach ($attr as $key => $val) {
-                $this->current["val"] .= ' '.$key.'="'.str_replace('"', '&quot;', $val).'"';
+                $this->current["val"] .= ' '.$key.'="'.str_replace('"', '&quot;', (string) $val).'"';
             }
             $this->current["val"] .= ">";
         }
@@ -181,7 +182,7 @@ class _parse_proppatch
      */
     public function _endElement($parser, $name)
     {
-        if (strstr($name, " ")) {
+        if (strstr((string) $name, " ")) {
             list($ns, $tag) = explode(" ", $name);
             if ($ns == "") {
                 $this->success = false;

@@ -1,10 +1,11 @@
 <?php
 namespace Api\V8\JsonApi\Repository;
 
+#[\AllowDynamicProperties]
 class Sort
 {
-    const ORDER_BY_ASC = 'ASC';
-    const ORDER_BY_DESC = 'DESC';
+    public const ORDER_BY_ASC = 'ASC';
+    public const ORDER_BY_DESC = 'DESC';
 
     /**
      * We don't support multiple sorting. for now.
@@ -18,12 +19,12 @@ class Sort
     public function parseOrderBy(\SugarBean $bean, $value)
     {
         $orderBy = self::ORDER_BY_ASC;
-        if ($value[0] === '-') {
+        if (strpos($value, '-') === 0) {
             $orderBy = self::ORDER_BY_DESC;
             $value = ltrim($value, '-');
         }
 
-        if (!property_exists($bean, $value)) {
+        if (empty($bean->field_defs[$value])) {
             throw new \InvalidArgumentException(sprintf(
                 'Sort field %s in %s module is not found',
                 $value,

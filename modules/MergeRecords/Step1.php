@@ -41,13 +41,7 @@ if (!defined('sugarEntry') || !sugarEntry) {
  * display the words "Powered by SugarCRM" and "Supercharged by SuiteCRM".
  */
 
-/*********************************************************************************
 
- * Description:  TODO: To be written.
- * Portions created by SugarCRM are Copyright (C) SugarCRM, Inc.
- * All Rights Reserved.
- * Contributor(s): ______________________________________..
- ********************************************************************************/
 
 
 
@@ -69,7 +63,7 @@ if (!isset($where)) {
     $where = "";
 }
 
-$focus = new MergeRecord();
+$focus = BeanFactory::newBean('MergeRecords');
 
 ////////////////////////////////////////////////////////////
 //get instance of master record and retrieve related record
@@ -88,14 +82,14 @@ $bean_data=array();
 foreach ($temp_field_array as $field_array) {
     if (isset($field_array['merge_filter'])
     ) {
-        if (strtolower($field_array['merge_filter'])=='enabled' or strtolower($field_array['merge_filter'])=='selected') {
+        if (strtolower($field_array['merge_filter'])=='enabled' || strtolower($field_array['merge_filter'])=='selected') {
             $col_name = $field_array['name'];
 
                             
             if (!isset($focus->merge_bean_strings[$field_array['vname']])) {
                 $col_label = $col_name;
             } else {
-                $col_label = str_replace(':', '', $focus->merge_bean_strings[$field_array['vname']]);
+                $col_label = str_replace(':', '', (string) $focus->merge_bean_strings[$field_array['vname']]);
             }
             
             if (strtolower($field_array['merge_filter'])=='selected') {
@@ -135,10 +129,11 @@ $xtpl->assign("FIELD_AVAIL_OPTIONS", get_select_options_with_id($avail_fields, '
 $xtpl->assign("LBL_ADD_BUTTON", translate('LBL_ADD_BUTTON'));
 
 if (isset($_REQUEST['return_id'])) {
-    $xtpl->assign("RETURN_ID", $_REQUEST['return_id']);
+    $xtpl->assign("RETURN_ID", validate_input($_REQUEST['return_id']));
 }
-$xtpl->assign("RETURN_ACTION", $_REQUEST['return_action']);
-$xtpl->assign("RETURN_MODULE", $_REQUEST['return_module']);
+
+$xtpl->assign("RETURN_ACTION", validate_input($_REQUEST['return_action']));
+$xtpl->assign("RETURN_MODULE", validate_input($_REQUEST['return_module']));
 
 //set the url
 $port=null;
@@ -164,6 +159,15 @@ $xtpl->parse("main.field_select_block");
 $xtpl->parse("main");
 $xtpl->out("main");
 
+
+/**
+ * @param string $requestData
+ * @return string
+ */
+function validate_input($requestData)
+{
+    return htmlspecialchars((string) remove_xss($requestData), ENT_QUOTES | ENT_HTML5);
+}
 
 /**
  * This function is equivalent of AddFieldRow in merge.js. is being used to

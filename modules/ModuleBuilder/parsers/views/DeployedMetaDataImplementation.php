@@ -58,6 +58,7 @@ require_once 'modules/ModuleBuilder/parsers/constants.php';
 /**
  * Class DeployedMetaDataImplementation
  */
+#[\AllowDynamicProperties]
 class DeployedMetaDataImplementation extends AbstractMetaDataImplementation implements MetaDataImplementationInterface
 {
     /**
@@ -288,11 +289,11 @@ class DeployedMetaDataImplementation extends AbstractMetaDataImplementation impl
     public function save($layoutDefinitions)
     {
         //If we are pulling from the History Location, that means we did a restore, and we need to save the history for the previous file.
-        if ($this->_sourceFilename == $this->getFileName(
+        if ($this->_sourceFilename === $this->getFileName(
             $this->_view,
             $this->_moduleName,
             null,
-                MB_HISTORYMETADATALOCATION
+            MB_HISTORYMETADATALOCATION
         )
         ) {
             foreach (array(MB_WORKINGMETADATALOCATION, MB_CUSTOMMETADATALOCATION, MB_BASEMETADATALOCATION) as $type) {
@@ -307,7 +308,7 @@ class DeployedMetaDataImplementation extends AbstractMetaDataImplementation impl
 
         $GLOBALS ['log']->debug(get_class($this) . "->save(): writing to " . $this->getFileName(
             $this->_view,
-                $this->_moduleName,
+            $this->_moduleName,
             null,
             MB_WORKINGMETADATALOCATION
         ));
@@ -320,11 +321,11 @@ class DeployedMetaDataImplementation extends AbstractMetaDataImplementation impl
      */
     public function deploy($layoutDefinitions)
     {
-        if ($this->_sourceFilename == $this->getFileName(
+        if ($this->_sourceFilename === $this->getFileName(
             $this->_view,
             $this->_moduleName,
             null,
-                MB_HISTORYMETADATALOCATION
+            MB_HISTORYMETADATALOCATION
         )
         ) {
             foreach (array(MB_WORKINGMETADATALOCATION, MB_CUSTOMMETADATALOCATION, MB_BASEMETADATALOCATION) as $type) {
@@ -388,7 +389,7 @@ class DeployedMetaDataImplementation extends AbstractMetaDataImplementation impl
         $sm = StudioModuleFactory::getStudioModule($moduleName);
         foreach ($sm->sources as $file => $def) {
             if (!empty($def['view'])) {
-                $filenames[$def['view']] = substr($file, 0, strlen($file) - 4);
+                $filenames[$def['view']] = substr((string) $file, 0, strlen((string) $file) - 4);
             }
         }
 
@@ -454,7 +455,7 @@ class DeployedMetaDataImplementation extends AbstractMetaDataImplementation impl
                 if (is_string($val)) {
                     foreach ($replacements as $var => $rep) {
                         $newkey = str_replace($var, $rep, $newkey);
-                        $newval = str_replace($var, $rep, $newval);
+                        $newval = str_replace($var, $rep, (string) $newval);
                     }
                 }
                 $ret[$newkey] = $newval;

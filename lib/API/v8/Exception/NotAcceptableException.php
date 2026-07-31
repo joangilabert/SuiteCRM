@@ -40,16 +40,15 @@
 
 namespace SuiteCRM\API\v8\Exception;
 
-use SuiteCRM\Enumerator\ExceptionCode;
-
 /**
  * Class NotAcceptableException
  * @package SuiteCRM\API\v8\Exception
  */
+#[\AllowDynamicProperties]
 class NotAcceptableException extends ApiException
 {
-    const MSG_PREFIX = '[Not Acceptable]';
-    const DEFAULT_CODE = 8005;
-    const HTTP_STATUS = 406;
-    const DETAIL_TEXT_LABEL = 'LBL_NOT_ACCEPTABLE_EXCEPTION_DETAIL';
+    public const MSG_PREFIX = '[Not Acceptable]';
+    public const DEFAULT_CODE = 8005;
+    public const HTTP_STATUS = 406;
+    public const DETAIL_TEXT_LABEL = 'LBL_NOT_ACCEPTABLE_EXCEPTION_DETAIL';
 }

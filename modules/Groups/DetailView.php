@@ -49,11 +49,11 @@ global $mod_strings;
 
 /* start standard DetailView layout process */
 $GLOBALS['log']->info("Groups DetailView");
-$focus = new Group();
+$focus = BeanFactory::newBean('Groups');
 $focus->retrieve($_REQUEST['record']);
 $detailView = new DetailView();
 $offset=0;
-if (isset($_REQUEST['offset']) or isset($_REQUEST['record'])) {
+if (isset($_REQUEST['offset']) || isset($_REQUEST['record'])) {
     $result = $detailView->processSugarBean("Group", $focus, $offset);
     if ($result == null) {
         sugar_die($app_strings['ERROR_NO_RECORD']);

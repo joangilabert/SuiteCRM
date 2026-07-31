@@ -1,54 +1,82 @@
 <?php
 /**
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU AFFERO GENERAL PUBLIC LICENSE as published by
- * the Free Software Foundation; either version 3 of the License, or
- * (at your option) any later version.
+ * SuiteCRM is a customer relationship management program developed by SuiteCRM Ltd.
+ * Copyright (C) 2014 - 2026 SuiteCRM Ltd.
  *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * This program is free software; you can redistribute it and/or modify it under
+ * the terms of the GNU Affero General Public License version 3 as published by the
+ * Free Software Foundation with the addition of the following permission added
+ * to Section 15 as permitted in Section 7(a): FOR ANY PART OF THE COVERED WORK
+ * IN WHICH THE COPYRIGHT IS OWNED BY SUITECRM, SUITECRM DISCLAIMS THE
+ * WARRANTY OF NON INFRINGEMENT OF THIRD PARTY RIGHTS.
  *
- * You should have received a copy of the GNU AFFERO GENERAL PUBLIC LICENSE
- * along with this program; if not, see http://www.gnu.org/licenses
- * or write to the Free Software Foundation,Inc., 51 Franklin Street,
- * Fifth Floor, Boston, MA 02110-1301  USA
- * @copyright Andrew Mclaughlan 2014
- * @author Andrew Mclaughlan <andrew@mclaughlan.info>
+ * This program is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+ * FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License for more
+ * details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ * In accordance with Section 7(b) of the GNU Affero General Public License
+ * version 3, these Appropriate Legal Notices must retain the display of the
+ * "Supercharged by SuiteCRM" logo. If the display of the logos is not reasonably
+ * feasible for technical reasons, the Appropriate Legal Notices must display
+ * the words "Supercharged by SuiteCRM".
  */
-
 
 if (!defined('sugarEntry') || !sugarEntry) {
     die('Not A Valid Entry Point');
 }
 
+#[\AllowDynamicProperties]
 class ProjectController extends SugarController
 {
     //Loads the gantt view
     public function action_view_GanttChart()
     {
+        global $current_user;
+        if (!$current_user->hasActionAccess($this->module, 'view')) {
+            SugarApplication::appendErrorMessage(translate('LBL_NO_ACCESS', 'ACL'));
+            SugarApplication::redirect('index.php');
+            return;
+        }
         $this->view = 'GanttChart';
     }
 
+    /**
+     * @throws Exception
+     */
     public function action_generate_chart()
     {
+        global $current_user, $current_language;
+        if (!$current_user->hasActionAccess($this->module, 'view')) {
+            SugarApplication::appendErrorMessage(translate('LBL_NO_ACCESS', 'ACL'));
+            SugarApplication::redirect('index.php');
+            return;
+        }
+
         $db = DBManagerFactory::getInstance();
+        $mod_strings = return_module_language($current_language, 'Project');
 
         include_once('modules/Project/gantt.php');
         include_once('modules/Project/project_table.php');
 
-        $project = new Project();
+        $project = BeanFactory::newBean('Project');
         $project->retrieve($_POST["pid"]);
-        
+
         //Get project tasks
         $Task = BeanFactory::getBean('ProjectTask');
         $tasks = $Task->get_full_list("order_number", "project_task.project_id = '".$project->id."'");
-        
+
+        if (empty($tasks)) {
+            return throw new Exception($mod_strings['LBL_TASKS_NOT_FOUND']);
+        }
+
         //Get the start and end date of the project in database format
         $query = "SELECT min(date_start) FROM project_task WHERE project_id = '{$project->id}'";
         $start_date = $db->getOne($query);
-        
+
         $query = "SELECT max(date_finish) FROM project_task WHERE project_id = '{$project->id}'";
         $end_date = $db->getOne($query);
 
@@ -89,23 +117,32 @@ class ProjectController extends SugarController
     //Create new project task
     public function action_update_GanttChart()
     {
-        global $current_user, $db;
+        global $current_user;
 
+        if (!$current_user->hasActionAccess($this->module, 'edit')) {
+            SugarApplication::appendErrorMessage(translate('LBL_NO_ACCESS', 'ACL'));
+            SugarApplication::redirect('index.php');
+            return;
+        }
+        $db = DBManagerFactory::getInstance();
         $task_name = $_POST['task_name'];
-        $project_id = $_POST['project_id'];
-        $override_business_hours = intval($_POST['override_business_hours']);
-        $task_id = $_POST['task_id'];
+        $project_id = $db->quote($_POST['project_id']);
+        $override_business_hours = (int)$_POST['override_business_hours'];
+        $task_id = $_POST['task_id'] ?? '';
         $predecessor = $_POST['predecessor'];
         $rel_type = $_POST['rel_type'];
         $resource = $_POST['resource'];
         $percent = $_POST['percent'];
         $note = $_POST['note'];
         $actual_duration = $_POST['actual_duration'];
+        $milestone_flag = '';
 
         if ($_POST['milestone'] == 'Milestone') {
             $milestone_flag = '1';
-        } elseif ($_POST['milestone'] == 'Task') {
-            $milestone_flag = '0';
+        } else {
+            if ($_POST['milestone'] == 'Task') {
+                $milestone_flag = '0';
+            }
         }
 
         $dateformat = $current_user->getPreference('datef');
@@ -133,7 +170,7 @@ class ProjectController extends SugarController
 
             if ($bh) {
                 $bh = $bh[0];
-                if ($bh->open) {
+                if ($bh->open_status) {
                     $open_h = $bh ? $bh->opening_hours : 9;
                     $close_h = $bh ? $bh->closing_hours : 17;
 
@@ -219,21 +256,36 @@ class ProjectController extends SugarController
     public function action_delete_task()
     {
         $id = $_POST['task_id'];
-        $task = new ProjectTask();
-        $task->retrieve($id);
-        $task->deleted = '1';
-        $task->save();
+        $task = BeanFactory::getBean('ProjectTask', $id);
+
+        if (empty($task->id)) {
+            die();
+        }
+
+        if (!($task->ACLAccess('delete'))) {
+            SugarApplication::appendErrorMessage(translate('LBL_NO_ACCESS', 'ACL'));
+            SugarApplication::redirect('index.php');
+            die();
+        }
+
+        $task->mark_deleted($id);
     }
 
     //Returns new task start date including any lag via ajax call
     public function action_get_end_date()
     {
-        global  $timeDate;
+        global  $timeDate, $current_user;
         $db = DBManagerFactory::getInstance();
 
+        if (!$current_user->hasActionAccess($this->module, 'edit')) {
+            SugarApplication::appendErrorMessage(translate('LBL_NO_ACCESS', 'ACL'));
+            SugarApplication::redirect('index.php');
+            die();
+        }
+
         $timeDate = new TimeDate();
-        $id = $_POST['task_id'];
-        $lag = $_POST['lag'];
+        $id = $db->quote($_POST['task_id']);
+        $lag = (int) $_POST['lag'];
 
         //Get the end date of the projectTask in raw database format
         $query = "SELECT date_finish FROM project_task WHERE id = '{$id}'";
@@ -251,15 +303,20 @@ class ProjectController extends SugarController
     //updates the order of the tasks
     public function action_update_order()
     {
-
+        global $current_user;
+        if (!$current_user->hasActionAccess($this->module, 'edit')) {
+            SugarApplication::appendErrorMessage(translate('LBL_NO_ACCESS', 'ACL'));
+            SugarApplication::redirect('index.php');
+            return;
+        }
        //convert quotes in json string back to normal
-        $jArray = htmlspecialchars_decode($_POST['orderArray']);
+        $jArray = htmlspecialchars_decode((string) $_POST['orderArray']);
 
         //create object/array from json data
         $orderArray = json_decode($jArray, true);
 
         foreach ($orderArray as $id => $order_number) {
-            $task = new ProjectTask();
+            $task = BeanFactory::newBean('ProjectTask');
             $task->retrieve($id);
             $task->order_number = $order_number;
             $task->save();
@@ -268,15 +325,27 @@ class ProjectController extends SugarController
     //returns tasks for predecessor in the add task pop-up form
     public function action_get_predecessors()
     {
+
         global $mod_strings;
-        $project = new Project();
-        $project->retrieve($_REQUEST["project_id"]);
+
+        $projectTemplate = BeanFactory::getBean('Project', $_REQUEST["project_id"]);
+
+        if (empty($projectTemplate->id)) {
+            die();
+        }
+
+        if (!($projectTemplate->ACLAccess('edit'))) {
+            SugarApplication::appendErrorMessage(translate('LBL_NO_ACCESS', 'ACL'));
+            SugarApplication::redirect('index.php');
+            die();
+        }
+
         //Get project tasks
         $Task = BeanFactory::getBean('ProjectTask');
-        $tasks = $Task->get_full_list("order_number", "project_task.project_id = '".$project->id."'");
+        $tasks = $Task->get_full_list("order_number", "project_task.project_id = '".$projectTemplate->id."'");
         echo '<option rel="0" value="0">'.$mod_strings['LBL_PROJECT_PREDECESSOR_NONE'].'</option>';
         foreach ($tasks as $task) {
-            echo '<option rel="'.$task->id.'" value="'.$task->project_task_id.'">'.$task->name.'</opion>';
+            echo '<option rel="'.$task->id.'" value="'.$task->project_task_id.'">'.$task->name.'</option>';
         }
         die();
     }
@@ -284,7 +353,7 @@ class ProjectController extends SugarController
 
     public function create_task($name, $start, $end, $project_id, $milestone_flag, $status, $project_task_id, $predecessors, $rel_type, $duration, $duration_unit, $resource, $percent_complete, $description, $actual_duration, $order_number)
     {
-        $task = new ProjectTask();
+        $task = BeanFactory::newBean('ProjectTask');
         $task->name = $name;
         $task->date_start = $start;
         $task->date_finish = $end;
@@ -306,7 +375,7 @@ class ProjectController extends SugarController
 
     public function update_task($id, $name, $start, $end, $project_id, $milestone_flag, $status, $predecessors, $rel_type, $duration, $duration_unit, $resource, $percent_complete, $description, $actual_duration)
     {
-        $task = new ProjectTask();
+        $task = BeanFactory::newBean('ProjectTask');
         $task->retrieve($id);
         $task->name = $name;
         $task->date_start = $start;
@@ -332,24 +401,36 @@ class ProjectController extends SugarController
     //Loads the resource chart view
     public function action_ResourceList()
     {
+        global $current_user;
+        if (!$current_user->hasActionAccess($this->module, 'view')) {
+            SugarApplication::appendErrorMessage(translate('LBL_NO_ACCESS', 'ACL'));
+            SugarApplication::redirect('index.php');
+            return;
+        }
         $this->view = 'ResourceList';
     }
 
     //Updates the resource chart based on specified dates and users
     public function action_update_chart()
     {
+        global $current_user;
+        if (!$current_user->hasActionAccess($this->module, 'edit')) {
+            SugarApplication::appendErrorMessage(translate('LBL_NO_ACCESS', 'ACL'));
+            SugarApplication::redirect('index.php');
+            return;
+        }
         $db = DBManagerFactory::getInstance();
         include('modules/Project/chart.php');
 
         //Get  specified dates and users
         $start = $_POST['start'];
         //$end = $_POST['end'];
-        $projects = explode(',', $_POST['projects']);
-        $users = explode(',', $_POST['users']);
-        $contacts = explode(',', $_POST['contacts']);
-        $month = $_POST['month'];
+        $projects = explode(',', $db->quote($_POST['projects']));
+        $users = explode(',', $db->quote($_POST['users']));
+        $contacts = explode(',', $db->quote($_POST['contacts']));
+        $month = is_numeric($_POST['month']) ? $_POST['month'] : '1' ;
         $flag = $_POST['flag'];
-        $chart_type = $_POST['chart_type'];
+        $chart_type = $db->quote($_POST['chart_type']);
         //$type = $_POST['type'];
 
         $start = new DateTime($start);
@@ -438,7 +519,7 @@ class ProjectController extends SugarController
             $taskarr = array();
             $t = 0;
             $skipped = 0;
-            if (!is_null($tasks)) {
+            if (!empty($tasks)) {
                 foreach ($tasks as $task) {
                     if ($this->count_days($start, $task->date_start) == -1 && $this->count_days($start, $task->date_finish) == -1) {
                         $skipped++;
@@ -454,7 +535,7 @@ class ProjectController extends SugarController
                         $taskarr[$t]['end_date'] = $task->date_finish;
                         $taskarr[$t]['project_id'] = $task->project_id;//parent projects id
                         //get the project name (don't think this is really necessary)
-                        $project = new Project();
+                        $project = BeanFactory::newBean('Project');
                         $project->retrieve($task->project_id);
                         $taskarr[$t]['project_name'] = $project->name;//parent projects id
 
@@ -481,20 +562,26 @@ class ProjectController extends SugarController
     //Get tasks for resource chart tooltips
     public function action_Tooltips()
     {
-        global $mod_strings;
+        global $mod_strings, $current_user;
+        if (!$current_user->hasActionAccess($this->module, 'view')) {
+            SugarApplication::appendErrorMessage(translate('LBL_NO_ACCESS', 'ACL'));
+            SugarApplication::redirect('index.php');
+            return;
+        }
+        $db = DBManagerFactory::getInstance();
 
-        $start_date = $_REQUEST['start_date'];
-        $end_date = $_REQUEST['end_date'];
-        $resource_id = $_REQUEST['resource_id'];
+        $start_date = $db->quote($_REQUEST['start_date']);
+        $end_date = $db->quote($_REQUEST['end_date']);
+        $resource_id = $db->quote($_REQUEST['resource_id']);
 
-        $projects = explode(",", $_REQUEST['projects']);
+        $projects = explode(",", $db->quote($_REQUEST['projects']));
         $project_where = "";
         if (count($projects) > 1 || $projects[0] != '') {
             $project_where = " AND project_id IN( '" . implode("','", $projects) . "' )";
         }
 
         $Task = BeanFactory::getBean('ProjectTask');
-        
+
         $tasks = $Task->get_full_list("date_start", "project_task.assigned_user_id = '".$resource_id."' AND ( ( project_task.date_start BETWEEN '".$start_date."'  AND '".$end_date."' ) OR ( project_task.date_finish BETWEEN '".$start_date."' AND '".$end_date."' ) OR ( '".$start_date."' BETWEEN project_task.date_start  AND project_task.date_finish ) OR ( '".$end_date."' BETWEEN project_task.date_start AND project_task.date_finish ) ) AND (project_id is not null AND project_id <> '') " . $project_where);
 
         echo '<table class="qtip_table">';

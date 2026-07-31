@@ -42,6 +42,7 @@ if (!defined('sugarEntry') || !sugarEntry) {
     die('Not A Valid Entry Point');
 }
 
+#[\AllowDynamicProperties]
 class JsonRPCServerUtils
 {
     /**
@@ -66,6 +67,7 @@ class JsonRPCServerUtils
                 continue;
             }
             if ($condition['name'] === 'email1' || $condition['name'] === 'email2') {
+
                 $email1_value = strtoupper($condition['value']);
                 $email1_condition = " {$table}id in ( SELECT  er.bean_id AS id FROM email_addr_bean_rel er, " .
                     'email_addresses ea WHERE ea.id = er.email_address_id ' .
@@ -95,7 +97,8 @@ class JsonRPCServerUtils
         if ($table === 'users.') {
             $cond_arr[] = $table . "status='Active'";
         }
-        $group = strtolower(trim($query_obj['group']));
+        $queryObject = $query_obj['group'] ?? '';
+        $group = strtolower(trim($queryObject));
         if ($group !== 'and' && $group !== 'or') {
             $group = 'and';
         }

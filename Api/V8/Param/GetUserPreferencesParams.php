@@ -52,6 +52,7 @@ use Symfony\Component\OptionsResolver\OptionsResolver;
  *
  * @author gyula
  */
+#[\AllowDynamicProperties]
 class GetUserPreferencesParams extends BaseParam
 {
     
@@ -64,7 +65,7 @@ class GetUserPreferencesParams extends BaseParam
     }
 
     /**
-     * 
+     *
      * @param OptionsResolver $resolver
      */
     protected function configureParameters(OptionsResolver $resolver)

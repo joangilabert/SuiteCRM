@@ -1,6 +1,46 @@
 <?php
+/**
+ * SugarCRM Community Edition is a customer relationship management program developed by
+ * SugarCRM, Inc. Copyright (C) 2004-2013 SugarCRM Inc.
+ *
+ * SuiteCRM is an extension to SugarCRM Community Edition developed by SalesAgility Ltd.
+ * Copyright (C) 2011 - 2021 SalesAgility Ltd.
+ *
+ * This program is free software; you can redistribute it and/or modify it under
+ * the terms of the GNU Affero General Public License version 3 as published by the
+ * Free Software Foundation with the addition of the following permission added
+ * to Section 15 as permitted in Section 7(a): FOR ANY PART OF THE COVERED WORK
+ * IN WHICH THE COPYRIGHT IS OWNED BY SUGARCRM, SUGARCRM DISCLAIMS THE WARRANTY
+ * OF NON INFRINGEMENT OF THIRD PARTY RIGHTS.
+ *
+ * This program is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+ * FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License for more
+ * details.
+ *
+ * You should have received a copy of the GNU Affero General Public License along with
+ * this program; if not, see http://www.gnu.org/licenses or write to the Free
+ * Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
+ * 02110-1301 USA.
+ *
+ * You can contact SugarCRM, Inc. headquarters at 10050 North Wolfe Road,
+ * SW2-130, Cupertino, CA 95014, USA. or at email address contact@sugarcrm.com.
+ *
+ * The interactive user interfaces in modified source and object code versions
+ * of this program must display Appropriate Legal Notices, as required under
+ * Section 5 of the GNU Affero General Public License version 3.
+ *
+ * In accordance with Section 7(b) of the GNU Affero General Public License version 3,
+ * these Appropriate Legal Notices must retain the display of the "Powered by
+ * SugarCRM" logo and "Supercharged by SuiteCRM" logo. If the display of the logos is not
+ * reasonably feasible for technical reasons, the Appropriate Legal Notices must
+ * display the words "Powered by SugarCRM" and "Supercharged by SuiteCRM".
+ */
+
 namespace Helper;
 
+use Codeception\Exception\ModuleException;
+use Codeception\Module;
 use SuiteCRM\Enumerator\DatabaseDriver;
 
 /**
@@ -8,23 +48,23 @@ use SuiteCRM\Enumerator\DatabaseDriver;
  * @package Helper
  * Helps to get configuration / environment variables for the PhpBrowser Driver
  */
-class PhpBrowserDriverHelper extends \Codeception\Module
+#[\AllowDynamicProperties]
+class PhpBrowserDriverHelper extends Module
 {
 
     /**
      * @return array|mixed|null
-     * @throws \Codeception\Exception\ModuleException
+     * @throws ModuleException
      */
     public function getConfig()
     {
-        $webDriver = $this->moduleContainer->getModule('PhpBrowser');
-        return $webDriver->_getConfig();
+        return $this->moduleContainer->getModule('PhpBrowser')->_getConfig();
     }
 
     /**
      * Gets the 'INSTANCE_URL' environment variable or 'url' in a yaml file.
      * @return string the test instance url.
-     * @throws \Codeception\Exception\ModuleException
+     * @throws ModuleException
      */
     public function getInstanceURL()
     {
@@ -36,9 +76,9 @@ class PhpBrowserDriverHelper extends \Codeception\Module
 
     /**
      * Gets the 'DATABASE_DRIVER' environment variable or 'database_driver' in a yaml file.
-     * @see DatabaseDriver
      * @return string
-     * @throws \Codeception\Exception\ModuleException
+     * @throws ModuleException
+     * @see DatabaseDriver
      */
     public function getDatabaseDriver()
     {
@@ -51,7 +91,7 @@ class PhpBrowserDriverHelper extends \Codeception\Module
     /**
      * Gets the 'DATABASE_NAME' environment variable or 'database_name' in a yaml file.
      * @return string
-     * @throws \Codeception\Exception\ModuleException
+     * @throws ModuleException
      */
     public function getDatabaseName()
     {
@@ -65,7 +105,7 @@ class PhpBrowserDriverHelper extends \Codeception\Module
     /**
      * Gets the 'DATABASE_HOST' environment variable or 'database_host' in a yaml file.
      * @return string
-     * @throws \Codeception\Exception\ModuleException
+     * @throws ModuleException
      */
     public function getDatabaseHost()
     {
@@ -78,7 +118,7 @@ class PhpBrowserDriverHelper extends \Codeception\Module
     /**
      * Gets the 'DATABASE_USER' environment variable or 'database_user' in a yaml file.
      * @return string the test instance url.
-     * @throws \Codeception\Exception\ModuleException
+     * @throws ModuleException
      */
     public function getDatabaseUser()
     {
@@ -91,7 +131,7 @@ class PhpBrowserDriverHelper extends \Codeception\Module
     /**
      * Gets the 'DATABASE_PASSWORD' environment variable or 'database_password' in a yaml file.
      * @return string
-     * @throws \Codeception\Exception\ModuleException
+     * @throws ModuleException
      */
     public function getDatabasePassword()
     {
@@ -106,7 +146,7 @@ class PhpBrowserDriverHelper extends \Codeception\Module
      * Gets the 'INSTANCE_ADMIN_USER' environment variable or 'instance_admin_user' in a yaml file.
      *
      * @return string
-     * @throws \Codeception\Exception\ModuleException
+     * @throws ModuleException
      */
     public function getAdminUser()
     {
@@ -119,7 +159,7 @@ class PhpBrowserDriverHelper extends \Codeception\Module
     /**
      * Gets the 'INSTANCE_ADMIN_PASSWORD' environment variable or 'instance_admin_password' in a yaml file.
      * @return string
-     * @throws \Codeception\Exception\ModuleException
+     * @throws ModuleException
      */
     public function getAdminPassword()
     {
@@ -131,7 +171,7 @@ class PhpBrowserDriverHelper extends \Codeception\Module
 
     /**
      * @return array|false|string
-     * @throws \Codeception\Exception\ModuleException
+     * @throws ModuleException
      */
     public function getPasswordGrantClientId()
     {
@@ -143,7 +183,7 @@ class PhpBrowserDriverHelper extends \Codeception\Module
 
     /**
      * @return string
-     * @throws \Codeception\Exception\ModuleException
+     * @throws ModuleException
      */
     public function getPasswordGrantClientSecret()
     {
@@ -155,7 +195,7 @@ class PhpBrowserDriverHelper extends \Codeception\Module
 
     /**
      * @return array|false|string
-     * @throws \Codeception\Exception\ModuleException
+     * @throws ModuleException
      */
     public function getClientCredentialsGrantClientId()
     {
@@ -167,7 +207,7 @@ class PhpBrowserDriverHelper extends \Codeception\Module
 
     /**
      * @return string
-     * @throws \Codeception\Exception\ModuleException
+     * @throws ModuleException
      */
     public function getClientCredentialsGrantClientSecret()
     {
@@ -181,7 +221,7 @@ class PhpBrowserDriverHelper extends \Codeception\Module
      * @param string $variable
      * @param string $default
      * @return string
-     * @throws \Codeception\Exception\ModuleException
+     * @throws ModuleException
      */
     private function getEnvironmentVariableOrDefault($variable, $default)
     {
@@ -190,16 +230,14 @@ class PhpBrowserDriverHelper extends \Codeception\Module
 
         $env = getenv($upperCase);
         if ($env === false) {
-            $webDriver = $this->moduleContainer->getModule('PhpBrowser');
-            $config = $webDriver->_getConfig();
+            $config = $this->moduleContainer->getModule('PhpBrowser')->_getConfig();
             if (empty($config[$upperCase])) {
-                // return default
                 return $default;
-            } else {
-                return $config[$lowerCase];
             }
-        } else {
-            return $env;
+
+            return $config[$lowerCase];
         }
+
+        return $env;
     }
 }

@@ -46,19 +46,19 @@ use Api\V8\JsonApi\Helper\RelationshipObjectHelper;
 use Api\V8\JsonApi\Response\AttributeResponse;
 use Api\V8\JsonApi\Response\DataResponse;
 use Api\V8\JsonApi\Response\DocumentResponse;
+use RuntimeException;
 use Slim\Http\Request;
 
 if (!defined('sugarEntry') || !sugarEntry) {
     die('Not A Valid Entry Point');
 }
 
-include_once __DIR__ . '/../../../include/ListView/ListViewFacade.php';
-
 /**
  * UserService
  *
  * @author gyula
  */
+#[\AllowDynamicProperties]
 class UserService
 {
 
@@ -66,17 +66,17 @@ class UserService
     /**
      * @var BeanManager
      */
-    private $beanManager;
+    protected $beanManager;
 
     /**
      * @var AttributeObjectHelper
      */
-    private $attributeHelper;
+    protected $attributeHelper;
 
     /**
      * @var RelationshipObjectHelper
      */
-    private $relationshipHelper;
+    protected $relationshipHelper;
 
     /**
      * @param BeanManager $beanManager
@@ -92,25 +92,32 @@ class UserService
     }
 
     /**
-     * 
+     *
      * @param Request $request
      * @return DocumentResponse
      */
     public function getCurrentUser(Request $request)
     {
-        // needs to determinate the curent user without globals
-        $oauthClientId = $request->getAttribute('oauth_client_id');
-        $oauthClient = $this->beanManager->getBeanSafe('OAuth2Clients', $oauthClientId);
-        $currentUser = $this->beanManager->getBeanSafe('Users', $oauthClient->assigned_user_id);
-        
+        $oauth2Token = $this->beanManager->newBeanSafe('OAuth2Tokens');
+
+        $oauth2Token->retrieve_by_string_fields(
+            ['access_token' => $request->getAttribute('oauth_access_token_id')]
+        );
+
+        $currentUser = $this->beanManager->getBeanSafe('Users', $oauth2Token->assigned_user_id);
+
+        if (!$currentUser->isEnabled()) {
+            throw new RuntimeException('Not found');
+        }
+
         $currentUserData = $currentUser->toArray();
         unset($currentUserData['user_hash']);
-        
+
         $dataResponse = new DataResponse($currentUser->getObjectName(), $currentUser->id);
         $attributeResponse = new AttributeResponse($currentUserData);
         $dataResponse->setAttributes($attributeResponse);
         $dataResponse->setRelationships($this->relationshipHelper->getRelationships($currentUser, $request->getUri()->getPath()));
-        
+
         $response = new DocumentResponse();
         $response->setData($dataResponse);
         return $response;

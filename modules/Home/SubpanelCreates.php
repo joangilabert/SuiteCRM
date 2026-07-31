@@ -42,7 +42,11 @@ if (!defined('sugarEntry') || !sugarEntry) {
  */
 
 $mod_strings   = return_module_language($current_language, $_REQUEST['target_module']);
-$target_module = $_REQUEST['target_module']; // target class
+$target_module = $_REQUEST['target_module'] ?? ''; // target class
+
+if (empty($target_module) || !isAllowedModuleName($target_module)) {
+    throw new InvalidArgumentException('Invalid target_module');
+}
 
 if (file_exists('modules/'. $_REQUEST['target_module'] . '/EditView.php')) {
     $tpl = $_REQUEST['tpl'];
@@ -69,12 +73,14 @@ if (file_exists('modules/'. $_REQUEST['target_module'] . '/EditView.php')) {
             $subpanelClass = $customClass;
         }
         $sqc  = new $subpanelClass($target_module, $view);
-    } elseif (file_exists($subpanelView)) {
-        require_once($subpanelView);
-        $subpanelClass = $target_module . 'SubpanelQuickCreate';
-        $sqc  = new $subpanelClass($target_module, $view);
     } else {
-        require_once('include/EditView/SubpanelQuickCreate.php');
-        $sqc  = new SubpanelQuickCreate($target_module, $view);
+        if (file_exists($subpanelView)) {
+            require_once($subpanelView);
+            $subpanelClass = $target_module . 'SubpanelQuickCreate';
+            $sqc  = new $subpanelClass($target_module, $view);
+        } else {
+            require_once('include/EditView/SubpanelQuickCreate.php');
+            $sqc  = new SubpanelQuickCreate($target_module, $view);
+        }
     }
 }

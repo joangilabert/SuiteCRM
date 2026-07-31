@@ -71,7 +71,7 @@ function runCheck($install_script, $mod_strings = array())
 
     // check IIS and FastCGI
     $server_software = $_SERVER["SERVER_SOFTWARE"];
-    if ((strpos($_SERVER["SERVER_SOFTWARE"], 'Microsoft-IIS') !== false)
+    if ((strpos((string) $_SERVER["SERVER_SOFTWARE"], 'Microsoft-IIS') !== false)
         && php_sapi_name() == 'cgi-fcgi'
         && ini_get('fastcgi.logging') != '0') {
         installLog($mod_strings['ERR_CHECKSYS_FASTCGI_LOGGING']);
@@ -83,9 +83,9 @@ function runCheck($install_script, $mod_strings = array())
     ';
     }
 
-    if (strpos($server_software, 'Microsoft-IIS') !== false) {
+    if (strpos((string) $server_software, 'Microsoft-IIS') !== false) {
         $iis_version = '';
-        if (preg_match_all("/^.*\/(\d+\.?\d*)$/", $server_software, $out)) {
+        if (preg_match_all("/^.*\/(\d+\.?\d*)$/", (string) $server_software, $out)) {
             $iis_version = $out[1][0];
         }
 
@@ -98,22 +98,26 @@ function runCheck($install_script, $mod_strings = array())
             <p><b>'.$mod_strings['LBL_CHECKSYS_IISVER'].'</b></p>
             <p><span class="error">'.$iisVersion.'</span></p>
         ';
-        } elseif (php_sapi_name() != 'cgi-fcgi') {
-            installLog($mod_strings['ERR_CHECKSYS_FASTCGI'].' '.$iis_version);
-            $iisVersion = "<b><span class=stop>{$mod_strings['ERR_CHECKSYS_FASTCGI']}</span></b>";
-            $error_found = true;
-            $error_txt .= '
+        } else {
+            if (php_sapi_name() != 'cgi-fcgi') {
+                installLog($mod_strings['ERR_CHECKSYS_FASTCGI'].' '.$iis_version);
+                $iisVersion = "<b><span class=stop>{$mod_strings['ERR_CHECKSYS_FASTCGI']}</span></b>";
+                $error_found = true;
+                $error_txt .= '
             <p><b>'.$mod_strings['LBL_CHECKSYS_FASTCGI'].'</b></p>
             <p><span class="error">'.$iisVersion.'</span></p>
         ';
-        } elseif (ini_get('fastcgi.logging') != '0') {
-            installLog($mod_strings['ERR_CHECKSYS_FASTCGI_LOGGING'].' '.$iis_version);
-            $iisVersion = "<b><span class=stop>{$mod_strings['ERR_CHECKSYS_FASTCGI_LOGGING']}</span></b>";
-            $error_found = true;
-            $error_txt .= '
+            } else {
+                if (ini_get('fastcgi.logging') != '0') {
+                    installLog($mod_strings['ERR_CHECKSYS_FASTCGI_LOGGING'].' '.$iis_version);
+                    $iisVersion = "<b><span class=stop>{$mod_strings['ERR_CHECKSYS_FASTCGI_LOGGING']}</span></b>";
+                    $error_found = true;
+                    $error_txt .= '
             <p><b>'.$mod_strings['LBL_CHECKSYS_FASTCGI'].'</b></p>
             <p ><span class="error">'.$iisVersion.'</span></p>
         ';
+                }
+            }
         }
     }
 
@@ -130,20 +134,7 @@ function runCheck($install_script, $mod_strings = array())
         ';
     }
 
-    //Php Backward compatibility checks
-    if (ini_get("zend.ze1_compatibility_mode")) {
-        installLog($mod_strings['LBL_BACKWARD_COMPATIBILITY_ON'].'  '.'Php Backward Compatibility');
-        $phpCompatibility = "<b><span class=stop>{$mod_strings['LBL_BACKWARD_COMPATIBILITY_ON']}</span></b>";
-        $error_found = true;
-        $error_txt .= '
-      <tr>
-        <p><b>Php Backward Compatibility</b></p>
-        <p><span class="error">'.$phpCompatibility.'</span></p>
-    ';
-    }
-
     // database and connect
-
     if (!empty($_REQUEST['setup_db_type'])) {
         $_SESSION['setup_db_type'] = $_REQUEST['setup_db_type'];
     }
@@ -174,6 +165,18 @@ function runCheck($install_script, $mod_strings = array())
         installLog("XML Parsing Support Found");
     }
 
+    // JSON Parsing
+    if (!function_exists('json_decode')) {
+        $jsonStatus = "<b><span class=stop>{$mod_strings['ERR_CHECKSYS_JSON_NOT_AVAILABLE']}</span></b>";
+        installLog("ERROR:: {$mod_strings['ERR_CHECKSYS_JSON_NOT_AVAILABLE']}");
+        $error_found = true;
+        $error_txt .= '
+        <p><strong>'.$mod_strings['LBL_CHECKSYS_JSON'].'</strong></p>
+        <p class="error">'.$jsonStatus.'</p>
+    ';
+    } else {
+        installLog("JSON Parsing Support Found");
+    }
 
     // mbstrings
     if (!function_exists('mb_strlen')) {
@@ -233,6 +236,7 @@ function runCheck($install_script, $mod_strings = array())
 
 
     // cache dir
+    $cache_files = [];
     $cache_files[] = '';
     $cache_files[] = 'images';
     $cache_files[] = 'layout';
@@ -391,16 +395,17 @@ function runCheck($install_script, $mod_strings = array())
         <hr>
     <div id="installcontrols">
         <form action="install3.php" method="post" name="theForm" id="theForm">
-            <input class="button" type="button" onclick="window.open('https://suitecrm.com/suitecrm/forum/suite-forum');" value="{$mod_strings['LBL_HELP']}" />
+            <input class="button" type="button" onclick="window.open('https://community.suitecrm.com');" value="{$mod_strings['LBL_HELP']}" />
             <input class="button" type="button" name="Re-check" value="{$mod_strings['LBL_CHECKSYS_RECHECK']}" onclick="callSysCheck();" id="button_next2"/>
         </form>
     </div>
 EOQ;
         return $out;
+    } else {
+        installLog("Outputting HTML for System check");
+        installLog("No Errors were found *************");
+        return 'passed';
     }
-    installLog("Outputting HTML for System check");
-    installLog("No Errors were found *************");
-    return 'passed';
 }
 ////    END PAGEOUTPUT
 ///////////////////////////////////////////////////////////////////////////////

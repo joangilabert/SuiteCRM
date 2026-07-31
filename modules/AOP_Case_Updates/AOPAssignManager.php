@@ -41,6 +41,7 @@
 /**
  * Class AOPAssignManager.
  */
+#[\AllowDynamicProperties]
 class AOPAssignManager
 {
     private $ieX = false;
@@ -109,7 +110,7 @@ class AOPAssignManager
     private function getRoleUsers($roleId)
     {
         require_once 'modules/ACLRoles/ACLRole.php';
-        $role = new ACLRole();
+        $role = BeanFactory::newBean('ACLRoles');
         $role->retrieve($roleId);
         $role_users = $role->get_linked_beans('users', 'User');
         $r_users = array();
@@ -137,7 +138,7 @@ class AOPAssignManager
             case 'security_group':
                 if (file_exists('modules/SecurityGroups/SecurityGroup.php')) {
                     require_once 'modules/SecurityGroups/SecurityGroup.php';
-                    $security_group = new SecurityGroup();
+                    $security_group = BeanFactory::newBean('SecurityGroups');
                     $security_group->retrieve($distributionOptions[1]);
                     $group_users = $security_group->get_linked_beans('users', 'User');
                     $users = array();
@@ -214,9 +215,8 @@ class AOPAssignManager
     {
         $leastBusyCounts = $this->getLeastBusyCounts();
         asort($leastBusyCounts);
-        reset($leastBusyCounts);
 
-        return key($leastBusyCounts);
+        return array_key_first($leastBusyCounts);
     }
 
     /**
@@ -272,6 +272,7 @@ class AOPAssignManager
      */
     private function getRoundRobinUser()
     {
+        $lastUser = [];
         $id = empty($this->ieX) ? '' : $this->ieX->id;
         $file = create_cache_directory('modules/AOP_Case_Updates/Users/').$id.'lastUser.cache.php';
         $lastUserId = '';
@@ -309,10 +310,7 @@ class AOPAssignManager
     \$lastUser = {$arrayString};
 ?>
 eoq;
-        if ($fh = @sugar_fopen($file, 'w')) {
-            fwrite($fh, $content);
-            fclose($fh);
-        }
+        sugar_file_put_contents($file, $content);
 
         return true;
     }

@@ -38,6 +38,7 @@
  * display the words "Powered by SugarCRM" and "Supercharged by SuiteCRM".
  */
 
+#[\AllowDynamicProperties]
 class AlertsController extends SugarController
 {
     public function action_get()
@@ -102,7 +103,7 @@ class AlertsController extends SugarController
             $bean = BeanFactory::getBean('Alerts');
             $result = $bean->get_full_list(
                 "",
-                "alerts.assigned_user_id = '" . $current_user->id . "' AND reminder_id = '" . $reminder_id . "'"
+                "alerts.assigned_user_id = '" . $current_user->id . "' AND reminder_id = '" . $bean->db->quote($reminder_id) . "'"
             );
             if (empty($result)) {
                 $bean = BeanFactory::newBean('Alerts');
@@ -124,7 +125,7 @@ class AlertsController extends SugarController
         $this->view_object_map['Result'] = '';
         $this->view = 'ajax';
 
-        echo json_encode(['result' => intval($shouldShowReminderPopup)], true);
+        echo json_encode(['result' => (int)$shouldShowReminderPopup], true);
     }
 
     public function action_markAsRead()

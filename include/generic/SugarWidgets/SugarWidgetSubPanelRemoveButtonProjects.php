@@ -46,6 +46,7 @@ if (!defined('sugarEntry') || !sugarEntry) {
 
 
 
+#[\AllowDynamicProperties]
 class SugarWidgetSubPanelRemoveButtonProjects extends SugarWidgetField
 {
     public function displayHeaderCell($layout_def)
@@ -64,10 +65,12 @@ class SugarWidgetSubPanelRemoveButtonProjects extends SugarWidgetField
 
         if ($layout_def['module'] == 'Holidays') {
             $action = 'DeleteHolidayRelationship';
-        } elseif ($layout_def['module'] == 'Users' || $layout_def['module'] == 'Contacts') {
-            $action = 'DeleteResourceRelationship';
         } else {
-            $action = 'DeleteRelationship';
+            if ($layout_def['module'] == 'Users' || $layout_def['module'] == 'Contacts') {
+                $action = 'DeleteResourceRelationship';
+            } else {
+                $action = 'DeleteRelationship';
+            }
         }
 
         $record = $layout_def['fields']['ID'];
@@ -80,7 +83,7 @@ class SugarWidgetSubPanelRemoveButtonProjects extends SugarWidgetField
         $return_id = $_REQUEST['record'];
 
 
-        $focus = new Project();
+        $focus = BeanFactory::newBean('Project');
 
         $focus->retrieve($return_id);
 
@@ -119,7 +122,8 @@ class SugarWidgetSubPanelRemoveButtonProjects extends SugarWidgetField
             . ' class="listViewTdToolsS1"'
             . " onclick=\"return confirm('$remove_confirmation_text');\""
             . ">$icon_remove_html&nbsp;$icon_remove_text</a>";
+        } else {
+            return '';
         }
-        return '';
     }
 }

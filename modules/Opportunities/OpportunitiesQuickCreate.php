@@ -46,11 +46,12 @@ require_once('include/EditView/QuickCreate.php');
 
 
 
+#[\AllowDynamicProperties]
 class OpportunitiesQuickCreate extends QuickCreate
 {
     public $javascript;
     
-    public function process()
+    public function process($checkFormName = false, $formName = '')
     {
         global $current_user, $timedate, $app_list_strings, $current_language, $mod_strings;
         $mod_strings = return_module_language($current_language, 'Opportunities');
@@ -59,7 +60,7 @@ class OpportunitiesQuickCreate extends QuickCreate
         
         parent::process();
         
-        list($num_grp_sep, $dec_sep) = get_number_seperators();
+        list($num_grp_sep, $dec_sep) = get_number_separators();
         $this->ss->assign('NUM_GRP_SEP', $num_grp_sep);
         $this->ss->assign('DEC_SEP', $dec_sep);
         $this->ss->assign('CURRENCY_ID', $current_user->getPreference('currency'));
@@ -78,7 +79,7 @@ class OpportunitiesQuickCreate extends QuickCreate
         $this->javascript = new javascript();
         $this->javascript->setFormName('opportunitiesQuickCreate');
         
-        $focus = new Opportunity();
+        $focus = BeanFactory::newBean('Opportunities');
         $this->javascript->setSugarBean($focus);
         $this->javascript->addAllFields('');
 

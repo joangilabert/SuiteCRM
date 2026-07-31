@@ -49,12 +49,13 @@ use Slim\App;
  *
  * @author gyula
  */
+#[\AllowDynamicProperties]
 class CustomLoader
 {
-    const ERR_NO_ERROR = 0;
-    const ERR_FILE_NOT_FOUND = 1;
-    const ERR_ROUTE_FILE_NOT_FOUND = 2;
-    const ERR_WRONG_CUSTOM_FORMAT = 3;
+    public const ERR_NO_ERROR = 0;
+    public const ERR_FILE_NOT_FOUND = 1;
+    public const ERR_ROUTE_FILE_NOT_FOUND = 2;
+    public const ERR_WRONG_CUSTOM_FORMAT = 3;
     
     /**
      *
@@ -100,7 +101,7 @@ class CustomLoader
         $result = [];
         foreach ((array)$arrays as $array) {
             foreach ($array as $key => $value) {
-                if (is_integer($key)) {
+                if (is_int($key)) {
                     // is indexed?
                     $result[] = $value;
                 } elseif (isset($result[$key]) && is_array($value) && is_array($result[$key])) {

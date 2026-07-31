@@ -39,7 +39,7 @@
  * display the words "Powered by SugarCRM" and "Supercharged by SuiteCRM".
  */
 
-
+ #[\AllowDynamicProperties]
 class Basic extends SugarBean
 {
     /**
@@ -59,27 +59,11 @@ class Basic extends SugarBean
     }
 
     /**
-     * @deprecated deprecated since version 7.6, PHP4 Style Constructors are deprecated and will be removed in 8.0,
-     *     please update your code, use __construct instead
-     */
-    public function Basic()
-    {
-        $deprecatedMessage =
-            'PHP4 Style Constructors are deprecated and will be remove in 8.0, please update your code';
-        if (isset($GLOBALS['log'])) {
-            $GLOBALS['log']->deprecated($deprecatedMessage);
-        } else {
-            trigger_error($deprecatedMessage, E_USER_DEPRECATED);
-        }
-        self::__construct();
-    }
-
-    /**
      * @see SugarBean::get_summary_text()
      */
     public function get_summary_text()
     {
-        return "$this->name";
+        return (string)$this->name;
     }
 
     /**
@@ -91,21 +75,14 @@ class Basic extends SugarBean
     public function getEmailAddressFromEmailField($emailField)
     {
         $this->validateSugarEmailAddressField($emailField);
-        $configurator = new Configurator();
-        $sugar_config = $configurator->config;
 
         /** @var EmailAddress $emailAddressBean */
         $emailAddressBean = BeanFactory::getBean('EmailAddresses');
-        
+
         // Fixed #5657: Only update state if email address is exist
         $emailAddressId = $this->getEmailAddressId($emailField);
         $emailAddressBean->retrieve($emailAddressId);
-        
-        if (!empty($emailAddressBean->id) && $sugar_config['email_enable_confirm_opt_in'] === SugarEmailAddress::COI_STAT_DISABLED) {
-            $log = LoggerManager::getLogger();
-            $log->warn('Confirm Opt In is not enabled.');
-            $emailAddressBean->setConfirmedOptInState(SugarEmailAddress::COI_STAT_CONFIRMED_OPT_IN);
-        }
+
         return $emailAddressBean;
     }
 
@@ -177,6 +154,10 @@ class Basic extends SugarBean
      */
     private function cleanUpEmailAddress($emailAddress)
     {
+        if (empty($emailAddress)){
+            return $emailAddress;
+        }
+
         $ret = $emailAddress;
         $ret = trim($ret);
         $ret = strtolower($ret);

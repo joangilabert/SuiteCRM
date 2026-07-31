@@ -65,6 +65,7 @@ function sources_sort_function($a, $b)
  * Connector utilities
  * @api
  */
+#[\AllowDynamicProperties]
 class ConnectorUtils
 {
     /**
@@ -114,6 +115,7 @@ class ConnectorUtils
     public static function getSearchDefs(
         $refresh = false
         ) {
+        $searchdefs = [];
         if ($refresh || !file_exists('custom/modules/Connectors/metadata/searchdefs.php')) {
             require('modules/Connectors/metadata/searchdefs.php');
 
@@ -154,8 +156,10 @@ class ConnectorUtils
 
             if (file_exists('custom/' . $ds['directory'] . '/mapping.php')) {
                 require('custom/' . $ds['directory'] . '/mapping.php');
-            } elseif (file_exists($ds['directory'] . '/mapping.php')) {
-                require($ds['directory'] . '/mapping.php');
+            } else {
+                if (file_exists($ds['directory'] . '/mapping.php')) {
+                    require($ds['directory'] . '/mapping.php');
+                }
             }
 
             if (!empty($mapping['beans'])) {
@@ -193,6 +197,7 @@ class ConnectorUtils
     public static function getMergeViewDefs(
         $refresh = false
         ) {
+        $viewdefs = [];
         if ($refresh || !file_exists('custom/modules/Connectors/metadata/mergeviewdefs.php')) {
 
             //Go through all connectors and get their mapping keys and merge them across each module
@@ -202,8 +207,10 @@ class ConnectorUtils
             foreach ($connectors as $id=>$ds) {
                 if (file_exists('custom/' . $ds['directory'] . '/mapping.php')) {
                     require('custom/' . $ds['directory'] . '/mapping.php');
-                } elseif (file_exists($ds['directory'] . '/mapping.php')) {
-                    require($ds['directory'] . '/mapping.php');
+                } else {
+                    if (file_exists($ds['directory'] . '/mapping.php')) {
+                        require($ds['directory'] . '/mapping.php');
+                    }
                 }
 
                 if (!empty($mapping['beans'])) {
@@ -345,9 +352,9 @@ class ConnectorUtils
             $sources_ordering = array();
             foreach ($files as $file) {
                 require($file);
-                $end = strrpos($file, '/') - $start;
+                $end = strrpos((string) $file, '/') - $start;
                 $source = array();
-                $source['id'] = str_replace('/', '_', substr($file, $start, $end));
+                $source['id'] = str_replace('/', '_', substr((string) $file, $start, $end));
                 $source['name'] = !empty($config['name']) ? $config['name'] : $source['id'];
                 $source['enabled'] = true;
                 $source['directory'] = $directory . '/' . str_replace('_', '/', $source['id']);
@@ -383,6 +390,7 @@ class ConnectorUtils
     public static function getDisplayConfig(
         $refresh = false
         ) {
+        $modules_sources = [];
         if (!file_exists(CONNECTOR_DISPLAY_CONFIG_FILE) || $refresh) {
             $sources = self::getConnectors();
             $modules_sources = array();
@@ -420,8 +428,9 @@ class ConnectorUtils
                 $sources[$id] = self::getConnector($id);
             }
             return $sources;
+        } else {
+            return array();
         }
-        return array();
     }
 
     /**
@@ -516,9 +525,9 @@ class ConnectorUtils
                     if (!file_exists($metadata_file)) {
                         $GLOBALS['log']->info("Unable to update metadata file for module: {$module}");
                         continue;
+                    } else {
+                        require($metadata_file);
                     }
-                    require($metadata_file);
-                    
 
                     $insertConnectorButton = true;
 
@@ -760,12 +769,15 @@ class ConnectorUtils
         if (file_exists("custom/modules/Connectors/connectors/sources/{$dir}/language/{$lang}")) {
             require("custom/modules/Connectors/connectors/sources/{$dir}/language/{$lang}");
             return !empty($connector_strings) ? $connector_strings : array();
-        } elseif (file_exists("modules/Connectors/connectors/sources/{$dir}/language/{$lang}")) {
-            require("modules/Connectors/connectors/sources/{$dir}/language/{$lang}");
-            return !empty($connector_strings) ? $connector_strings : array();
+        } else {
+            if (file_exists("modules/Connectors/connectors/sources/{$dir}/language/{$lang}")) {
+                require("modules/Connectors/connectors/sources/{$dir}/language/{$lang}");
+                return !empty($connector_strings) ? $connector_strings : array();
+            } else {
+                $GLOBALS['log']->error("Unable to locate language string file for source {$source_id}");
+                return array();
+            }
         }
-        $GLOBALS['log']->error("Unable to locate language string file for source {$source_id}");
-        return array();
     }
 
     /**

@@ -43,7 +43,7 @@ require_once('include/MVC/View/SugarView.php');
 require_once('include/ListView/ListViewSmarty.php');
 
 require_once('modules/MySettings/StoreQuery.php');
-
+#[\AllowDynamicProperties]
 class ViewList extends SugarView
 {
     /**
@@ -107,19 +107,7 @@ class ViewList extends SugarView
         parent::__construct();
     }
 
-    /**
-     * @deprecated deprecated since version 7.6, PHP4 Style Constructors are deprecated and will be remove in 7.8, please update your code, use __construct instead
-     */
-    public function ViewList()
-    {
-        $deprecatedMessage = 'PHP4 Style Constructors are deprecated and will be remove in 7.8, please update your code';
-        if (isset($GLOBALS['log'])) {
-            $GLOBALS['log']->deprecated($deprecatedMessage);
-        } else {
-            trigger_error($deprecatedMessage, E_USER_DEPRECATED);
-        }
-        self::__construct();
-    }
+
 
     /**
      * Prepare List View
@@ -136,7 +124,7 @@ class ViewList extends SugarView
         $metadataFile = $this->getMetaDataFile();
 
         if (!file_exists($metadataFile)) {
-            sugar_die(sprintf($GLOBALS['app_strings']['LBL_NO_ACTION'], $this->do_action));
+            sugar_die(sprintf($GLOBALS['app_strings']['LBL_NO_ACTION'], $this->action));
         }
 
         require($metadataFile);
@@ -181,14 +169,16 @@ class ViewList extends SugarView
                     //Reset the current display columns to default.
                     $current_user->setPreference('ListViewDisplayColumns', array(), 0, $mod);
                 }
-            } elseif (empty($_REQUEST['button']) && (empty($_REQUEST['clear_query']) || $_REQUEST['clear_query'] != 'true')) {
-                $this->saved_search = loadBean('SavedSearch');
-                $this->saved_search->retrieveSavedSearch($_REQUEST['saved_search_select']);
-                $this->saved_search->populateRequest();
-            } elseif (!empty($_REQUEST['button'])) { // click the search button, after retrieving from saved_search
-                $_SESSION['LastSavedView'][$_REQUEST['module']] = '';
-                unset($_REQUEST['saved_search_select']);
-                unset($_REQUEST['saved_search_select_name']);
+            } else {
+                if (empty($_REQUEST['button']) && (empty($_REQUEST['clear_query']) || $_REQUEST['clear_query'] != 'true')) {
+                    $this->saved_search = loadBean('SavedSearch');
+                    $this->saved_search->retrieveSavedSearch($_REQUEST['saved_search_select']);
+                    $this->saved_search->populateRequest();
+                } elseif (!empty($_REQUEST['button'])) { // click the search button, after retrieving from saved_search
+                    $_SESSION['LastSavedView'][$_REQUEST['module']] = '';
+                    unset($_REQUEST['saved_search_select']);
+                    unset($_REQUEST['saved_search_select_name']);
+                }
             }
         }
         $this->storeQuery = new StoreQuery();
@@ -326,11 +316,11 @@ class ViewList extends SugarView
             || (file_exists('custom/modules/' . $this->module . '/SearchForm.html')
                 && !file_exists('custom/modules/' . $this->module . '/metadata/searchdefs.php'))
         ) {
-            require_once('include/SearchForm/SearchForm.php');
+            require_once(get_custom_file_if_exists('include/SearchForm/SearchForm.php'));
             $this->searchForm = new SearchForm($this->module, $this->seed);
         } else {
             $this->use_old_search = false;
-            require_once('include/SearchForm/SearchForm2.php');
+            require_once(get_custom_file_if_exists('include/SearchForm/SearchForm2.php'));
 
             $searchMetaData = SearchForm::retrieveSearchDefs($this->module);
 

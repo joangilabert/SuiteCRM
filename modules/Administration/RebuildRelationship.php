@@ -59,7 +59,7 @@ VardefManager::clearVardef();
 // SugarBean::createRelationshipMeta just takes the relationship definition in a file and inserts it as is into the Relationships table
 // It does not override or recreate existing relationships
 foreach ($GLOBALS['beanFiles'] as $bean => $file) {
-    if (strlen($file) > 0 && file_exists($file)) {
+    if (strlen((string) $file) > 0 && file_exists($file)) {
         if (!class_exists($bean)) {
             require $file;
         }
@@ -120,7 +120,7 @@ if (empty($_REQUEST ['silent'])) {
     echo $mod_strings ['LBL_REBUILD_REL_UPD_WARNING'];
 }
 
-$rel = new Relationship();
+$rel = BeanFactory::newBean('Relationships');
 Relationship::delete_cache();
 $rel->build_relationship_cache();
 

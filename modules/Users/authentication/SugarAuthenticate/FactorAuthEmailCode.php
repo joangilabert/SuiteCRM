@@ -46,6 +46,7 @@ if (!defined('sugarEntry') || !sugarEntry) {
 include_once get_custom_file_if_exists('modules/Users/authentication/SugarAuthenticate/FactorAuthInterface.php');
 include_once __DIR__ . '/../../../../include/SugarPHPMailer.php';
 
+#[\AllowDynamicProperties]
 class FactorAuthEmailCode implements FactorAuthInterface
 {
 
@@ -70,6 +71,7 @@ class FactorAuthEmailCode implements FactorAuthInterface
         $ss->assign('cssPath', $cssPath);
         $ss->assign('css', $css);
         $ss->assign('favicon', getJSPath($favicon));
+        $ss->assign('url', $_SERVER["HTTP_REFERER"]);
 
         $factorMessage = SugarAuthenticate::getFactorMessages();
         $ss->assign('factor_message', $factorMessage);
@@ -90,24 +92,24 @@ class FactorAuthEmailCode implements FactorAuthInterface
      */
     public function sendToken($token)
     {
-        global $current_user, $sugar_config;
-        
+        global $current_user, $sugar_config, $mod_strings;
+
         if (!$this->validateTokenMessage()) {
             $msg = 'Factor Authentication mail is invalid';
             $GLOBALS['log']->warn($msg);
-            SugarApplication::appendErrorMessage($msg_strings['ERR_FACTOR_VALIDATION']);
+            SugarApplication::appendErrorMessage($mod_strings['ERR_FACTOR_VALIDATION']);
         }
 
         $ret = true;
 
-        $emailTemplate = new EmailTemplate();
+        $emailTemplate = BeanFactory::newBean('EmailTemplates');
         $emailTemplateId = $sugar_config['passwordsetting']['factoremailtmpl'];
         $emailTemplate->retrieve($emailTemplateId);
 
         $mailer = new SugarPHPMailer();
         $mailer->setMailerForSystem();
 
-        $emailObj = new Email();
+        $emailObj = BeanFactory::newBean('Emails');
         $defaults = $emailObj->getSystemDefaultEmail();
 
         $mailer->From = $defaults['email'];
@@ -127,7 +129,7 @@ class FactorAuthEmailCode implements FactorAuthInterface
         if (!$mailer->send()) {
             $ret = false;
             $GLOBALS['log']->fatal(
-                    'Email sending for two factor email authentication via Email Code failed. Mailer Error Info: ' .
+                'Email sending for two factor email authentication via Email Code failed. Mailer Error Info: ' .
                     $mailer->ErrorInfo
             );
         } else {
@@ -153,7 +155,7 @@ class FactorAuthEmailCode implements FactorAuthInterface
             $GLOBALS['log']->warn($msg);
             SugarApplication::appendErrorMessage($mod_strings['ERR_NO_2FACTOR_EMAIL_TMPL']);
             return false;
-        } elseif ($emailTpl && !preg_match('/\$code\b/', $emailTpl->body_html)) {
+        } elseif ($emailTpl && !preg_match('/\$code\b/', (string) $emailTpl->body_html)) {
             $msg .= 'Two factor email template should contains a $code at least.';
             $GLOBALS['log']->warn($msg);
             SugarApplication::appendErrorMessage($mod_strings['ERR_NO_2FACTOR_EMAIL_TMPL_CODE']);

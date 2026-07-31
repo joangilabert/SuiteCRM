@@ -39,7 +39,7 @@
  */
 
 require_once('include/SugarFields/Fields/Base/SugarFieldBase.php');
-
+#[\AllowDynamicProperties]
 class SugarFieldAssigned_user_name extends SugarFieldBase
 {
     public function getSearchViewSmarty($parentFieldArray, $vardef, $displayParams, $tabindex)
@@ -48,8 +48,9 @@ class SugarFieldAssigned_user_name extends SugarFieldBase
         if (!empty($vardef['function']['returns']) && $vardef['function']['returns']== 'html') {
             $this->setup($parentFieldArray, $vardef, $displayParams, $tabindex);
             return $this->fetch($this->findTemplate('EditViewFunction'));
+        } else {
+            $this->setup($parentFieldArray, $vardef, $displayParams, $tabindex);
+            return $this->fetch($this->findTemplate('SearchView'));
         }
-        $this->setup($parentFieldArray, $vardef, $displayParams, $tabindex);
-        return $this->fetch($this->findTemplate('SearchView'));
     }
 }

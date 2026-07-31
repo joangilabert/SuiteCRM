@@ -61,6 +61,7 @@ define('REL_ONE_ONE', 'one-to-one');
  *
  * @api
  */
+#[\AllowDynamicProperties]
 abstract class SugarRelationship
 {
     protected $def;
@@ -87,8 +88,8 @@ abstract class SugarRelationship
     /**
      * @abstract
      *
-     * @param  $lhs SugarBean
-     * @param  $rhs SugarBean
+     * @param SugarBean $lhs
+     * @param SugarBean $rhs
      *
      * @return bool
      */
@@ -97,7 +98,7 @@ abstract class SugarRelationship
     /**
      * @abstract
      *
-     * @param $link Link2 loads the rows for this relationship that match the given link
+     * @param Link2 $link loads the rows for this relationship that match the given link
      * @param array $params
      */
     abstract public function load($link, $params = array());
@@ -109,7 +110,7 @@ abstract class SugarRelationship
      *
      * @abstract
      *
-     * @param  $link Link2 Object to get query for.
+     * @param Link2 $link Object to get query for.
      * @param array $params
      *
      * @return array|string query used to load this relationship
@@ -145,7 +146,7 @@ abstract class SugarRelationship
     abstract public function getRelationshipTable();
 
     /**
-     * @param  $link Link2 removes all the beans associated with this link from the relationship
+     * @param Link2 $link removes all the beans associated with this link from the relationship
      *
      * @return bool true if all beans were successfully removed or there
      *              were not related beans, false otherwise
@@ -173,7 +174,7 @@ abstract class SugarRelationship
     }
 
     /**
-     * @param $rowID string id of SugarBean to remove from the relationship
+     * @param string $rowID id of SugarBean to remove from the relationship
      */
     public function removeById($rowID)
     {
@@ -233,10 +234,11 @@ abstract class SugarRelationship
         }
 
         $values = array();
+        $db = DBManagerFactory::getInstance();
         foreach ($this->getFields() as $def) {
             $field = $def['name'];
             if (isset($row[$field])) {
-                $values[$field] = "'{$row[$field]}'";
+                $values[$field] = "'" . $db->quote($row[$field]) . "'";
             }
         }
         $columns = implode(',', array_keys($values));
@@ -250,25 +252,26 @@ abstract class SugarRelationship
     }
 
     /**
-     * @param $id string id of row to update
-     * @param $values array values to insert into row
+     * @param string $id id of row to update
+     * @param array $values values to insert into row
      *
      * @return resource result of update statement
      */
     protected function updateRow($id, $values)
     {
         $newVals = array();
+        $db = DBManagerFactory::getInstance();
         //Unset the ID since we are using it to update the row
         if (isset($values['id'])) {
             unset($values['id']);
         }
         foreach ($values as $field => $val) {
-            $newVals[] = "$field='$val'";
+            $newVals[] = "$field='" . $db->quote($val) . "'";
         }
 
         $newVals = implode(',', $newVals);
 
-        $query = "UPDATE {$this->getRelationshipTable()} set $newVals WHERE id='$id'";
+        $query = "UPDATE {$this->getRelationshipTable()} set $newVals WHERE id='" . $db->quote($id) . "'";
 
         return DBManagerFactory::getInstance()->query($query);
     }
@@ -276,7 +279,7 @@ abstract class SugarRelationship
     /**
      * Removes one or more rows from the relationship table.
      *
-     * @param $where array of field=>value pairs to match
+     * @param array $where array of field=>value pairs to match
      *
      * @return bool|resource
      */
@@ -301,7 +304,7 @@ abstract class SugarRelationship
     /**
      * Checks for an existing row who's keys match the one passed in.
      *
-     * @param  $row
+     * @param $row
      *
      * @return array|bool returns false if now row is found, otherwise the row is returned
      */
@@ -325,8 +328,9 @@ abstract class SugarRelationship
         $row = $db->fetchByAssoc($result);
         if (!empty($row)) {
             return $row;
+        } else {
+            return false;
         }
-        return false;
     }
 
     /**
@@ -469,20 +473,27 @@ abstract class SugarRelationship
     {
         $GLOBALS['resavingRelatedBeans'] = true;
 
-        //Resave any bean not currently in the middle of a save operation
-        foreach (self::$beansToResave as $module => $beans) {
-            foreach ($beans as $bean) {
-                if (empty($bean->deleted) && empty($bean->in_save)) {
-                    $bean->save();
-                } else {
-                    // Bug 55942 save the in-save id which will be used to send workflow alert later
-                    if (isset($bean->id) && !empty($_SESSION['WORKFLOW_ALERTS'])) {
-                        $_SESSION['WORKFLOW_ALERTS']['id'] = $bean->id;
+        if (is_array(self::$beansToResave)) {
+            //Resave any bean not currently in the middle of a save operation
+            foreach (self::$beansToResave as $module => $beans) {
+                foreach ($beans as $bean) {
+                    if ($bean === false || empty($bean) || !is_object($bean)) {
+                        continue;
+                    }
+                    if (empty($bean->deleted) && empty($bean->in_save)) {
+                        $bean->save();
+                    } else {
+                        // Bug 55942 save the in-save id which will be used to send workflow alert later
+                        if (isset($bean->id)) {
+                            if (!isset($_SESSION['WORKFLOW_ALERTS']) || !is_array($_SESSION['WORKFLOW_ALERTS'])) {
+                                $_SESSION['WORKFLOW_ALERTS'] = [];
+                            }
+                            $_SESSION['WORKFLOW_ALERTS']['id'] = $bean->id;
+                        }
                     }
                 }
             }
         }
-
         $GLOBALS['resavingRelatedBeans'] = false;
 
         //Reset the list of beans that will need to be resaved

@@ -44,6 +44,7 @@ if (!defined('sugarEntry') || !sugarEntry) {
 
 require_once('include/SugarCharts/SugarChartFactory.php');
 
+#[\AllowDynamicProperties]
 class campaign_charts
 {
     /**
@@ -65,10 +66,16 @@ class campaign_charts
      */
     public function campaign_response_by_activity_type($datay= array(), $targets=array(), $campaign_id= null, $cache_file_name='a_file', $refresh=false, $marketing_id='')
     {
+
         global $app_strings, $mod_strings, $charset, $lang, $barChartColors,$app_list_strings;
+
+        $targeted = [];
 
         if ($campaign_id) {
             $sugarChart = SugarChartFactory::getInstance('', 'Reports');
+            if (!$sugarChart) {
+                return false;
+            }
             $xmlFile = $sugarChart->getXMLFileName($campaign_id);
 
             if (!file_exists($xmlFile) || $refresh == true) {
@@ -77,7 +84,7 @@ class campaign_charts
                 $GLOBALS['log']->debug("user_id is: ");
                 $GLOBALS['log']->debug("cache_file_name is: $xmlFile");
 
-                $focus = new Campaign();
+                $focus = BeanFactory::newBean('Campaigns');
 
                 $query = "SELECT activity_type,target_type, count(*) hits ";
                 $query .= " FROM campaign_log ";
@@ -155,7 +162,7 @@ class campaign_charts
                                 "numerical_value" => $count,
                                 "group_text" => $translation,
                                 "group_key" => "",
-                                "count" => "{$count}",
+                                "count" => (string)($count),
                                 "group_label" => $alttext,
                                 "numerical_label" => "Hits",
                                 "numerical_key" => "hits",
@@ -211,9 +218,13 @@ class campaign_charts
         $is_dashlet=false,
         $dashlet_id=''
         ) {
+
         global $app_strings,$mod_strings, $current_module_strings, $charset, $lang, $app_list_strings, $current_language,$sugar_config;
 
         $not_empty = false;
+        $focus = null;
+        $opp_data1 = [];
+
 
         if ($is_dashlet) {
             $mod_strings = return_module_language($current_language, 'Campaigns');
@@ -225,10 +236,10 @@ class campaign_charts
             $GLOBALS['log']->debug("user_id is: ");
             $GLOBALS['log']->debug("cache_file_name is: $cache_file_name");
 
-            $focus = new Campaign();
+            $focus = BeanFactory::newBean('Campaigns');
             $focus->retrieve($campaign_id);
             $opp_count=0;
-            $opp_query  = "select count(*) opp_count,sum(" . db_convert("amount_usdollar", "IFNULL", array(0)).")  total_value";
+            $opp_query  = "select count(*) opp_count,sum(" . DBManagerFactory::getInstance()->convert("amount_usdollar", "IFNULL", array(0)).")  total_value";
             $opp_query .= " from opportunities";
             $opp_query .= " where campaign_id='$campaign_id'";
             $opp_query .= " and sales_stage='Prospecting'";
@@ -325,13 +336,16 @@ class campaign_charts
         $currency_id = $focus->currency_id;
         $currency_symbol = $sugar_config['default_currency_symbol'];
         if (!empty($currency_id)) {
-            $cur = new Currency();
+            $cur = BeanFactory::newBean('Currencies');
             $cur->retrieve($currency_id);
             $currency_symbol = $cur->symbol;
         }
 
 
         $sugarChart = SugarChartFactory::getInstance();
+        if (!$sugarChart) {
+            return false;
+        }
         $sugarChart->is_currency = true;
         $sugarChart->currency_symbol = $currency_symbol;
 
@@ -360,6 +374,7 @@ class campaign_charts
     //perhaps add another boolean to the parameter list to return just the data or the chart
     public function campaign_response_roi_data($datay= array(), $targets=array(), $campaign_id = null, $cache_file_name='a_file', $refresh=false, $marketing_id='', $is_dashlet=false, $dashlet_id='')
     {
+
         global $app_strings,$mod_strings, $current_module_strings, $charset, $lang, $app_list_strings, $current_language,$sugar_config;
 
         $campaign_id = (int) $campaign_id;
@@ -369,6 +384,8 @@ class campaign_charts
         }
 
         $not_empty = false;
+        $focus = null;
+        $opp_data1 = [];
 
         if ($is_dashlet) {
             $mod_strings = return_module_language($current_language, 'Campaigns');
@@ -380,10 +397,10 @@ class campaign_charts
             $GLOBALS['log']->debug("user_id is: ");
             $GLOBALS['log']->debug("cache_file_name is: $cache_file_name");
 
-            $focus = new Campaign();
+            $focus = BeanFactory::newBean('Campaigns');
             $focus->retrieve($campaign_id);
             $opp_count=0;
-            $opp_query  = "select count(*) opp_count,sum(" . db_convert("amount_usdollar", "IFNULL", array(0)).")  total_value";
+            $opp_query  = "select count(*) opp_count,sum(" . DBManagerFactory::getInstance()->convert("amount_usdollar", "IFNULL", array(0)).")  total_value";
             $opp_query .= " from opportunities";
             $opp_query .= " where campaign_id='$campaign_id'";
             $opp_query .= " and sales_stage='Prospecting'";
@@ -478,13 +495,16 @@ class campaign_charts
         $currency_id = $focus->currency_id;
         $currency_symbol = $sugar_config['default_currency_symbol'];
         if (!empty($currency_id)) {
-            $cur = new Currency();
+            $cur = BeanFactory::newBean('Currencies');
             $cur->retrieve($currency_id);
             $currency_symbol = $cur->symbol;
         }
 
 
         $sugarChart = SugarChartFactory::getInstance();
+        if (!$sugarChart) {
+            return false;
+        }
         $sugarChart->is_currency = true;
         $sugarChart->currency_symbol = $currency_symbol;
 

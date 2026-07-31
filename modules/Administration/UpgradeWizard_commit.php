@@ -122,7 +122,7 @@ if (!isset($_REQUEST['copy_count']) || ($_REQUEST['copy_count'] == "")) {
 if (empty($_REQUEST['unzip_dir']) || $_REQUEST['unzip_dir'] == "." || $_REQUEST['unzip_dir'] == "..") {
     die($mod_strings['ERR_UW_NO_TEMP_DIR']);
 }
-$unzip_dir = $base_tmp_upgrade_dir. "/". basename($_REQUEST['unzip_dir']);
+$unzip_dir = $base_tmp_upgrade_dir. "/". basename((string) $_REQUEST['unzip_dir']);
 
 if (empty($_REQUEST['install_file'])) {
     die($mod_strings['ERR_UW_NO_INSTALL_FILE']);
@@ -133,12 +133,12 @@ $install_type   = getInstallType($install_file);
 
 //from here on out, the install_file is used as the file path to copy or rename the physical file, so let's remove the stream wrapper if it's set
 //and replace it with the proper upload location
-if (strpos($install_file, 'upload://') === 0) {
+if (strpos((string) $install_file, 'upload://') === 0) {
     //get the upload location if it's set, or default to 'upload'
     $upload_dir = empty($GLOBALS['sugar_config']['upload_dir']) ? 'upload' : rtrim($GLOBALS['sugar_config']['upload_dir'], '/\\');
 
     //replace the wrapper in the file name with the directory
-    $install_file = str_replace('upload:/', $upload_dir, $install_file);
+    $install_file = str_replace('upload:/', $upload_dir, (string) $install_file);
     $_REQUEST['install_file'] = $install_file;
 }
 
@@ -168,6 +168,14 @@ if ($install_type != "module") {
         $zip_to_dir     = ".";
     } else {
         $zip_to_dir     = $_REQUEST['zip_to_dir'];
+    }
+
+    // Reject path traversal sequences in directory parameters
+    foreach (['zip_from_dir' => $zip_from_dir, 'zip_to_dir' => $zip_to_dir] as $param_name => $param_value) {
+        if (!validate_safe_path($param_value)) {
+            $GLOBALS['log']->security("UpgradeWizard_commit: path traversal blocked in $param_name: $param_value");
+            throw new RuntimeException('Security violation: directory path traversal detected.');
+        }
     }
 }
 $remove_tables = 'true';
@@ -244,6 +252,13 @@ if ($install_type == 'patch' || $install_type == 'module') {
 for ($iii = 0; $iii < $_REQUEST['copy_count']; $iii++) {
     if (isset($_REQUEST["copy_" . $iii]) && ($_REQUEST["copy_" . $iii] != "")) {
         $file_to_copy = $_REQUEST["copy_" . $iii];
+
+        // Reject path traversal sequences in filenames
+        if (!validate_safe_path($file_to_copy)) {
+            $GLOBALS['log']->security("UpgradeWizard_commit: path traversal blocked in copy_$iii: $file_to_copy");
+            throw new RuntimeException('Security violation: filename path traversal detected.');
+        }
+
         $src_file   = clean_path("$unzip_dir/$zip_from_dir/$file_to_copy");
 
         $sugar_home_dir = getCwd();
@@ -254,13 +269,24 @@ for ($iii = 0; $iii < $_REQUEST['copy_count']; $iii++) {
             $rest_file  = clean_path("$rest_dir/$file_to_copy");
         }
 
+        // Verify source path stays within unzip_dir
+        if (!is_path_within_dir($src_file, $unzip_dir)) {
+            $GLOBALS['log']->security("UpgradeWizard_commit: source path escapes unzip_dir: $src_file");
+            throw new RuntimeException('Security violation: source path traversal detected.');
+        }
+
+        // Ensure destination directory exists, then verify it stays within main dir
+        mkdir_recursive(dirname((string) $dest_file));
+        if (!is_path_within_dir($dest_file, $sugar_home_dir)) {
+            $GLOBALS['log']->security("UpgradeWizard_commit: dest path escapes sugar_home_dir: $dest_file");
+            throw new RuntimeException('Security violation: destination path traversal detected.');
+        }
+
         switch ($mode) {
             case "Install":
-                mkdir_recursive(dirname($dest_file));
-
                 if ($install_type=="patch" && is_file($dest_file)) {
-                    if (!is_dir(dirname($rest_file))) {
-                        mkdir_recursive(dirname($rest_file));
+                    if (!is_dir(dirname((string) $rest_file))) {
+                        mkdir_recursive(dirname((string) $rest_file));
                     }
 
                     copy($dest_file, $rest_file);
@@ -299,28 +325,30 @@ switch ($install_type) {
 
         if ($mode == "Install" || $mode=="Enable") {
             $sugar_config['languages'] = $sugar_config['languages'] + array( $_REQUEST['new_lang_name'] => $_REQUEST['new_lang_desc'] );
-        } elseif ($mode == "Uninstall" || $mode=="Disable") {
-            $new_langs = array();
-            $old_langs = $sugar_config['languages'];
-            foreach ($old_langs as $key => $value) {
-                if ($key != $_REQUEST['new_lang_name']) {
-                    $new_langs += array( $key => $value );
+        } else {
+            if ($mode == "Uninstall" || $mode=="Disable") {
+                $new_langs = array();
+                $old_langs = $sugar_config['languages'];
+                foreach ($old_langs as $key => $value) {
+                    if ($key != $_REQUEST['new_lang_name']) {
+                        $new_langs += array( $key => $value );
+                    }
                 }
-            }
-            $sugar_config['languages'] = $new_langs;
+                $sugar_config['languages'] = $new_langs;
 
-            $default_sugar_instance_lang = 'en_us';
-            if ($current_language == $_REQUEST['new_lang_name']) {
-                $_SESSION['authenticated_user_language'] =$default_sugar_instance_lang;
-                $lang_changed_string = $mod_strings['LBL_CURRENT_LANGUAGE_CHANGE'].$sugar_config['languages'][$default_sugar_instance_lang].'<br/>';
-            }
+                $default_sugar_instance_lang = 'en_us';
+                if ($current_language == $_REQUEST['new_lang_name']) {
+                    $_SESSION['authenticated_user_language'] =$default_sugar_instance_lang;
+                    $lang_changed_string = $mod_strings['LBL_CURRENT_LANGUAGE_CHANGE'].$sugar_config['languages'][$default_sugar_instance_lang].'<br/>';
+                }
 
-            if ($sugar_config['default_language'] == $_REQUEST['new_lang_name']) {
-                $cfg = new Configurator();
-                $cfg->config['languages'] = $new_langs;
-                $cfg->config['default_language'] = $default_sugar_instance_lang;
-                $cfg->handleOverride();
-                $lang_changed_string .= $mod_strings['LBL_DEFAULT_LANGUAGE_CHANGE'].$sugar_config['languages'][$default_sugar_instance_lang].'<br/>';
+                if ($sugar_config['default_language'] == $_REQUEST['new_lang_name']) {
+                    $cfg = new Configurator();
+                    $cfg->config['languages'] = $new_langs;
+                    $cfg->config['default_language'] = $default_sugar_instance_lang;
+                    $cfg->handleOverride();
+                    $lang_changed_string .= $mod_strings['LBL_DEFAULT_LANGUAGE_CHANGE'].$sugar_config['languages'][$default_sugar_instance_lang].'<br/>';
+                }
             }
         }
         ksort($sugar_config);
@@ -335,9 +363,9 @@ switch ($install_type) {
             case "Install":
             //here we can determine if this is an upgrade or a new version
                 if (!empty($previous_version)) {
-                    $mi->install("$unzip_dir", true, $previous_version);
+                    $mi->install($unzip_dir, true, $previous_version);
                 } else {
-                    $mi->install("$unzip_dir");
+                    $mi->install($unzip_dir);
                 }
 
                 $file = "$unzip_dir/" . constant('SUGARCRM_POST_INSTALL_FILE');
@@ -353,7 +381,7 @@ switch ($install_type) {
                 } else {
                     $GLOBALS['mi_remove_tables'] = true;
                 }
-                $mi->uninstall("$unzip_dir");
+                $mi->uninstall($unzip_dir);
                 break;
              case "Disable":
                 if (!$overwrite_files) {
@@ -361,7 +389,7 @@ switch ($install_type) {
                 } else {
                     $GLOBALS['mi_overwrite_files'] = true;
                 }
-                $mi->disable("$unzip_dir");
+                $mi->disable($unzip_dir);
                 break;
              case "Enable":
                 if (!$overwrite_files) {
@@ -369,7 +397,7 @@ switch ($install_type) {
                 } else {
                     $GLOBALS['mi_overwrite_files'] = true;
                 }
-                $mi->enable("$unzip_dir");
+                $mi->enable($unzip_dir);
                 break;
             default:
                 break;
@@ -473,7 +501,7 @@ switch ($mode) {
         $uh = new UpgradeHistory();
         $the_md5 = md5_file($install_file);
         $md5_matches = $uh->findByMd5($the_md5);
-        if (sizeof($md5_matches) == 0) {
+        if ((is_countable($md5_matches) ? count($md5_matches) : 0) == 0) {
             die("{$mod_strings['ERR_UW_NO_UPDATE_RECORD']} $install_file.");
         }
         foreach ($md5_matches as $md5_match) {
@@ -485,7 +513,7 @@ switch ($mode) {
         $uh = new UpgradeHistory();
         $the_md5 = md5_file($install_file);
         $md5_matches = $uh->findByMd5($the_md5);
-        if (sizeof($md5_matches) == 0) {
+        if ((is_countable($md5_matches) ? count($md5_matches) : 0) == 0) {
             die("{$mod_strings['ERR_UW_NO_UPDATE_RECORD']} $install_file.");
         }
         foreach ($md5_matches as $md5_match) {
@@ -498,7 +526,7 @@ switch ($mode) {
         $uh = new UpgradeHistory();
         $the_md5 = md5_file($install_file);
         $md5_matches = $uh->findByMd5($the_md5);
-        if (sizeof($md5_matches) == 0) {
+        if ((is_countable($md5_matches) ? count($md5_matches) : 0) == 0) {
             die("{$mod_strings['ERR_UW_NO_UPDATE_RECORD']} $install_file.");
         }
         foreach ($md5_matches as $md5_match) {
@@ -525,7 +553,7 @@ if (isset($lang_changed_string)) {
     print($lang_changed_string);
 }
 if ($install_type != "module" && $install_type != "langpack") {
-    if (sizeof($files_to_handle) > 0) {
+    if (count($files_to_handle) > 0) {
         echo '<div style="text-align: left; cursor: hand; cursor: pointer; text-decoration: underline;" onclick=\'this.style.display="none"; toggleDisplay("more");\' id="all_text">' . SugarThemeRegistry::current()->getImage('advanced_search', '', null, null, ".gif", $mod_strings['LBL_ADVANCED_SEARCH']) . ' '.$mod_strings['LBL_UW_SHOW_DETAILS'].'</div><div id=\'more\' style=\'display: none\'>
             <div style="text-align: left; cursor: hand; cursor: pointer; text-decoration: underline;" onclick=\'document.getElementById("all_text").style.display=""; toggleDisplay("more");\'>' . SugarThemeRegistry::current()->getImage('basic_search', '', null, null, ".gif", $mod_strings['LBL_BASIC_SEARCH']) .' '.$mod_strings['LBL_UW_HIDE_DETAILS'].'</div><br>';
         print("{$mod_strings['LBL_UW_FOLLOWING_FILES']} $file_action:<br>\n");
@@ -535,8 +563,10 @@ if ($install_type != "module" && $install_type != "langpack") {
         }
         print("</ul>\n");
         echo '</div>';
-    } elseif ($mode != 'Disable' && $mode !='Enable') {
-        print("{$mod_strings['LBL_UW_NO_FILES_SELECTED']} $file_action.<br>\n");
+    } else {
+        if ($mode != 'Disable' && $mode !='Enable') {
+            print("{$mod_strings['LBL_UW_NO_FILES_SELECTED']} $file_action.<br>\n");
+        }
     }
 
     print($mod_strings['LBL_UW_UPGRADE_SUCCESSFUL']);

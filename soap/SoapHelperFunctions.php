@@ -103,7 +103,7 @@ function get_field_list($value, $translate = true)
     } //if
 
     if (isset($value->module_dir) && $value->module_dir == 'Bugs') {
-        $seedRelease = new Release();
+        $seedRelease = BeanFactory::newBean('Releases');
         $options = $seedRelease->get_releases(true, "Active");
         $options_ret = array();
         foreach ($options as $name => $value) {
@@ -225,7 +225,7 @@ function new_get_field_list($value, $translate = true)
     } //if
 
     if ($value->module_dir == 'Bugs') {
-        $seedRelease = new Release();
+        $seedRelease = BeanFactory::newBean('Releases');
         $options = $seedRelease->get_releases(true, "Active");
         $options_ret = array();
         foreach ($options as $name => $value) {
@@ -379,7 +379,7 @@ function check_modules_access($user, $module_name, $action = 'write')
             return false;
         } elseif ($action == 'write' && strcmp(
             strtolower($module_name),
-                'users'
+            'users'
         ) == 0 && !$user->isAdminForModule($module_name)
         ) {
             //rrs bug: 46000 - If the client is trying to write to the Users module and is not an admin then we need to stop them
@@ -419,7 +419,7 @@ function get_name_value_list($value, $returnDomValue = false)
                 $type = $var['type'];
 
                 if (strcmp($type, 'date') == 0) {
-                    $val = substr($val, 0, 10);
+                    $val = substr((string) $val, 0, 10);
                 } elseif (strcmp($type, 'enum') == 0 && !empty($var['options']) && $returnDomValue) {
                     $val = $app_list_strings[$var['options']][$val];
                 } elseif (strcmp($type, 'currency') == 0) {
@@ -483,7 +483,7 @@ function get_name_value_list_for_fields($value, $fields)
                 $type = $var['type'];
 
                 if (strcmp($type, 'date') == 0) {
-                    $val = substr($val, 0, 10);
+                    $val = substr((string) $val, 0, 10);
                 } elseif (strcmp($type, 'enum') == 0 && !empty($var['options'])) {
                     $val = $app_list_strings[$var['options']][$val];
                 }
@@ -618,7 +618,7 @@ function get_return_value_for_link_fields($bean, $module, $link_name_to_value_fi
     if ($module == 'Users' && $bean->id != $current_user->id) {
         $bean->user_hash = '';
     }
-    $bean = clean_sensitive_data($value->field_defs, $bean);
+    $bean = clean_sensitive_data($bean->field_defs, $bean);
 
     if (empty($link_name_to_value_fields_array) || !is_array($link_name_to_value_fields_array)) {
         return array();
@@ -665,7 +665,7 @@ function get_return_value_for_link_fields($bean, $module, $link_name_to_value_fi
  *
  * @param String $module_name -- The name of the module that the primary record is from.  This name should be the name the module was developed under (changing a tab name is studio does not affect the name that should be passed into this method).
  * @param String $module_id -- The ID of the bean in the specified module
- * @param String $link_field_name - The relationship name for which to create realtionships.
+ * @param String $link_field_name - The relationship name for which to create relationships.
  * @param Array $related_ids -- The array of ids for which we want to create relationships
  * @return true on success, false on failure
  */
@@ -707,7 +707,7 @@ function new_handle_set_entries($module_name, $name_value_lists, $select_fields 
     require_once($beanFiles[$class_name]);
     $ids = array();
     $count = 1;
-    $total = sizeof($name_value_lists);
+    $total = is_countable($name_value_lists) ? count($name_value_lists) : 0;
     foreach ($name_value_lists as $name_value_list) {
         $seed = new $class_name();
 
@@ -725,7 +725,7 @@ function new_handle_set_entries($module_name, $name_value_lists, $select_fields 
                 $vardef = $seed->field_name_map[$value['name']];
                 if (isset($app_list_strings[$vardef['options']]) && !isset($app_list_strings[$vardef['options']][$value])) {
                     if (in_array($val, $app_list_strings[$vardef['options']])) {
-                        $val = array_search($val, $app_list_strings[$vardef['options']]);
+                        $val = array_search($val, $app_list_strings[$vardef['options']], true);
                     }
                 }
             }
@@ -777,7 +777,7 @@ function new_handle_set_entries($module_name, $name_value_lists, $select_fields 
                             $query = $seed->table_name . ".outlook_id = '" . DBManagerFactory::getInstance()->quote($seed->outlook_id) . "'";
                             $response = $seed->get_list($order_by, $query, 0, -1, -1, 0);
                             $list = $response['list'];
-                            if (count($list) > 0) {
+                            if ((is_countable($list) ? count($list) : 0) > 0) {
                                 foreach ($list as $value) {
                                     $seed->id = $value->id;
                                     break;
@@ -843,7 +843,7 @@ function get_encoded_Value($value)
 {
 
     // XML 1.0 doesn't allow those...
-    $value = preg_replace("/([\\x00-\\x08\\x0B\\x0C\\x0E-\\x1F])/", '', $value);
+    $value = preg_replace("/([\\x00-\\x08\\x0B\\x0C\\x0E-\\x1F])/", '', (string) $value);
     $value = htmlspecialchars($value, ENT_NOQUOTES, "utf-8");
 
     return "<value>$value</value>";
@@ -857,7 +857,7 @@ function get_name_value_xml($val, $module_name)
     $xml .= '<name_value_list>';
     foreach ($val['name_value_list'] as $name => $nv) {
         $xml .= '<name_value>';
-        $xml .= '<name>' . htmlspecialchars($nv['name']) . '</name>';
+        $xml .= '<name>' . htmlspecialchars((string) $nv['name']) . '</name>';
         $xml .= get_encoded_Value($nv['value']);
         $xml .= '</name_value>';
     }
@@ -911,13 +911,14 @@ function filter_field_list(&$field_list, $select_fields, $module_name)
  * Filter the results of a list query.  Limit the fields returned.
  *
  * @param Array $output_list -- The array of list data
- * @param Array $select_fields -- The list of fields that should be returned.  If this array is specfied, only the fields in the array will be returned.
+ * @param Array $select_fields -- The list of fields that should be returned.  If this array is specified, only the fields in the array will be returned.
  * @param String $module_name -- The name of the module this being worked on
  * @return The filtered array of list data.
  */
 function filter_return_list(&$output_list, $select_fields, $module_name)
 {
-    for ($sug = 0; $sug < sizeof($output_list); $sug++) {
+    $output_listCount = count($output_list);
+    for ($sug = 0; $sug < $output_listCount; $sug++) {
         if ($module_name == 'Contacts') {
             global $invalid_contact_fields;
             if (is_array($invalid_contact_fields)) {
@@ -961,7 +962,7 @@ function add_create_account($seed)
     $assigned_user_id = $current_user->id;
 
     // check if it already exists
-    $focus = new Account();
+    $focus = BeanFactory::newBean('Accounts');
     if ($focus->ACLAccess('Save')) {
         $class = get_class($seed);
         $temp = new $class();
@@ -1045,14 +1046,14 @@ function check_for_duplicate_contacts($seed)
         foreach ($contacts as $contact) {
             if (!empty($trimmed_last) && strcmp($trimmed_last, $contact->last_name) == 0) {
                 if ((!empty($trimmed_email) || !empty($trimmed_email2)) && (strcmp(
-                        $trimmed_email,
-                                $contact->email1
+                    $trimmed_email,
+                    $contact->email1
                     ) == 0 || strcmp(
-                                    $trimmed_email,
-                                $contact->email2
+                        $trimmed_email,
+                        $contact->email2
                                 ) == 0 || strcmp(
                                     $trimmed_email2,
-                                $contact->email
+                                    $contact->email
                                 ) == 0 || strcmp($trimmed_email2, $contact->email2) == 0)
                     ) {
                     //bug: 39234 - check if the account names are the same
@@ -1060,7 +1061,7 @@ function check_for_duplicate_contacts($seed)
                     //as an existing contact's account name, then find the match.
                     $contact->load_relationship('accounts');
                     if (empty($seed->account_name) || strcmp($seed->account_name, $contact->account_name) == 0) {
-                        $GLOBALS['log']->info('End: SoapHelperWebServices->check_for_duplicate_contacts - duplicte found ' . $contact->id);
+                        $GLOBALS['log']->info('End: SoapHelperWebServices->check_for_duplicate_contacts - duplicate found ' . $contact->id);
 
                         return $contact->id;
                     }
@@ -1075,9 +1076,12 @@ function check_for_duplicate_contacts($seed)
     //This query is looking for the id of Contact records that do not have a primary email address based on the matching
     //first and last name and the record being not deleted.  If any such records are found we will take the first one and assume
     //that it is the duplicate record
+    $trimmed_first = DBManagerFactory::getInstance()->quoted($trimmed_first);
+    $trimmed_last = DBManagerFactory::getInstance()->quoted($trimmed_last);
+
     $query = "SELECT c.id as id FROM contacts c
 LEFT OUTER JOIN email_addr_bean_rel eabr ON eabr.bean_id = c.id
-WHERE c.first_name = '{$trimmed_first}' AND c.last_name = '{$trimmed_last}' AND c.deleted = 0 AND eabr.id IS NULL";
+WHERE c.first_name = $trimmed_first AND c.last_name = $trimmed_last AND c.deleted = 0 AND eabr.id IS NULL";
 
     //Apply the limit query filter to this since we only need the first record
     $result = DBManagerFactory::getInstance()->getOne($query);
@@ -1096,9 +1100,9 @@ WHERE c.first_name = '{$trimmed_first}' AND c.last_name = '{$trimmed_last}' AND 
  */
 function is_server_version_greater($left, $right)
 {
-    if (count($left) == 0 && count($right) == 0) {
+    if ((is_countable($left) ? count($left) : 0) == 0 && (is_countable($right) ? count($right) : 0) == 0) {
         return false;
-    } elseif (count($left) == 0 || count($right) == 0) {
+    } elseif ((is_countable($left) ? count($left) : 0) == 0 || (is_countable($right) ? count($right) : 0) == 0) {
         return true;
     } elseif ($left[0] == $right[0]) {
         array_shift($left);
@@ -1137,7 +1141,7 @@ if (!function_exists("get_encoded")) {
 
     function get_decoded($object)
     {
-        return unserialize(base64_decode($object));
+        return unserialize(base64_decode($object), ['allowed_classes' => false]);
     }
 
     /**
@@ -1146,12 +1150,12 @@ if (!function_exists("get_encoded")) {
      *
      * @param $string - the string to decrypt
      *
-     * @return a decrypted string if we can decrypt, the original string otherwise
+     * @return string decrypted string if we can decrypt, the original string otherwise
      */
     function decrypt_string($string)
     {
         if (function_exists('openssl_decrypt')) {
-            $focus = new Administration();
+            $focus = BeanFactory::newBean('Administration');
             $focus->retrieveSettings();
             $key = '';
             if (!empty($focus->settings['ldap_enc_key'])) {
@@ -1163,10 +1167,8 @@ if (!function_exists("get_encoded")) {
             $buffer = $string;
             $key = substr(md5($key), 0, 24);
             $iv = "password";
-
-            return openssl_decrypt($buffer, OPENSSL_CIPHER_3DES, $key, OPENSSL_ZERO_PADDING, $iv);
+            return openssl_decrypt(pack("H*", $buffer), 'des-ede3-cbc', $key, OPENSSL_NO_PADDING, $iv);
         }
-        return $string;
     }
 }
 

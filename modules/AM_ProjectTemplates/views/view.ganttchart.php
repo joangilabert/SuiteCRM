@@ -1,39 +1,37 @@
 <?php
 /**
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU AFFERO GENERAL PUBLIC LICENSE as published by
- * the Free Software Foundation; either version 3 of the License, or
- * (at your option) any later version.
+ * SuiteCRM is a customer relationship management program developed by SuiteCRM Ltd.
+ * Copyright (C) 2014 - 2026 SuiteCRM Ltd.
  *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * This program is free software; you can redistribute it and/or modify it under
+ * the terms of the GNU Affero General Public License version 3 as published by the
+ * Free Software Foundation with the addition of the following permission added
+ * to Section 15 as permitted in Section 7(a): FOR ANY PART OF THE COVERED WORK
+ * IN WHICH THE COPYRIGHT IS OWNED BY SUITECRM, SUITECRM DISCLAIMS THE
+ * WARRANTY OF NON INFRINGEMENT OF THIRD PARTY RIGHTS.
  *
- * You should have received a copy of the GNU AFFERO GENERAL PUBLIC LICENSE
- * along with this program; if not, see http://www.gnu.org/licenses
- * or write to the Free Software Foundation,Inc., 51 Franklin Street,
- * Fifth Floor, Boston, MA 02110-1301  USA
- * @Package Gantt chart
- * @copyright Andrew Mclaughlan 2014
- * @author Andrew Mclaughlan <andrew@mclaughlan.info>
+ * This program is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+ * FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License for more
+ * details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ * In accordance with Section 7(b) of the GNU Affero General Public License
+ * version 3, these Appropriate Legal Notices must retain the display of the
+ * "Supercharged by SuiteCRM" logo. If the display of the logos is not reasonably
+ * feasible for technical reasons, the Appropriate Legal Notices must display
+ * the words "Supercharged by SuiteCRM".
  */
 
 if (!defined('sugarEntry') || !sugarEntry) {
     die('Not A Valid Entry Point');
 }
 
-require_once('include/MVC/View/views/view.detail.php');
+#[\AllowDynamicProperties]
 class AM_ProjectTemplatesViewGanttChart extends ViewDetail
 {
-
-    //Constructor
-    public function __construct()
-    {
-        parent::SugarView();
-    }
-
-
     public function display()
     {
         global $mod_strings, $app_list_strings;
@@ -48,7 +46,7 @@ class AM_ProjectTemplatesViewGanttChart extends ViewDetail
         echo '<script type="text/javascript" src="include/javascript/qtip/jquery.qtip.min.js"></script>';
 
 
-        $project_template = new AM_ProjectTemplates();
+        $project_template = BeanFactory::newBean('AM_ProjectTemplates');
 
         if (!isset($_REQUEST["record"]) || trim($_REQUEST["record"]) == "") {
             $_REQUEST["record"] = $_REQUEST["project_id"];
@@ -102,13 +100,16 @@ class AM_ProjectTemplatesViewGanttChart extends ViewDetail
 							<label id="Subtask_label" for="Subtask"><?php echo $mod_strings['LBL_SUBTASK']; ?></label>
 							<input type="radio" name="Milestone" value="Milestone" id="Milestone" />
 							<label id="Milestone_label" for="Milestone"><?php echo $mod_strings['LBL_MILESTONE_FLAG']; ?></label>&nbsp;<br /><br />
-							<label id="parent_task_id" for="parent_task" style="display: none;"><?php echo $mod_strings['LBL_PARENT_TASK_ID']; ?></label>
+							<label id="parent_task_id" for="parent_task" style="display: none;"><?php echo isset($mod_strings['LBL_PARENT_TASK_ID']) ? $mod_strings['LBL_PARENT_TASK_ID'] : ''; ?></label>
 							<input id="parent_task" class="text ui-widget-content ui-corner-all" style="display: none;" type="text" name="parent_task" value="" />
 							<label for="task_name"><?php echo $mod_strings['LBL_TASK_NAME']; ?></label>
 							<input type="text" name="task_name" id="task_name" class="text ui-widget-content ui-corner-all" />
 							<label for="Predecessor"><?php echo $mod_strings['LBL_PREDECESSORS']; ?></label>
 							<?php
                             echo '<select id="Predecessor" name="Predecessor" class="text ui-widget-content ui-corner-all" />';
+        if (!isset($tasks)) {
+            $tasks = [];
+        }
         foreach ($tasks as $task) {
             echo '<option rel="'.$task->id.'" value="'.$task->order_number.'">'.$task->name.'</opion>';
         }

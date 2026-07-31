@@ -81,7 +81,7 @@ class SugarFieldFile extends SugarFieldBase
         $this->fillInOptions($vardef, $displayParams);
         return parent::getDetailViewSmarty($parentFieldArray, $vardef, $displayParams, $tabindex);
     }
-    
+
     public function getEditViewSmarty($parentFieldArray, $vardef, $displayParams, $tabindex)
     {
         $this->fillInOptions($vardef, $displayParams);
@@ -93,15 +93,15 @@ class SugarFieldFile extends SugarFieldBase
         $displayParams['accessKeyClear'] = $keys['accessKeyClear'];
         $displayParams['accessKeyClearLabel'] = $keys['accessKeyClearLabel'];
         $displayParams['accessKeyClearTitle'] = $keys['accessKeyClearTitle'];
-        
+
         return parent::getEditViewSmarty($parentFieldArray, $vardef, $displayParams, $tabindex);
     }
-    
+
     public function getSearchViewSmarty($parentFieldArray, $vardef, $displayParams, $tabindex)
     {
         return $this->getSmartyView($parentFieldArray, $vardef, $displayParams, $tabindex, 'SearchView');
     }
-    
+
     public function save(&$bean, $params, $field, $vardef, $prefix = '')
     {
         $fakeDisplayParams = array();
@@ -115,7 +115,7 @@ class SugarFieldFile extends SugarFieldBase
             $upload_file->unlink_file($bean->$field);
             $bean->$field="";
         }
-        
+
         $move=false;
         if (isset($_FILES[$prefix . $field . '_file']) && $upload_file->confirm_upload()) {
             $bean->$field = $upload_file->get_stored_file_name();
@@ -155,11 +155,12 @@ class SugarFieldFile extends SugarFieldBase
 
         if ($move) {
             $upload_file->final_move($bean->id);
-            $upload_file->upload_doc($bean, $bean->id, $params[$prefix . $vardef['docType']], $bean->$field, $upload_file->mime_type);
+            $docType = $prefix . isset($vardef['docType']);
+            $upload_file->upload_doc($bean, $bean->id, isset($params[$docType]), $bean->$field, $upload_file->mime_type);
         } elseif (! empty($old_id)) {
             // It's a duplicate, I think
 
-            if (empty($params[$prefix . $vardef['docUrl'] ])) {
+            if (empty($params[$prefix . ($vardef['docUrl'] ?? '') ])) {
                 $upload_file->duplicate_file($old_id, $bean->id, $bean->$field);
             } else {
                 $docType = $vardef['docType'];
@@ -169,14 +170,14 @@ class SugarFieldFile extends SugarFieldBase
             // We aren't moving, we might need to do some remote linking
             $displayParams = array();
             $this->fillInOptions($vardef, $displayParams);
-            
+
             if (isset($params[$prefix . $vardef['docId']])
                  && ! empty($params[$prefix . $vardef['docId']])
                  && isset($params[$prefix . $vardef['docType']])
                  && ! empty($params[$prefix . $vardef['docType']])
                 ) {
                 $bean->$field = $params[$prefix . $field . '_remoteName'];
-                
+
                 require_once('include/utils/file_utils.php');
                 $extension = get_file_extension($bean->$field);
                 if (!empty($extension)) {
@@ -185,7 +186,7 @@ class SugarFieldFile extends SugarFieldBase
                 }
             }
         }
-        
+
         if ($vardef['allowEapm'] == true && empty($bean->$field)) {
             $GLOBALS['log']->info("The $field is empty, clearing out the lot");
             // Looks like we are emptying this out
@@ -206,8 +207,9 @@ class SugarFieldFile extends SugarFieldBase
     public function getListViewSmarty($parentFieldArray, $vardef, $displayParams, $col)
     {
         global $currentModule;
-        $displayParams['module'] = $currentModule;
-
+        if (!isset($displayParams['module'])) {
+            $displayParams['module'] = $currentModule;
+        }
         return parent::getListViewSmarty($parentFieldArray, $vardef, $displayParams, $col);
     }
 }

@@ -1,33 +1,35 @@
 <?php
 /**
- * Products, Quotations & Invoices modules.
- * Extensions to SugarCRM
- * @package Advanced OpenSales for SugarCRM
- * @subpackage Products
- * @copyright SalesAgility Ltd http://www.salesagility.com
+ * SuiteCRM is a customer relationship management program developed by SuiteCRM Ltd.
+ * Copyright (C) 2011 - 2025 SuiteCRM Ltd.
  *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU AFFERO GENERAL PUBLIC LICENSE as published by
- * the Free Software Foundation; either version 3 of the License, or
- * (at your option) any later version.
+ * This program is free software; you can redistribute it and/or modify it under
+ * the terms of the GNU Affero General Public License version 3 as published by the
+ * Free Software Foundation with the addition of the following permission added
+ * to Section 15 as permitted in Section 7(a): FOR ANY PART OF THE COVERED WORK
+ * IN WHICH THE COPYRIGHT IS OWNED BY SUITECRM, SUITECRM DISCLAIMS THE
+ * WARRANTY OF NON INFRINGEMENT OF THIRD PARTY RIGHTS.
  *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * This program is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+ * FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License for more
+ * details.
  *
- * You should have received a copy of the GNU AFFERO GENERAL PUBLIC LICENSE
- * along with this program; if not, see http://www.gnu.org/licenses
- * or write to the Free Software Foundation,Inc., 51 Franklin Street,
- * Fifth Floor, Boston, MA 02110-1301  USA
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * @author SalesAgility Ltd <support@salesagility.com>
+ * In accordance with Section 7(b) of the GNU Affero General Public License
+ * version 3, these Appropriate Legal Notices must retain the display of the
+ * "Supercharged by SuiteCRM" logo. If the display of the logos is not reasonably
+ * feasible for technical reasons, the Appropriate Legal Notices must display
+ * the words "Supercharged by SuiteCRM".
  */
 
 /**
  * THIS CLASS IS FOR DEVELOPERS TO MAKE CUSTOMIZATIONS IN
  */
 require_once('modules/AOS_Products/AOS_Products_sugar.php');
+#[\AllowDynamicProperties]
 class AOS_Products extends AOS_Products_sugar
 {
     public function __construct()
@@ -35,19 +37,7 @@ class AOS_Products extends AOS_Products_sugar
         parent::__construct();
     }
 
-    /**
-     * @deprecated deprecated since version 7.6, PHP4 Style Constructors are deprecated and will be remove in 7.8, please update your code, use __construct instead
-     */
-    public function AOS_Products()
-    {
-        $deprecatedMessage = 'PHP4 Style Constructors are deprecated and will be remove in 7.8, please update your code';
-        if (isset($GLOBALS['log'])) {
-            $GLOBALS['log']->deprecated($deprecatedMessage);
-        } else {
-            trigger_error($deprecatedMessage, E_USER_DEPRECATED);
-        }
-        self::__construct();
-    }
+
 
     public function getGUID()
     {
@@ -55,7 +45,7 @@ class AOS_Products extends AOS_Products_sugar
             return com_create_guid();
         }
         mt_srand((double)microtime()*10000);//optional for php 4.2.0 and up.
-        $charid = strtoupper(md5(uniqid(rand(), true)));
+        $charid = strtoupper(md5(uniqid(mt_rand(), true)));
         $hyphen = chr(45);// "-"
         $uuid = substr($charid, 0, 8).$hyphen
                 .substr($charid, 8, 4).$hyphen
@@ -65,25 +55,32 @@ class AOS_Products extends AOS_Products_sugar
         return $uuid;
     }
 
-    public function save($check_notify=false)
+    public function save($check_notify = false)
     {
-        global $sugar_config,$mod_strings;
+        global $sugar_config, $mod_strings;
 
-        if (isset($_POST['deleteAttachment']) && $_POST['deleteAttachment']=='1') {
+        if (isset($_POST['deleteAttachment']) && $_POST['deleteAttachment'] == '1') {
             $this->product_image = '';
         }
 
         require_once('include/upload_file.php');
         $GLOBALS['log']->debug('UPLOADING PRODUCT IMAGE');
-        $upload_file = new UploadFile('uploadfile');
 
-        if (isset($_FILES['uploadimage']['tmp_name'])&&$_FILES['uploadimage']['tmp_name']!="") {
-            if ($_FILES['uploadimage']['size'] > $sugar_config['upload_maxsize']) {
-                die($mod_strings['LBL_IMAGE_UPLOAD_FAIL'].$sugar_config['upload_maxsize']);
+        if(!empty($_FILES['uploadimage']['name'])){
+            $imageFileName = $_FILES['uploadimage']['name'] ?? '';
+            if (!has_valid_image_extension('AOS_Products Uploaded image file: ' . $imageFileName , $imageFileName)) {
+                LoggerManager::getLogger()->fatal("AOS_Products save - Invalid image file ext : '$imageFileName'.");
+                throw new RuntimeException('Invalid request');
             }
-            $prefix_image = $this->getGUID().'_';
-            $this->product_image=$sugar_config['site_url'].'/'.$sugar_config['upload_dir'].$prefix_image.$_FILES['uploadimage']['name'];
-            move_uploaded_file($_FILES['uploadimage']['tmp_name'], $sugar_config['upload_dir'].$prefix_image.$_FILES['uploadimage']['name']);
+        }
+
+        if (!empty($_FILES['uploadimage']['tmp_name']) && verify_uploaded_image($_FILES['uploadimage']['tmp_name'])) {
+            if ($_FILES['uploadimage']['size'] > $sugar_config['upload_maxsize']) {
+                die($mod_strings['LBL_IMAGE_UPLOAD_FAIL'] . $sugar_config['upload_maxsize']);
+            }
+            $prefix_image = $this->getGUID() . '_';
+            $this->product_image = $sugar_config['site_url'] . '/' . $sugar_config['upload_dir'] . $prefix_image . $_FILES['uploadimage']['name'];
+            move_uploaded_file($_FILES['uploadimage']['tmp_name'], $sugar_config['upload_dir'] . $prefix_image . $_FILES['uploadimage']['name']);
         }
 
         require_once('modules/AOS_Products_Quotes/AOS_Utils.php');
@@ -114,7 +111,7 @@ class AOS_Products extends AOS_Products_sugar
 				JOIN aos_quotes ON aos_quotes.id = aos_products_quotes.parent_id AND aos_quotes.stage = 'Closed Accepted' AND aos_quotes.deleted = 0
 				JOIN accounts ON accounts.id = aos_quotes.billing_account_id -- AND accounts.deleted = 0
 
-				GROUP BY accounts.id
+				GROUP BY aos_quotes.id
 			) AS aos_quotes
 
 		";

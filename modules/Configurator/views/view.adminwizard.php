@@ -53,6 +53,7 @@ require_once('modules/Configurator/Forms.php');
 require_once('modules/Administration/Forms.php');
 require_once('modules/Configurator/Configurator.php');
 
+#[\AllowDynamicProperties]
 class ViewAdminwizard extends SugarView
 {
     public function __construct($bean = null, $view_object_map = array())
@@ -79,7 +80,7 @@ class ViewAdminwizard extends SugarView
         
         $configurator = new Configurator();
         $sugarConfig = SugarConfig::getInstance();
-        $focus = new Administration();
+        $focus = BeanFactory::newBean('Administration');
         $focus->retrieveSettings();
         
         $ut = $GLOBALS['current_user']->getPreference('ut');
@@ -120,7 +121,7 @@ class ViewAdminwizard extends SugarView
         $this->ss->assign('mail_smtpauth_req', ($focus->settings['mail_smtpauth_req']) ? "checked='checked'" : '');
         $this->ss->assign('MAIL_SSL_OPTIONS', get_select_options_with_id($app_list_strings['email_settings_for_ssl'], $focus->settings['mail_smtpssl']));
         $this->ss->assign('notify_allow_default_outbound_on', (!empty($focus->settings['notify_allow_default_outbound']) && $focus->settings['notify_allow_default_outbound'] == 2) ? 'CHECKED' : '');
-        $this->ss->assign('THEME', SugarThemeRegistry::current()->__toString());
+        $this->ss->assign('THEME', (string)SugarThemeRegistry::current());
 
         $this->ss->assign('silentInstall', $silentInstall);
 
@@ -138,7 +139,8 @@ class ViewAdminwizard extends SugarView
         //Start of scenario block
         require_once('install/suite_install/scenarios.php');
         if (isset($installation_scenarios)) {
-            for ($i = 0; $i < count($installation_scenarios); $i++) {
+            $installation_scenariosCount = is_countable($installation_scenarios) ? count($installation_scenarios) : 0;
+            for ($i = 0; $i < $installation_scenariosCount; $i++) {
                 $installation_scenarios[$i]['moduleOverview']='( '.implode(', ', $installation_scenarios[$i]['modules']).')';
             }
 

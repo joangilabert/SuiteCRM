@@ -46,16 +46,17 @@ if (!defined('sugarEntry') || !sugarEntry) {
  * Job queue job
  * @api
  */
+#[\AllowDynamicProperties]
 class SchedulersJob extends Basic
 {
-    const JOB_STATUS_QUEUED = 'queued';
-    const JOB_STATUS_RUNNING = 'running';
-    const JOB_STATUS_DONE = 'done';
+    public const JOB_STATUS_QUEUED = 'queued';
+    public const JOB_STATUS_RUNNING = 'running';
+    public const JOB_STATUS_DONE = 'done';
 
-    const JOB_PENDING = 'queued';
-    const JOB_PARTIAL = 'partial';
-    const JOB_SUCCESS = 'success';
-    const JOB_FAILURE = 'failure';
+    public const JOB_PENDING = 'queued';
+    public const JOB_PARTIAL = 'partial';
+    public const JOB_SUCCESS = 'success';
+    public const JOB_FAILURE = 'failure';
 
     // schema attributes
     public $id;
@@ -106,19 +107,7 @@ class SchedulersJob extends Basic
         }
     }
 
-    /**
-     * @deprecated deprecated since version 7.6, PHP4 Style Constructors are deprecated and will be remove in 7.8, please update your code, use __construct instead
-     */
-    public function SchedulersJob()
-    {
-        $deprecatedMessage = 'PHP4 Style Constructors are deprecated and will be remove in 7.8, please update your code';
-        if (isset($GLOBALS['log'])) {
-            $GLOBALS['log']->deprecated($deprecatedMessage);
-        } else {
-            trigger_error($deprecatedMessage, E_USER_DEPRECATED);
-        }
-        self::__construct();
-    }
+
 
     public function check_date_relationships_load()
     {
@@ -184,7 +173,7 @@ class SchedulersJob extends Basic
         curl_setopt($ch, CURLOPT_FRESH_CONNECT, true);  // open brand new conn
         curl_setopt($ch, CURLOPT_HEADER, true); // do not return header info with result
         curl_setopt($ch, CURLOPT_NOPROGRESS, true); // do not have progress bar
-        $urlparts = parse_url($job);
+        $urlparts = parse_url((string) $job);
         if (empty($urlparts['port'])) {
             if (isset($urlparts['scheme']) && $urlparts['scheme'] == 'https') {
                 $urlparts['port'] = 443;
@@ -216,9 +205,10 @@ class SchedulersJob extends Basic
             $GLOBALS['log']->debug("----->Firing was successful: $job");
             $GLOBALS['log']->debug('----->WTIH RESULT: '.strip_tags($result).' AND '.strip_tags(print_r($cInfo, true)));
             return true;
+        } else {
+            $GLOBALS['log']->fatal("Job failed: $job");
+            return false;
         }
-        $GLOBALS['log']->fatal("Job failed: $job");
-        return false;
     }
     ////	END SCHEDULERSJOB HELPER FUNCTIONS
     ///////////////////////////////////////////////////////////////////////////
@@ -295,7 +285,7 @@ class SchedulersJob extends Basic
     {
         $GLOBALS['log']->info("Resolving job {$this->id} as $resolution: $message");
         if ($resolution == self::JOB_FAILURE) {
-            $this->failure_count++;
+            $this->failure_count = (int)$this->failure_count + 1;
             if ($this->requeue && $this->retry_count > 0) {
                 // retry failed job
                 $this->status = self::JOB_STATUS_QUEUED;
@@ -362,7 +352,7 @@ class SchedulersJob extends Basic
         $this->addMessages($message);
         $this->resolution = self::JOB_PARTIAL;
         if (empty($delay)) {
-            $delay = intval($this->job_delay);
+            $delay = (int)$this->job_delay;
         }
         $this->execute_time = $GLOBALS['timedate']->getNow()->modify("+$delay seconds")->asDb();
         $GLOBALS['log']->info("Postponing job {$this->id} to {$this->execute_time}: $message");
@@ -528,7 +518,8 @@ class SchedulersJob extends Basic
             }
             $func = $exJob[1];
             $GLOBALS['log']->debug("----->SchedulersJob calling function: $func");
-            set_error_handler(array($this, "errorHandler"), E_ALL & ~E_NOTICE & ~E_STRICT);
+            // In PHP8+ old E_STRICT are E_WARNING, E_DEPRECATED or errors
+            set_error_handler(array($this, "errorHandler"), E_ALL & ~E_NOTICE);
             if (!is_callable($func)) {
                 $this->resolveJob(self::JOB_FAILURE, sprintf(translate('ERR_CALL', 'SchedulersJobs'), $func));
             }
@@ -544,25 +535,30 @@ class SchedulersJob extends Basic
                 if ($res) {
                     $this->resolveJob(self::JOB_SUCCESS);
                     return true;
+                } else {
+                    $this->resolveJob(self::JOB_FAILURE);
+                    return false;
                 }
-                $this->resolveJob(self::JOB_FAILURE);
-                return false;
+            } else {
+                return $this->resolution != self::JOB_FAILURE;
             }
-            return $this->resolution != self::JOB_FAILURE;
         } elseif ($exJob[0] == 'url') {
             if (function_exists('curl_init')) {
                 $GLOBALS['log']->debug('----->SchedulersJob firing URL job: '.$exJob[1]);
-                set_error_handler(array($this, "errorHandler"), E_ALL & ~E_NOTICE & ~E_STRICT);
+                // In PHP8+ old E_STRICT are E_WARNING, E_DEPRECATED or errors
+                set_error_handler(array($this, "errorHandler"), E_ALL & ~E_NOTICE);
                 if ($this->fireUrl($exJob[1])) {
                     restore_error_handler();
                     $this->resolveJob(self::JOB_SUCCESS);
                     return true;
+                } else {
+                    restore_error_handler();
+                    $this->resolveJob(self::JOB_FAILURE);
+                    return false;
                 }
-                restore_error_handler();
-                $this->resolveJob(self::JOB_FAILURE);
-                return false;
+            } else {
+                $this->resolveJob(self::JOB_FAILURE, translate('ERR_CURL', 'SchedulersJobs'));
             }
-            $this->resolveJob(self::JOB_FAILURE, translate('ERR_CURL', 'SchedulersJobs'));
         } elseif ($exJob[0] == 'class') {
             $tmpJob = new $exJob[1]();
             if ($tmpJob instanceof RunnableSchedulerJob) {
@@ -578,13 +574,16 @@ class SchedulersJob extends Basic
                     if ($result) {
                         $this->resolveJob(self::JOB_SUCCESS);
                         return true;
+                    } else {
+                        $this->resolveJob(self::JOB_FAILURE);
+                        return false;
                     }
-                    $this->resolveJob(self::JOB_FAILURE);
-                    return false;
+                } else {
+                    return $this->resolution != self::JOB_FAILURE;
                 }
-                return $this->resolution != self::JOB_FAILURE;
+            } else {
+                return $this->resolveJob(self::JOB_FAILURE, sprintf(translate('ERR_JOBTYPE', 'SchedulersJobs'), strip_tags($this->target)));
             }
-            return $this->resolveJob(self::JOB_FAILURE, sprintf(translate('ERR_JOBTYPE', 'SchedulersJobs'), strip_tags($this->target)));
         } else {
             return $this->resolveJob(self::JOB_FAILURE, sprintf(translate('ERR_JOBTYPE', 'SchedulersJobs'), strip_tags($this->target)));
         }

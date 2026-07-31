@@ -41,13 +41,7 @@ if (!defined('sugarEntry') || !sugarEntry) {
  * display the words "Powered by SugarCRM" and "Supercharged by SuiteCRM".
  */
 
-/*********************************************************************************
 
- * Description:  TODO: To be written.
- * Portions created by SugarCRM are Copyright (C) SugarCRM, Inc.
- * All Rights Reserved.
- * Contributor(s): ______________________________________..
- ********************************************************************************/
 
 
 
@@ -58,9 +52,22 @@ global $mod_strings;
 global $app_list_strings;
 global $app_strings;
 global $current_user;
+global $sugar_config;
+
+$testMaxTimeout = 30; // seconds
+if (isset($sugar_config['outbound_email_test_max_timeout']) && is_numeric($sugar_config['outbound_email_test_max_timeout'])) {
+    $testMaxTimeout = (int)$sugar_config['outbound_email_test_max_timeout'];
+}
+
+ini_set('max_execution_time', $testMaxTimeout);
 
 $json = getJSONobj();
 $pass = '';
+
+if (empty($_REQUEST['mail_smtppass'])) {
+    $_REQUEST['mail_smtppass'] = BeanFactory::getBean('OutboundEmailAccounts', $_REQUEST['record'])?->mail_smtppass ?? '';
+}
+
 if (!empty($_REQUEST['mail_smtppass'])) {
     $pass = $_REQUEST['mail_smtppass'];
 } elseif (isset($_REQUEST['mail_type'])) {
@@ -74,18 +81,20 @@ if (!empty($_REQUEST['mail_smtppass'])) {
         $pass = $oe->mail_smtppass;
     }
 }
-$email = new Email();
+$email = BeanFactory::newBean('Emails');
 $out = $email->sendEmailTest(
     $_REQUEST['mail_smtpserver'],
     $_REQUEST['mail_smtpport'],
     $_REQUEST['mail_smtpssl'],
-                                    ($_REQUEST['mail_smtpauth_req'] == 'true' ? 1 : 0),
+    (isTrue($_REQUEST['mail_smtpauth_req']) ? 1 : 0),
     $_REQUEST['mail_smtpuser'],
-                                    $pass,
+    $pass,
     $_REQUEST['outboundtest_from_address'],
     $_REQUEST['outboundtest_to_address'],
     $_REQUEST['mail_sendtype'],
-    $_REQUEST['mail_from_name']
+    $_REQUEST['mail_from_name'],
+    $_REQUEST['mail_auth_type'] ?? 'no_auth',
+    $_REQUEST['mail_external_oauth_connection_id'] ?? '',
 );
 
 $out = $json->encode($out);

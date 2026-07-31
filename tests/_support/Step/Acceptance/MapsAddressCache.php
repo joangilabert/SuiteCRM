@@ -2,17 +2,9 @@
 
 namespace Step\Acceptance;
 
+#[\AllowDynamicProperties]
 class MapsAddressCache extends \AcceptanceTester
 {
-    /**
-     * Navigate to maps address cache module
-     */
-    public function gotoMapsAddressCache()
-    {
-        $I = new NavigationBar($this->getScenario());
-        $I->clickAllMenuItem('Maps - Address Cache');
-    }
-
     /**
      * Create maps address cache
      *

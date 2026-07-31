@@ -2,17 +2,9 @@
 
 namespace Step\Acceptance;
 
+#[\AllowDynamicProperties]
 class Opportunities extends \AcceptanceTester
 {
-    /**
-     * Navigate to opportunities module
-     */
-    public function gotoOpportunities()
-    {
-        $I = new NavigationBar($this->getScenario());
-        $I->clickAllMenuItem('Opportunities');
-    }
-
     /**
      * Create an opportunity
      *

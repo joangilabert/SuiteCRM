@@ -44,6 +44,7 @@ if (!defined('sugarEntry') || !sugarEntry) {
 
 require_once('include/charts/Charts.php');
 
+#[\AllowDynamicProperties]
 class Chart_outcome_by_month
 {
     public $modules = array('Opportunities');
@@ -52,19 +53,7 @@ class Chart_outcome_by_month
     {
     }
 
-    /**
-     * @deprecated deprecated since version 7.6, PHP4 Style Constructors are deprecated and will be remove in 7.8, please update your code, use __construct instead
-     */
-    public function Chart_outcome_by_month()
-    {
-        $deprecatedMessage = 'PHP4 Style Constructors are deprecated and will be remove in 7.8, please update your code';
-        if (isset($GLOBALS['log'])) {
-            $GLOBALS['log']->deprecated($deprecatedMessage);
-        } else {
-            trigger_error($deprecatedMessage, E_USER_DEPRECATED);
-        }
-        self::__construct();
-    }
+
 
 
     public function draw($extra_tools)
@@ -117,11 +106,11 @@ class Chart_outcome_by_month
         $ids = array();
         //get list of user ids for which to display data
         $user_ids = $current_user->getPreference('obm_ids');
-        if (!empty($user_ids) && count($user_ids) != 0 && !isset($_REQUEST['obm_ids'])) {
+        if (!empty($user_ids) && (is_countable($user_ids) ? count($user_ids) : 0) != 0 && !isset($_REQUEST['obm_ids'])) {
             $ids = $user_ids;
             $GLOBALS['log']->debug("USER PREFERENCES['obm_ids'] is:");
             $GLOBALS['log']->debug($user_ids);
-        } elseif (isset($_REQUEST['obm_ids']) && count($_REQUEST['obm_ids']) > 0) {
+        } elseif (isset($_REQUEST['obm_ids']) && (is_countable($_REQUEST['obm_ids']) ? count($_REQUEST['obm_ids']) : 0) > 0) {
             $ids = $_REQUEST['obm_ids'];
             $current_user->setPreference('obm_ids', $_REQUEST['obm_ids']);
             $GLOBALS['log']->debug("_REQUEST['obm_ids'] is:");
@@ -187,7 +176,7 @@ class Chart_outcome_by_month
 <tr>
 	<td valign='top' nowrap ><b><?php echo $current_module_strings['LBL_YEAR']?></b><br><span class="dateFormat"><?php echo $app_strings['NTC_YEAR_FORMAT']?></span></td>
 	<td valign='top' ><input class="text" name="obm_year" size='12' maxlength='10' id='obm_year'  value='<?php if (isset($date_start)) {
-            echo substr($date_start, 0, 4);
+            echo substr((string) $date_start, 0, 4);
         } ?>'>&nbsp;&nbsp;</td>
 	<td valign='top'><b><?php echo $current_module_strings['LBL_USERS']; ?></b></td>
 	<td valign='top'><select name="obm_ids[]" multiple size='3'><?php echo get_select_options_with_id(get_user_array(false), $ids); ?></select></td>
@@ -252,13 +241,13 @@ echo get_validate_chart_js();
 
             $where = "";
             //build the where clause for the query that matches $user
-            $count = count($user_id);
+            $count = is_countable($user_id) ? count($user_id) : 0;
             $id = array();
             if ($count>0) {
                 foreach ($user_id as $the_id) {
                     $id[] = "'".$the_id."'";
                 }
-                $ids = join(",", $id);
+                $ids = implode(",", $id);
                 $where .= "opportunities.assigned_user_id IN ($ids) ";
             }
 
@@ -266,15 +255,14 @@ echo get_validate_chart_js();
             $dateStartDisplay = $timedate->asUserDate($timedate->fromString($date_start));
             $dateEndDisplay = $timedate->asUserDate($timedate->fromString($date_end));
 
-            $opp = new Opportunity();
+            $opp = BeanFactory::newBean('Opportunities');
             //build the where clause for the query that matches $date_start and $date_end
-            $where .= "AND opportunities.date_closed >= ".db_convert("'".$date_start."'", 'date')." AND opportunities.date_closed <= ".db_convert("'".$date_end."'", 'date')." AND opportunities.deleted=0";
-            $query = "SELECT sales_stage,".db_convert('opportunities.date_closed', 'date_format', array("'%Y-%m'"), array("'YYYY-MM'"))." as m, sum(amount_usdollar/1000) as total, count(*) as opp_count FROM opportunities ";
+            $where .= "AND opportunities.date_closed >= ".DBManagerFactory::getInstance()->convert("'".$date_start."'", 'date')." AND opportunities.date_closed <= ".DBManagerFactory::getInstance()->convert("'".$date_end."'", 'date')." AND opportunities.deleted=0";
+            $query = "SELECT sales_stage,".DBManagerFactory::getInstance()->convert('opportunities.date_closed', 'date_format', array("'%Y-%m'"), array("'YYYY-MM'"))." as m, sum(amount_usdollar/1000) as total, count(*) as opp_count FROM opportunities ";
             $query .= "WHERE ".$where;
-            $query .= " GROUP BY sales_stage,".db_convert('opportunities.date_closed', 'date_format', array("'%Y-%m'"), array("'YYYY-MM'"))."ORDER BY m";
+            $query .= " GROUP BY sales_stage,".DBManagerFactory::getInstance()->convert('opportunities.date_closed', 'date_format', array("'%Y-%m'"), array("'YYYY-MM'"))."ORDER BY m";
             //Now do the db queries
             //query for opportunity data that matches $datay and $user
-            //_pp($query);
 
             $result = $opp->db->query($query, true);
             //build pipeline by sales stage data
@@ -288,7 +276,7 @@ echo get_validate_chart_js();
             global $current_user;
             $salesStages = array("Closed Lost"=>$app_list_strings['sales_stage_dom']["Closed Lost"],"Closed Won"=>$app_list_strings['sales_stage_dom']["Closed Won"],"Other"=>$other);
             if ($current_user->getPreference('currency')) {
-                $currency = new Currency();
+                $currency = BeanFactory::newBean('Currencies');
                 $currency->retrieve($current_user->getPreference('currency'));
                 $div = $currency->conversion_rate;
                 $symbol = $currency->symbol;
@@ -414,11 +402,11 @@ echo get_validate_chart_js();
         $ids = array();
         //get list of user ids for which to display data
         $user_ids = $current_user->getPreference('obm_ids');
-        if (!empty($user_ids) && count($user_ids) != 0 && !isset($_REQUEST['obm_ids'])) {
+        if (!empty($user_ids) && (is_countable($user_ids) ? count($user_ids) : 0) != 0 && !isset($_REQUEST['obm_ids'])) {
             $ids = $user_ids;
             $GLOBALS['log']->debug("USER PREFERENCES['obm_ids'] is:");
             $GLOBALS['log']->debug($user_ids);
-        } elseif (isset($_REQUEST['obm_ids']) && count($_REQUEST['obm_ids']) > 0) {
+        } elseif (isset($_REQUEST['obm_ids']) && (is_countable($_REQUEST['obm_ids']) ? count($_REQUEST['obm_ids']) : 0) > 0) {
             $ids = $_REQUEST['obm_ids'];
             $current_user->setPreference('obm_ids', $_REQUEST['obm_ids']);
             $GLOBALS['log']->debug("_REQUEST['obm_ids'] is:");
@@ -434,13 +422,13 @@ echo get_validate_chart_js();
 
         $where = "";
         //build the where clause for the query that matches $user
-        $count = count($user_id);
+        $count = is_countable($user_id) ? count($user_id) : 0;
         $id = array();
         if ($count>0) {
             foreach ($user_id as $the_id) {
                 $id[] = "'".$the_id."'";
             }
-            $ids = join(",", $id);
+            $ids = implode(",", $id);
             $where .= "opportunities.assigned_user_id IN ($ids) ";
         }
 
@@ -448,12 +436,12 @@ echo get_validate_chart_js();
         $dateStartDisplay = $timedate->asUserDate($timedate->fromString($date_start));
         $dateEndDisplay = $timedate->asUserDate($timedate->fromString($date_end));
 
-        $opp = new Opportunity();
+        $opp = BeanFactory::newBean('Opportunities');
         //build the where clause for the query that matches $date_start and $date_end
-        $where .= "AND opportunities.date_closed >= ".db_convert("'".$date_start."'", 'date')." AND opportunities.date_closed <= ".db_convert("'".$date_end."'", 'date')." AND opportunities.deleted=0";
-        $query = "SELECT sales_stage,".db_convert('opportunities.date_closed', 'date_format', array("'%Y-%m'"), array("'YYYY-MM'"))." as m, sum(amount_usdollar/1000) as total, count(*) as opp_count FROM opportunities ";
+        $where .= "AND opportunities.date_closed >= ".DBManagerFactory::getInstance()->convert("'".$date_start."'", 'date')." AND opportunities.date_closed <= ".DBManagerFactory::getInstance()->convert("'".$date_end."'", 'date')." AND opportunities.deleted=0";
+        $query = "SELECT sales_stage,".DBManagerFactory::getInstance()->convert('opportunities.date_closed', 'date_format', array("'%Y-%m'"), array("'YYYY-MM'"))." as m, sum(amount_usdollar/1000) as total, count(*) as opp_count FROM opportunities ";
         $query .= "WHERE ".$where;
-        $query .= " GROUP BY sales_stage,".db_convert('opportunities.date_closed', 'date_format', array("'%Y-%m'"), array("'YYYY-MM'"))."ORDER BY m";
+        $query .= " GROUP BY sales_stage,".DBManagerFactory::getInstance()->convert('opportunities.date_closed', 'date_format', array("'%Y-%m'"), array("'YYYY-MM'"))."ORDER BY m";
         return $query;
     }
 

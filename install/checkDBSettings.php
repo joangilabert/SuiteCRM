@@ -47,6 +47,7 @@ if (!defined('sugarEntry') || !sugarEntry) {
 
 function checkDBSettings($silent=false)
 {
+    $sugar_db_version = '';
     installLog("Begin DB Check Process *************");
     global $mod_strings;
     $errors = array();
@@ -89,9 +90,9 @@ function checkDBSettings($silent=false)
     if (count($errors) > 0) {
         installLog("Basic form info is INVALID, exit Process.");
         return printErrors($errors);
+    } else {
+        installLog("Basic form info is valid, continuing Process.");
     }
-    installLog("Basic form info is valid, continuing Process.");
-    
 
     $dbconfig = array(
                 "db_host_name" => $_SESSION['setup_db_host_name'],
@@ -114,7 +115,7 @@ function checkDBSettings($silent=false)
     switch (strtolower($db->dbType)) {
 
             case 'mysql':
-                if (preg_match("![/\\.]+!i", $_SESSION['setup_db_database_name'])) {
+                if (preg_match("![/\\.]+!i", (string) $_SESSION['setup_db_database_name'])) {
                     $errors['ERR_DB_MYSQL_DB_NAME'] = $mod_strings['ERR_DB_MYSQL_DB_NAME_INVALID'];
                     installLog("ERROR::  {$errors['ERR_DB_MYSQL_DB_NAME']}");
                 }
@@ -123,7 +124,7 @@ function checkDBSettings($silent=false)
             case 'mssql':
             default:
                 // Bug 29855 - Check to see if given db name is valid
-                if (preg_match("![\"'*/\\?:<>-]+!i", $_SESSION['setup_db_database_name'])) {
+                if (preg_match("![\"'*/\\?:<>-]+!i", (string) $_SESSION['setup_db_database_name'])) {
                     $errors['ERR_DB_MSSQL_DB_NAME'] = $mod_strings['ERR_DB_MSSQL_DB_NAME_INVALID'];
                     installLog("ERROR::  {$errors['ERR_DB_MSSQL_DB_NAME']}");
                 }
@@ -148,106 +149,110 @@ function checkDBSettings($silent=false)
     }
 
     // privileged account tests
-    elseif (empty($_SESSION['setup_db_admin_user_name'])) {
-        $errors['ERR_DB_PRIV_USER'] = $mod_strings['ERR_DB_PRIV_USER'];
-        installLog("ERROR:: {$errors['ERR_DB_PRIV_USER']}");
-    } else {
-        installLog("Testing priviliged account...");
-        $dbconfig["db_user_name"] = $_SESSION['setup_db_admin_user_name'];
-        $dbconfig["db_password"] = $_SESSION['setup_db_admin_password'];
-        if (!$db->connect($dbconfig, false)) {
-            $error = $db->lastError();
-            $errors['ERR_DB_LOGIN_FAILURE'] = $mod_strings['ERR_DB_LOGIN_FAILURE'];
-            installLog("ERROR::  {$errors['ERR_DB_LOGIN_FAILURE']}");
+    else {
+        if (empty($_SESSION['setup_db_admin_user_name'])) {
+            $errors['ERR_DB_PRIV_USER'] = $mod_strings['ERR_DB_PRIV_USER'];
+            installLog("ERROR:: {$errors['ERR_DB_PRIV_USER']}");
         } else {
-            installLog("Connection made using  host: {$_SESSION['setup_db_host_name']}, usr: {$_SESSION['setup_db_sugarsales_user']}");
-            $db_selected = $db->dbExists($_SESSION['setup_db_database_name']);
-            if ($silent==false && $db_selected && $_SESSION['setup_db_create_database'] && empty($_SESSION['setup_db_drop_tables'])) {
-                // DB exists but user didn't agree to overwrite it
-                $errStr = $mod_strings['ERR_DB_EXISTS_PROCEED'];
-                $errors['ERR_DB_EXISTS_PROCEED'] = $errStr;
-                installLog("ERROR:: {$errors['ERR_DB_EXISTS_PROCEED']}");
-            } elseif ($silent==false && !$db_selected && !$_SESSION['setup_db_create_database']) {
-                // DB does not exist but user did not allow to create it
-                $errors['ERR_DB_EXISTS_NOT'] = $mod_strings['ERR_DB_EXISTS_NOT'];
-                installLog("ERROR:: {$errors['ERR_DB_EXISTS_NOT']}");
+            installLog("Testing priviliged account...");
+            $dbconfig["db_user_name"] = $_SESSION['setup_db_admin_user_name'];
+            $dbconfig["db_password"] = $_SESSION['setup_db_admin_password'];
+            if (!$db->connect($dbconfig, false)) {
+                $error = $db->lastError();
+                $errors['ERR_DB_LOGIN_FAILURE'] = $mod_strings['ERR_DB_LOGIN_FAILURE'];
+                installLog("ERROR::  {$errors['ERR_DB_LOGIN_FAILURE']}");
             } else {
-                if ($db_selected) {
-                    installLog("DB Selected, will reuse {$_SESSION['setup_db_database_name']}");
-                    if ($db->tableExists('config')) {
-                        include('sugar_version.php');
-                        $versions = $db->getOne("SELECT COUNT(*) FROM config WHERE category='info' AND name='sugar_version' AND VALUE LIKE '$sugar_db_version'");
-                        if ($versions > 0 && $silent==false) {
-                            $errors['ERR_DB_EXISTS_WITH_CONFIG'] = $mod_strings['ERR_DB_EXISTS_WITH_CONFIG'];
-                            installLog("ERROR:: {$errors['ERR_DB_EXISTS_WITH_CONFIG']}");
+                installLog("Connection made using  host: {$_SESSION['setup_db_host_name']}, usr: {$_SESSION['setup_db_sugarsales_user']}");
+                $db_selected = $db->dbExists($_SESSION['setup_db_database_name']);
+                if ($silent==false && $db_selected && $_SESSION['setup_db_create_database'] && empty($_SESSION['setup_db_drop_tables'])) {
+                    // DB exists but user didn't agree to overwrite it
+                    $errStr = $mod_strings['ERR_DB_EXISTS_PROCEED'];
+                    $errors['ERR_DB_EXISTS_PROCEED'] = $errStr;
+                    installLog("ERROR:: {$errors['ERR_DB_EXISTS_PROCEED']}");
+                } elseif ($silent==false && !$db_selected && !$_SESSION['setup_db_create_database']) {
+                    // DB does not exist but user did not allow to create it
+                    $errors['ERR_DB_EXISTS_NOT'] = $mod_strings['ERR_DB_EXISTS_NOT'];
+                    installLog("ERROR:: {$errors['ERR_DB_EXISTS_NOT']}");
+                } else {
+                    if ($db_selected) {
+                        installLog("DB Selected, will reuse {$_SESSION['setup_db_database_name']}");
+                        if ($db->tableExists('config')) {
+                            include('sugar_version.php');
+                            $versions = $db->getOne("SELECT COUNT(*) FROM config WHERE category='info' AND name='sugar_version' AND VALUE LIKE '$sugar_db_version'");
+                            if ($versions > 0 && $silent==false) {
+                                $errors['ERR_DB_EXISTS_WITH_CONFIG'] = $mod_strings['ERR_DB_EXISTS_WITH_CONFIG'];
+                                installLog("ERROR:: {$errors['ERR_DB_EXISTS_WITH_CONFIG']}");
+                            }
+                        }
+                    } else {
+                        installLog("DB not selected, will create {$_SESSION['setup_db_database_name']}");
+                    }
+                    if ($_SESSION['setup_db_create_sugarsales_user'] && $_SESSION['setup_db_sugarsales_user'] != '' && $db_selected) {
+                        if ($db->userExists($_SESSION['setup_db_sugarsales_user'])) {
+                            $errors['ERR_DB_USER_EXISTS'] = $mod_strings['ERR_DB_USER_EXISTS'];
+                            installLog("ERROR:: {$errors['ERR_DB_USER_EXISTS']}");
                         }
                     }
+                }
+
+                // DB SPECIFIC
+                $check = $db->canInstall();
+                if ($check !== true) {
+                    $error = array_shift($check);
+                    array_unshift($check, $mod_strings[$error]);
+                    $errors[$error] = call_user_func_array('sprintf', $check);
+                    installLog("ERROR:: {$errors[$error]}");
                 } else {
-                    installLog("DB not selected, will create {$_SESSION['setup_db_database_name']}");
+                    installLog("Passed DB install check");
                 }
-                if ($_SESSION['setup_db_create_sugarsales_user'] && $_SESSION['setup_db_sugarsales_user'] != '' && $db_selected) {
-                    if ($db->userExists($_SESSION['setup_db_sugarsales_user'])) {
-                        $errors['ERR_DB_USER_EXISTS'] = $mod_strings['ERR_DB_USER_EXISTS'];
-                        installLog("ERROR:: {$errors['ERR_DB_USER_EXISTS']}");
-                    }
-                }
-            }
 
-            // DB SPECIFIC
-            $check = $db->canInstall();
-            if ($check !== true) {
-                $error = array_shift($check);
-                array_unshift($check, $mod_strings[$error]);
-                $errors[$error] = call_user_func_array('sprintf', $check);
-                installLog("ERROR:: {$errors[$error]}");
-            } else {
-                installLog("Passed DB install check");
+                $db->disconnect();
             }
-
-            $db->disconnect();
         }
     }
 
 
     if ($silent) {
         return $errors;
+    } else {
+        printErrors($errors);
     }
-    printErrors($errors);
-    
     installLog("End DB Check Process *************");
 }
 
 function printErrors($errors)
 {
     global $mod_strings;
-    if (count($errors) == 0) {
+    if ((is_countable($errors) ? count($errors) : 0) == 0) {
         echo 'dbCheckPassed';
         installLog("SUCCESS:: no errors detected!");
-    } elseif ((count($errors) == 1 && (isset($errors["ERR_DB_EXISTS_PROCEED"])||isset($errors["ERR_DB_EXISTS_WITH_CONFIG"])))  ||
-    (count($errors) == 2 && isset($errors["ERR_DB_EXISTS_PROCEED"]) && isset($errors["ERR_DB_EXISTS_WITH_CONFIG"]))) {
-        ///throw alert asking to overwwrite db
-        echo 'preexeest';
-        installLog("WARNING:: no errors detected, but DB tables will be dropped!, issuing warning to user");
     } else {
-        installLog("FATAL:: errors have been detected!  User will not be allowed to continue.  Errors are as follow:");
-        //print out errors
-        $validationErr  = "<p><b>{$mod_strings['ERR_DBCONF_VALIDATION']}</b></p>";
-        $validationErr .= '<ul>';
+        if (((is_countable($errors) ? count($errors) : 0) == 1 && (isset($errors["ERR_DB_EXISTS_PROCEED"])||isset($errors["ERR_DB_EXISTS_WITH_CONFIG"])))  ||
+    ((is_countable($errors) ? count($errors) : 0) == 2 && isset($errors["ERR_DB_EXISTS_PROCEED"]) && isset($errors["ERR_DB_EXISTS_WITH_CONFIG"]))) {
+            ///throw alert asking to overwwrite db
+            echo 'preexeest';
+            installLog("WARNING:: no errors detected, but DB tables will be dropped!, issuing warning to user");
+        } else {
+            installLog("FATAL:: errors have been detected!  User will not be allowed to continue.  Errors are as follow:");
+            //print out errors
+            $validationErr  = "<p><b>{$mod_strings['ERR_DBCONF_VALIDATION']}</b></p>";
+            $validationErr .= '<ul>';
 
-        foreach ($errors as $key =>$erMsg) {
-            if ($key != "ERR_DB_EXISTS_PROCEED" && $key != "ERR_DB_EXISTS_WITH_CONFIG") {
-                if ($_SESSION['dbUSRData'] == 'same' && $key == 'ERR_DB_ADMIN') {
+            foreach ($errors as $key =>$erMsg) {
+                if ($key != "ERR_DB_EXISTS_PROCEED" && $key != "ERR_DB_EXISTS_WITH_CONFIG") {
+                    if ($_SESSION['dbUSRData'] == 'same' && $key == 'ERR_DB_ADMIN') {
+                        installLog(".. {$erMsg}");
+                        break;
+                    }
+                    $validationErr .= '<li class="error">' . $erMsg . '</li>';
                     installLog(".. {$erMsg}");
-                    break;
                 }
-                $validationErr .= '<li class="error">' . $erMsg . '</li>';
-                installLog(".. {$erMsg}");
             }
-        }
-        $validationErr .= '</ul>';
-        $validationErr .= '</div>';
+            $validationErr .= '</ul>';
+            $validationErr .= '</div>';
 
-        echo $validationErr;
+            echo $validationErr;
+        }
     }
 }
 

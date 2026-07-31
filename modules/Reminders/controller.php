@@ -42,6 +42,7 @@ if (!defined('sugarEntry') || !sugarEntry) {
  */
 
 
+#[\AllowDynamicProperties]
 class RemindersController extends SugarController
 {
     public function action_getInviteesPersonName()
@@ -50,11 +51,14 @@ class RemindersController extends SugarController
         $ret = array();
         $invitees = $_REQUEST['invitees'];
         foreach ($invitees as $invitee) {
-            if (!isset($invitee['personName']) || !$invitee['personName']) {
-                $person = BeanFactory::getBean($invitee['personModule'], $invitee['personModuleId']);
-                $invitee['personName'] = $person->name;
-            }
-            if (isset($invitee['personModule']) && $invitee['personModule'] && in_array($invitee['personModule'], $personModules) && isset($invitee['personModuleId']) && $invitee['personModuleId'] && isset($invitee['personName']) && $invitee['personName']) {
+            if (!empty($invitee['personModule']) && !empty($invitee['personModuleId']) && in_array($invitee['personModule'], $personModules)) {
+                if (empty($invitee['personName'])) {
+                    $person = BeanFactory::getBean($invitee['personModule'], $invitee['personModuleId']);
+                    if (empty($person->name)) {
+                        continue;
+                    }
+                    $invitee['personName'] = $person->name;
+                }
                 $ret[] = $invitee;
             }
         }

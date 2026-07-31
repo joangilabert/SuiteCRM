@@ -39,8 +39,8 @@
  */
 
 
-require_once('include/MVC/View/views/view.list.php');
 
+#[\AllowDynamicProperties]
 class HomeViewList extends ViewList
 {
     public function ActivitiesViewList()

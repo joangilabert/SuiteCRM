@@ -58,7 +58,7 @@
 </select>
 </div>
 
-<div id="{$id}_range_div" style="{if preg_match('/^\[/', $smarty.request.{{$id_range}})  || $starting_choice == 'between'}display:none{else}display:''{/if};">
+<div id="{$id}_range_div" style="{if preg_match('/^\[/', (string) $smarty.request.{{$id_range}}|default:'')  || $starting_choice == 'between'}display:none{else}display:''{/if};">
 <input autocomplete="off" type="text" name="range_{$id}" id="range_{$id}" value='{if empty($smarty.request.{{$id_range}}) && !empty($smarty.request.{{$original_id}})}{$smarty.request.{{$original_id}}}{else}{$smarty.request.{{$id_range}}}{/if}' title='{{$vardef.help}}' {{$displayParams.field}} {{if !empty($tabindex)}} tabindex='{{$tabindex}}' {{/if}} size="11" class="dateRangeInput">
 {{if !$displayParams.hiddeCalendar}}
     <button id="{$id}_trigger" type="button" onclick="return false;" class="btn btn-danger"><span class="suitepicon suitepicon-module-calendar"  alt="{$APP.LBL_ENTER_DATE}"></span></button>
@@ -85,7 +85,7 @@ weekNumbers:false
 
 <div id="{$id}_between_range_div" style="{if $starting_choice=='between'}display:'';{else}display:none;{/if}">
 {assign var=date_value value={{sugarvar key='value' string=true}} }
-<input autocomplete="off" type="text" name="start_range_{$id}" id="start_range_{$id}" value='{$smarty.request.{{$id_range_start}} }' title='{{$vardef.help}}' {{$displayParams.field}} tabindex='{{$tabindex}}' size="11" class="rangeDateInput">
+<input autocomplete="off" type="text" name="start_range_{$id}" id="start_range_{$id}" value='{$smarty.request.{{$id_range_start}} }' title='{{$vardef.help}}' {{$displayParams.field}} tabindex='{{$tabindex}}' size="11" class="dateRangeInput">
 {{if !$displayParams.hiddeCalendar}}
     <button id="start_range_{$id}_trigger" type="button" onclick="return false" class="btn btn-danger"><span class="suitepicon suitepicon-module-calendar" alt="{$APP.LBL_ENTER_DATE}"></span></button>
 {{/if}}
@@ -101,6 +101,7 @@ button : "start_range_{$id}_trigger",
 singleClick : true,
 dateStr : "{$date_value}",
 step : 1,
+startWeekday: {$CALENDAR_FDOW|default:'0'},
 weekNumbers:false
 {rdelim}
 );
@@ -110,7 +111,9 @@ weekNumbers:false
 {assign var=date_value value={{sugarvar key='value' string=true}} }
 <input autocomplete="off" type="text" name="end_range_{$id}" id="end_range_{$id}" value='{$smarty.request.{{$id_range_end}} }' title='{{$vardef.help}}' {{$displayParams.field}} tabindex='{{$tabindex}}' size="11" class="dateRangeInput" maxlength="10">
 {{if !$displayParams.hiddeCalendar}}
-    <span class="suitepicon suitepicon-module-calendar" id="end_range_{$id}_trigger" alt="{$APP.LBL_ENTER_DATE}"></span>
+    <button id="end_range_{$id}_trigger" type="button" onclick="return false" class="btn btn-danger">
+        <span class="suitepicon suitepicon-module-calendar" alt="{$APP.LBL_ENTER_DATE}"></span>
+    </button>
 {{/if}}
 {{if $displayParams.showFormats}}
 &nbsp;(<span class="dateFormat">{$USER_DATEFORMAT}</span>)
@@ -124,6 +127,7 @@ button : "end_range_{$id}_trigger",
 singleClick : true,
 dateStr : "{$date_value}",
 step : 1,
+startWeekday: {$CALENDAR_FDOW|default:'0'},
 weekNumbers:false
 {rdelim}
 );

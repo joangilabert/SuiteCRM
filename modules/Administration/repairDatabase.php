@@ -44,7 +44,7 @@ if (!defined('sugarEntry') || !sugarEntry) {
 
 
 
-global $current_user, $beanFiles;
+global $current_user, $beanFiles, $sugar_config;
 set_time_limit(3600);
 
 
@@ -54,7 +54,7 @@ if (is_admin($current_user) || isset($from_sync_client) || is_admin_for_any_modu
     isset($_REQUEST['execute'])? $execute=$_REQUEST['execute'] : $execute= false;
     $export = false;
 
-    if (sizeof($_POST) && isset($_POST['raction'])) {
+    if (count($_POST) && isset($_POST['raction'])) {
         if (isset($_POST['raction']) && strtolower($_POST['raction']) == "export") {
             //jc - output buffering is being used. if we do not clean the output buffer
             //the contents of the buffer up to the length of the repair statement(s)
@@ -66,12 +66,12 @@ if (is_admin($current_user) || isset($from_sync_client) || is_admin_for_any_modu
             header("Expires: Mon, 26 Jul 1997 05:00:00 GMT");
             header("Last-Modified: " . TimeDate::httpTime());
             header("Cache-Control: post-check=0, pre-check=0", false);
-            header("Content-Length: " . strlen($_POST['sql']));
+            header("Content-Length: " . strlen((string) $_POST['sql']));
 
             //jc:7347 - for whatever reason, html_entity_decode is choking on converting
             //the html entity &#039; to a single quote, so we will use str_replace
             //instead
-            $sql = str_replace('&#039;', "'", $_POST['sql']);
+            $sql = str_replace(array('&#039;', '&#96;'), array("'", "`"), (string) $_POST['sql']);
             //echo html_entity_decode($_POST['sql']);
             echo $sql;
         } elseif (isset($_POST['raction']) && strtolower($_POST['raction']) == "execute") {
@@ -79,12 +79,14 @@ if (is_admin($current_user) || isset($from_sync_client) || is_admin_for_any_modu
                 array(
                     "\n",
                     '&#039;',
+                    '&#96;',
                 ),
                 array(
                     '',
                     "'",
+                    "`"
                 ),
-                preg_replace('#(/\*.+?\*/\n*)#', '', $_POST['sql'])
+                preg_replace('#(/\*.+?\*/\n*)#', '', (string) $_POST['sql'])
             );
             foreach (explode(";", $sql) as $stmt) {
                 $stmt = trim($stmt);
@@ -141,10 +143,10 @@ if (is_admin($current_user) || isset($from_sync_client) || is_admin_for_any_modu
             if (!isset($meta['table']) || isset($repairedTables[$meta['table']])) {
                 continue;
             }
-            
+
             $tablename = $meta['table'];
             $fielddefs = $meta['fields'];
-            $indices = $meta['indices'];
+            $indices = $meta['indices'] ?? [];
             $engine = isset($meta['engine'])?$meta['engine']:null;
             $sql .= $db->repairTableParams($tablename, $fielddefs, $indices, $execute, $engine);
             $repairedTables[$tablename] = true;

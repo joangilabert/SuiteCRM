@@ -41,19 +41,13 @@ if (!defined('sugarEntry') || !sugarEntry) {
  * display the words "Powered by SugarCRM" and "Supercharged by SuiteCRM".
  */
 
-/*********************************************************************************
-
- * Description:  TODO: To be written.
- * Portions created by SugarCRM are Copyright (C) SugarCRM, Inc.
- * All Rights Reserved.
- * Contributor(s): ______________________________________..
- ********************************************************************************/
 
 
 
 
 
-$focus = new EmailTemplate();
+
+$focus = BeanFactory::newBean('EmailTemplates');
 
 if (!isset($_REQUEST['record'])) {
     sugar_die("A record number must be specified to delete the template.");
@@ -63,7 +57,9 @@ if (!$focus->ACLAccess('Delete')) {
     ACLController::displayNoAccess(true);
     sugar_cleanup(true);
 }
-sugar_cache_clear('select_array:'.$focus->object_name.'namebase_module=\''.$focus->base_module.'\'name');
+
+$baseModule = $focus->base_module ?? '';
+sugar_cache_clear('select_array:'.$focus->object_name.'namebase_module=\''.$baseModule.'\'name');
 $focus->mark_deleted($_REQUEST['record']);
 
 header("Location: index.php?module=".$_REQUEST['return_module']."&action=".$_REQUEST['return_action']."&record=".$_REQUEST['return_id']);

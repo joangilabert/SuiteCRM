@@ -5,12 +5,13 @@ use Api\V8\BeanDecorator\BeanManager;
 use Api\V8\JsonApi\Response\DocumentResponse;
 use Api\V8\JsonApi\Response\MetaResponse;
 
+#[\AllowDynamicProperties]
 class LogoutService
 {
     /**
      * @var BeanManager
      */
-    private $beanManager;
+    protected $beanManager;
 
     /**
      * @param BeanManager $beanManager

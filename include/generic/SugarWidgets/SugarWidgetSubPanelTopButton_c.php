@@ -46,6 +46,7 @@ if (!defined('sugarEntry') || !sugarEntry) {
 
 
 
+#[\AllowDynamicProperties]
 class SugarWidgetSubPanelTopButton_c extends SugarWidget
 {
     public $module;
@@ -208,20 +209,27 @@ class SugarWidgetSubPanelTopButton_c extends SugarWidget
             if ($defines['focus']->object_name=='Contact') {
                 $additionalFormFields['parent_id'] = $defines['focus']->account_id;
                 $additionalFormFields['account_id'] = $defines['focus']->account_id;
-            } elseif ($defines['focus']->object_name=='Contract') {
-                $additionalFormFields['contract_id'] = $defines['focus']->id;
             } else {
-                $additionalFormFields['parent_id'] = $defines['focus']->id;
+                if ($defines['focus']->object_name=='Contract') {
+                    $additionalFormFields['contract_id'] = $defines['focus']->id;
+                } else {
+                    $additionalFormFields['parent_id'] = $defines['focus']->id;
+                }
             }
         }
 
-        if ($defines['focus']->object_name=='Opportunity') {
+        if ($defines['focus']->object_name === 'Opportunity') {
             $additionalFormFields['account_id'] = $defines['focus']->account_id;
             $additionalFormFields['account_name'] = $defines['focus']->account_name;
         }
 
-        if (!empty($defines['child_module_name']) and $defines['child_module_name']=='Contacts' and !empty($defines['parent_bean_name']) and $defines['parent_bean_name']=='contact') {
-            if (!empty($defines['focus']->id) and !empty($defines['focus']->name)) {
+        if (
+            !empty($defines['child_module_name']) &&
+            $defines['child_module_name'] === 'Contacts' &&
+            !empty($defines['parent_bean_name']) &&
+            $defines['parent_bean_name'] === 'contact'
+        ) {
+            if (!empty($defines['focus']->id) && !empty($defines['focus']->name)) {
                 $formValues['reports_to_id'] = $defines['focus']->id;
                 $formValues['reports_to_name'] = $defines['focus']->name;
             }
@@ -239,23 +247,24 @@ class SugarWidgetSubPanelTopButton_c extends SugarWidget
             $returnLink = rtrim($returnLink, '&');
 
             return $returnLink;
-        }
-        $form = 'form' . $relationship_name;
-        $button = '<form action="index.php" method="post" name="form" id="' . $form . "\">\n";
-        foreach ($formValues as $key => $value) {
-            if (empty($value->defs)) {
-                $button .= "<input type='hidden' name='" . $key . "' value='" . $value . "' />\n";
+        } else {
+            $form = 'form' . $relationship_name;
+            $button = '<form action="index.php" method="post" name="form" id="' . $form . "\">\n";
+            foreach ($formValues as $key => $value) {
+                if (empty($value->defs)) {
+                    $button .= "<input type='hidden' name='" . $key . "' value='" . $value . "' />\n";
+                }
             }
-        }
-        // fill in additional form fields for all but action
-        foreach ($additionalFormFields as $key => $value) {
-            if ($key != 'action') {
-                $button .= "<input type='hidden' name='" . $key . "' value='" . $value . "' />\n";
+            // fill in additional form fields for all but action
+            foreach ($additionalFormFields as $key => $value) {
+                if ($key != 'action') {
+                    $button .= "<input type='hidden' name='" . $key . "' value='" . $value . "' />\n";
+                }
             }
-        }
 
 
-        return $button;
+            return $button;
+        }
     }
 
     /** This default function is used to create the HTML for a simple button */
@@ -270,6 +279,7 @@ class SugarWidgetSubPanelTopButton_c extends SugarWidget
 
         global $app_strings;
 
+        $button = '';
         if (isset($_REQUEST['layout_def_key']) && $_REQUEST['layout_def_key'] == 'UserEAPM') {
             // Subpanels generally don't go on the editview, so we have to handle this special
             $megaLink = $this->_get_form($defines, $additionalFormFields, true);

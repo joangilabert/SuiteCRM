@@ -58,7 +58,7 @@ if (!isset($_SERVER['SERVER_SOFTWARE'])) {
     LoggerManager::getLogger()->warn('SERVER_SOFTVARE is undefined got Display Warnings');
 }
 
-if (isset($_SERVER['SERVER_SOFTWARE']) && (strpos($_SERVER['SERVER_SOFTWARE'], 'Microsoft-IIS') !== false) && (php_sapi_name() == 'cgi-fcgi') && (ini_get('fastcgi.logging') != '0')) {
+if (isset($_SERVER['SERVER_SOFTWARE']) && (strpos((string) $_SERVER['SERVER_SOFTWARE'], 'Microsoft-IIS') !== false) && (php_sapi_name() == 'cgi-fcgi') && (ini_get('fastcgi.logging') != '0')) {
     displayAdminError(translate('LBL_FASTCGI_LOGGING', 'Administration'));
 }
 if (is_admin($current_user)) {
@@ -67,7 +67,7 @@ if (is_admin($current_user)) {
     }
 
     //No SMTP server is set up Error.
-    $admin = new Administration();
+    $admin = BeanFactory::newBean('Administration');
     $smtp_error = $admin->checkSmtpError();
 
     if (!isset($sugar_config['installer_locked']) || $sugar_config['installer_locked'] == false) {

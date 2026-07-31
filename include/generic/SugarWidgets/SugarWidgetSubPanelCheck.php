@@ -44,6 +44,7 @@ if (!defined('sugarEntry') || !sugarEntry) {
 include_once('include/generic/SugarWidgets/SugarWidgetField.php');
 
 
+#[\AllowDynamicProperties]
 class SugarWidgetSubPanelCheck extends SugarWidgetField
 {
     public function displayListPlain($layout_def)
@@ -51,7 +52,7 @@ class SugarWidgetSubPanelCheck extends SugarWidgetField
         $value= $this->_get_list_value($layout_def);
 
         if (isset($layout_def['widget_type']) && $layout_def['widget_type'] =='checkbox') {
-            if ($value != '' &&  ($value == 'on' || intval($value) == 1 || $value == 'yes')) {
+            if ($value != '' &&  ($value == 'on' || (int)$value == 1 || $value == 'yes')) {
                 return "&nbsp;<input name='checkbox_display' class='checkbox' type='checkbox' disabled='true' checked>";
             }
             //Modification to allow checkboxes to be displayed correctly in subpanel

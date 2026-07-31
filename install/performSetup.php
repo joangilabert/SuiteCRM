@@ -1,7 +1,4 @@
 <?php
-if (!defined('sugarEntry') || !sugarEntry) {
-    die('Not A Valid Entry Point');
-}
 /**
  *
  * SugarCRM Community Edition is a customer relationship management program developed by
@@ -41,18 +38,22 @@ if (!defined('sugarEntry') || !sugarEntry) {
  * display the words "Powered by SugarCRM" and "Supercharged by SuiteCRM".
  */
 
+if (!defined('sugarEntry') || !sugarEntry) {
+    die('Not A Valid Entry Point');
+}
+
 function installStatus($msg, $cmd = null, $overwrite = false, $before = '[ok]<br>')
 {
     $fname = 'install/status.json';
     if (!$overwrite && file_exists($fname)) {
-        $stat = json_decode(file_get_contents($fname));
+        $stat = json_decode(file_get_contents($fname), null, 512, JSON_THROW_ON_ERROR);
         //$msg = json_encode($stat);
         $msg = $stat->message . $before . $msg;
     }
     file_put_contents($fname, json_encode(array(
         'message' => $msg,
         'command' => $cmd,
-    )));
+    ), JSON_THROW_ON_ERROR));
 }
 installStatus($mod_strings['LBL_START'], null, true, '');
 
@@ -99,7 +100,7 @@ $setup_site_admin_user_name         = $_SESSION['setup_site_admin_user_name'];
 $setup_site_admin_password          = $_SESSION['setup_site_admin_password'];
 $setup_site_guid                    = (isset($_SESSION['setup_site_specify_guid']) && $_SESSION['setup_site_specify_guid'] != '') ? $_SESSION['setup_site_guid'] : '';
 $setup_site_url                     = $_SESSION['setup_site_url'];
-$parsed_url                         = parse_url($setup_site_url);
+$parsed_url                         = parse_url((string) $setup_site_url);
 $setup_site_host_name               = $parsed_url['host'];
 $setup_site_log_dir                 = isset($_SESSION['setup_site_custom_log_dir']) ? $_SESSION['setup_site_log_dir'] : '.';
 $setup_site_log_file                = 'suitecrm.log';  // may be an option later
@@ -157,7 +158,7 @@ $bottle = handleSugarConfig();
 //handleLog4Php();
 
 $server_software = $_SERVER["SERVER_SOFTWARE"];
-if (strpos($server_software, 'Microsoft-IIS') !== false) {
+if (strpos((string) $server_software, 'Microsoft-IIS') !== false) {
     installLog("calling handleWebConfig()");
     handleWebConfig();
 } else {
@@ -260,7 +261,7 @@ foreach ($beanFiles as $bean => $file) {
         }
         if (!in_array($bean, $nonStandardModules)) {
             require_once("modules/".$focus->module_dir."/vardefs.php"); // load up $dictionary
-            if ($dictionary[$focus->object_name]['table'] == 'does_not_exist') {
+            if (isset($dictionary[$focus->object_name]['table']) && $dictionary[$focus->object_name]['table'] == 'does_not_exist') {
                 continue; // support new vardef definitions
             }
         } else {
@@ -362,7 +363,7 @@ installStatus($mod_strings['STAT_CREATE_DEFAULT_SETTINGS']);
 
     echo $line_entry_format.$mod_strings['LBL_PERFORM_DEFAULT_SCHEDULER'].$line_exit_format;
     installLog($mod_strings['LBL_PERFORM_DEFAULT_SCHEDULER']);
-    $scheduler = new Scheduler();
+    $scheduler = BeanFactory::newBean('Schedulers');
     installerHook('pre_createDefaultSchedulers');
     $scheduler->rebuildDefaultSchedulers();
     installerHook('post_createDefaultSchedulers');
@@ -430,7 +431,7 @@ FP;
         set_CheckUpdates_config_setting('manual');
     }
     if (!empty($_SESSION['setup_system_name'])) {
-        $admin=new Administration();
+        $admin=BeanFactory::newBean('Administration');
         $admin->saveSetting('system', 'name', $_SESSION['setup_system_name']);
     }
 
@@ -464,12 +465,7 @@ FP;
     $enabled_tabs[] = 'AOS_Products';
     $enabled_tabs[] = 'AOS_Product_Categories';
     $enabled_tabs[] = 'AOS_PDF_Templates';
-    $enabled_tabs[] = 'jjwg_Maps';
-    $enabled_tabs[] = 'jjwg_Markers';
-    $enabled_tabs[] = 'jjwg_Areas';
-    $enabled_tabs[] = 'jjwg_Address_Cache';
     $enabled_tabs[] = 'AOR_Reports';
-    $enabled_tabs[] = 'AOW_WorkFlow';
     $enabled_tabs[] = 'AOK_KnowledgeBase';
     $enabled_tabs[] = 'AOK_Knowledge_Base_Categories';
     $enabled_tabs[] = 'EmailTemplates';
@@ -504,7 +500,7 @@ if (isset($_SESSION['installation_scenarios'])) {
         //If the item is not in $_SESSION['scenarios'], then unset them as they are not required
         if (!in_array($scenario['key'], $_SESSION['scenarios'])) {
             foreach ($scenario['modules'] as $module) {
-                if (($removeKey = array_search($module, $enabled_tabs)) !== false) {
+                if (($removeKey = array_search($module, $enabled_tabs, true)) !== false) {
                     unset($enabled_tabs[$removeKey]);
                 }
             }
@@ -534,16 +530,12 @@ if (!is_null($_SESSION['scenarios'])) {
 
 
 //Write the tabstructure to custom so that the grouping are not shown for the un-selected scenarios
-$fp = sugar_fopen('custom/include/tabConfig.php', 'w');
 $fileContents = "<?php \n" .'$GLOBALS["tabStructure"] ='.var_export($GLOBALS['tabStructure'], true).';';
-fwrite($fp, $fileContents);
-fclose($fp);
+sugar_file_put_contents('custom/include/tabConfig.php', $fileContents);
 
 //Write the dashlets to custom so that the dashlets are not shown for the un-selected scenarios
-$fp = sugar_fopen('custom/modules/Home/dashlets.php', 'w');
 $fileContents = "<?php \n" .'$defaultDashlets ='.var_export($defaultDashlets, true).';';
-fwrite($fp, $fileContents);
-fclose($fp);
+sugar_file_put_contents('custom/modules/Home/dashlets.php', $fileContents);
 
 
 // End of the scenario implementations
@@ -582,7 +574,7 @@ if ($_SESSION['demoData'] != 'no') {
     print($render_table_open);
 
     global $current_user;
-    $current_user = new User();
+    $current_user = BeanFactory::newBean('Users');
     $current_user->retrieve(1);
     include("install/populateSeedData.php");
     installerHook('post_installDemoData');
@@ -614,7 +606,7 @@ installLog('save locale');
 
 //global $current_user;
 installLog('new Administration');
-$focus = new Administration();
+$focus = BeanFactory::newBean('Administration');
 installLog('retrieveSettings');
 //$focus->retrieveSettings();
 // switch off the adminwizard (mark that we have got past this point)
@@ -690,7 +682,7 @@ installLog('Save user settings..');
 // set all of these default parameters since the Users save action will undo the defaults otherwise
 
 // load admin
-$current_user = new User();
+$current_user = BeanFactory::newBean('Users');
 $current_user->retrieve(1);
 $current_user->is_admin = '1';
 $sugar_config = get_sugar_config_defaults();
@@ -700,20 +692,11 @@ if (isset($_REQUEST['timezone']) && $_REQUEST['timezone']) {
     $current_user->setPreference('timezone', $_REQUEST['timezone']);
 }
 
-//$_POST[''] = $_REQUEST['default_locale_name_format'];
-$_POST['dateformat'] = $_REQUEST['default_date_format'];
-//$_POST[''] = $_REQUEST['default_time_format'];
-//$_POST[''] = $_REQUEST['default_language'];
-//$_POST[''] = $_REQUEST['default_currency_name'];
-//$_POST[''] = $_REQUEST['default_currency_symbol'];
-//$_POST[''] = $_REQUEST['default_currency_iso4217'];
-//$_POST[''] = $_REQUEST['setup_site_session_path'];
-//$_POST[''] = $_REQUEST['setup_site_log_dir'];
-//$_POST[''] = $_REQUEST['setup_site_guid'];
-//$_POST[''] = $_REQUEST['default_email_charset'];
-//$_POST[''] = $_REQUEST['default_export_charset'];
-//$_POST[''] = $_REQUEST['export_delimiter'];
+if (file_exists(__DIR__ . '/../modules/ACL/install_actions.php')) {
+    require_once(__DIR__ . '/../modules/ACL/install_actions.php');
+}
 
+$_POST['dateformat'] = $_REQUEST['default_date_format'];
 $_POST['record'] = $current_user->id;
 $_POST['is_admin'] = ($current_user->is_admin ? 'on' : '');
 $_POST['use_real_names'] = true;
@@ -727,11 +710,11 @@ $_POST['user_theme'] = (string) SugarThemeRegistry::getDefault();
 
 // save and redirect to new view
 $_REQUEST['do_not_redirect'] = true;
-installLog('DBG: require modules/Users/Save.php');
-require('modules/Users/Save.php');
 
 // restore superglobals and vars
-$GLOBALS = $varStack['GLOBALS'];
+foreach ($varStack['GLOBALS'] ?? [] as $index => $item) {
+    $GLOBALS[$index] = $item;
+}
 foreach ($varStack['defined_vars'] as $__key => $__value) {
     $$__key = $__value;
 }
@@ -742,12 +725,12 @@ $endTime = microtime(true);
 $deltaTime = $endTime - $startTime;
 
 if (!is_array($bottle) || !is_object($bottle)) {
-    $bottle = (array)$bottle;
+    $bottle = $bottle;
     LoggerManager::getLogger()->warn('Bottle needs to be an array to perform setup');
 }
 
 
-if (count($bottle) > 0) {
+if (is_countable($bottle) && count($bottle) > 0) {
     foreach ($bottle as $bottle_message) {
         $bottleMsg .= "{$bottle_message}\n";
     }
@@ -765,7 +748,7 @@ $out =<<<EOQ
 <p><b>{$fpResult}</b></p>
 </div>
 <footer id="install_footer">
-    <p id="footer_links"><a href="https://suitecrm.com" target="_blank">Visit suitecrm.com</a> | <a href="https://suitecrm.com/index.php?option=com_kunena&view=category&Itemid=1137&layout=list" target="_blank">Support Forums</a> | <a href="https://docs.suitecrm.com/admin/installation-guide/" target="_blank">Installation Guide</a> | <a href="LICENSE.txt" target="_blank">License</a>
+    <p id="footer_links"><a href="https://suitecrm.com" target="_blank">Visit suitecrm.com</a> | <a href="https://suitecrm.com/suitecrm/forum" target="_blank">Support Forums</a> | <a href="https://docs.suitecrm.com/admin/installation-guide/" target="_blank">Installation Guide</a> | <a href="LICENSE.txt" target="_blank">License</a>
 </footer>
 </div>
 </body>

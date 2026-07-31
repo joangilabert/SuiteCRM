@@ -87,7 +87,12 @@ $dictionary['prospect_lists_prospects'] = array(
         array(
             'name' => 'idx_plp_pro_id',
             'type' => 'index',
-            'fields' => array('prospect_list_id')
+            'fields' => array(
+                'prospect_list_id',
+                'deleted',
+                'related_type',
+                'related_id',
+            ),
         ),
         array(
             'name' => 'idx_plp_rel_id',

@@ -2,17 +2,9 @@
 
 namespace Step\Acceptance;
 
+#[\AllowDynamicProperties]
 class PDFTemplates extends \AcceptanceTester
 {
-    /**
-     * Navigate to pdf templates module
-     */
-    public function gotoPDFTemplates()
-    {
-        $I = new NavigationBar($this->getScenario());
-        $I->clickAllMenuItem('PDF - Templates');
-    }
-
     /**
      * Create a PDF Template
      *
@@ -40,7 +32,7 @@ class PDFTemplates extends \AcceptanceTester
         $I->seeElement('#assigned_user_name');
         $I->seeElement('#sample');
 
-        $I->executeJS('tinyMCE.activeEditor.setContent("TinyMCE Content Test");');
+        $I->executeJS('tinymce.activeEditor.setContent("TinyMCE Content Test");');
 
         $I->fillField('#margin_left', 20);
         $I->fillField('#margin_right', 20);
